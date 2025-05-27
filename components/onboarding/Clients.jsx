@@ -3,48 +3,67 @@ import React, { useEffect, useRef, useState } from 'react';
 import 'intl-tel-input/build/css/intlTelInput.css';
 import intlTelInput from 'intl-tel-input';
 
-const Clients = () => {
+const Clients = ({ onValidChange }) => {
     const phoneInputRef = useRef(null);
     const [step, setStep] = useState('search');
     const [phone, setPhone] = useState('');
-    const [isTyping, setIsTyping] = useState(false);
+    const [clientName, setClientName] = useState('');
+    const [relation, setRelation] = useState('');
+    const [email, setEmail] = useState('');
+
+    // Sync validation with parent
+    useEffect(() => {
+        if (step === 'new') {
+            const isValid =
+                clientName.trim() !== '' &&
+                relation.trim() !== '' &&
+                phone.length > 5;
+
+            onValidChange?.(isValid);
+        } else {
+            onValidChange?.(false);
+        }
+    }, [step, clientName, relation, phone]);
 
     useEffect(() => {
-        if (phoneInputRef.current) {
-            const iti = intlTelInput(phoneInputRef.current, {
-                initialCountry: 'auto',
-                geoIpLookup: function (callback) {
-                    fetch('https://ipapi.co/json')
-                        .then((res) => res.json())
-                        .then((data) => callback(data.country_code))
-                        .catch(() => callback('us'));
-                },
-                utilsScript: 'https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/utils.js',
-            });
+        if (!phoneInputRef.current) return;
 
-            const input = phoneInputRef.current;
+        const iti = intlTelInput(phoneInputRef.current, {
+            initialCountry: 'auto',
+            geoIpLookup: (callback) => {
+                fetch('https://ipapi.co/json')
+                    .then((res) => res.json())
+                    .then((data) => callback(data.country_code))
+                    .catch(() => callback('us'));
+            },
+            utilsScript:
+                'https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/utils.js',
+        });
 
-            const onInput = () => {
-                const number = iti.getNumber();
-                setPhone(number);
-                setIsTyping(true);
+        const input = phoneInputRef.current;
 
-                if (number.length > 5) {
-                    setTimeout(() => {
-                        if (number === '+911234567890') {
-                            alert('Existing user found!');
-                            setStep('search');
-                        } else {
-                            setStep('new');
-                        }
-                    }, 500);
-                }
-            };
+        const onInput = () => {
+            const number = iti.getNumber();
+            setPhone(number);
 
-            input.addEventListener('input', onInput);
+            if (number.length > 5) {
+                setTimeout(() => {
+                    if (number === '+911234567890') {
+                        alert('Existing user found!');
+                        setStep('search');
+                    } else {
+                        setStep('new');
+                    }
+                }, 500);
+            }
+        };
 
-            return () => input.removeEventListener('input', onInput);
-        }
+        input.addEventListener('input', onInput);
+
+        return () => {
+            input.removeEventListener('input', onInput);
+            iti.destroy(); // Clean up plugin
+        };
     }, []);
 
     return (
@@ -65,9 +84,15 @@ const Clients = () => {
                             type="text"
                             placeholder="Client name*"
                             className="bg-gray-800 p-2 rounded"
+                            value={clientName}
+                            onChange={(e) => setClientName(e.target.value)}
                         />
-                        <select className="bg-gray-800 p-2 rounded">
-                            <option>Select Relation</option>
+                        <select
+                            className="bg-gray-800 p-2 rounded"
+                            value={relation}
+                            onChange={(e) => setRelation(e.target.value)}
+                        >
+                            <option value="">Select Relation</option>
                             <option>Friend</option>
                             <option>Family</option>
                             <option>Corporate</option>
@@ -82,6 +107,8 @@ const Clients = () => {
                             type="email"
                             placeholder="Email"
                             className="bg-gray-800 p-2 rounded"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
                         />
                     </div>
                 )}
