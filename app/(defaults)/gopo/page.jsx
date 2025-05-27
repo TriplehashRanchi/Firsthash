@@ -59,7 +59,7 @@ function Page() {
                     <Shoots onValidChange={setIsShootsValid} />
                     <Deliverables onValidChange={setIsDeliverablesValid} />
                     <ReceivedAmount onValidChange={setIsReceivedValid} />
-                    <PaymentSchedule onValidChange={setIsScheduleValid} />
+                    {/* <PaymentSchedule onValidChange={setIsScheduleValid} /> */}
                 </div>
             </div>
 

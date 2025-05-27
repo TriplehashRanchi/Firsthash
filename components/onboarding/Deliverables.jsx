@@ -47,22 +47,15 @@ const Deliverables = () => {
 
     return (
         <div className="mb-10">
-            <h2 className="text-2xl font-bold mb-4 text-white">Deliverables</h2>
-
-            {/* Controls */}
-            <div className="flex gap-4 mb-6">
+            {/* Heading with + icon */}
+            <div className="flex items-center justify-between mb-4">
+                <h2 className="text-2xl font-bold text-white">Deliverables</h2>
                 <button
                     onClick={() => setShowModal(true)}
-                    className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 px-4 py-2 text-white rounded"
+                    className="text-white bg-gray-700 hover:bg-gray-600 p-2 rounded-full"
+                    title="Add from Preset"
                 >
-                    <Plus size={18} /> Add From Preset
-                </button>
-
-                <button
-                    onClick={addManualDeliverable}
-                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 px-4 py-2 text-white rounded"
-                >
-                    <Plus size={18} /> Custom
+                    <Plus size={20} />
                 </button>
             </div>
 
@@ -71,8 +64,7 @@ const Deliverables = () => {
                 <div className="flex flex-wrap gap-3 mb-2 text-sm text-gray-300 px-1">
                     <div className="flex-1 min-w-[200px]">Title</div>
                     <div className="w-32">Cost (₹)</div>
-                    <div className="w-20">Qty</div>
-                    <div className="w-44">Date</div>
+                
                     <div className="w-10"></div>
                 </div>
             )}
@@ -97,19 +89,7 @@ const Deliverables = () => {
                         onChange={(e) => handleChange(index, 'cost', e.target.value)}
                         className="bg-gray-800 text-white p-2 rounded w-32"
                     />
-                    <input
-                        type="number"
-                        placeholder="Qty"
-                        value={item.quantity}
-                        onChange={(e) => handleChange(index, 'quantity', e.target.value)}
-                        className="bg-gray-800 text-white p-2 rounded w-20"
-                    />
-                    <input
-                        type="date"
-                        value={item.date}
-                        onChange={(e) => handleChange(index, 'date', e.target.value)}
-                        className="bg-gray-800 text-white p-2 rounded w-44"
-                    />
+                    
                     <button
                         onClick={() => handleRemove(index)}
                         className="text-red-500 hover:text-red-700 p-2"
