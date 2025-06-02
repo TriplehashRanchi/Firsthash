@@ -1,7 +1,8 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import Link from 'next/link';
 
 import Shoots from '../../../components/onboarding/Shoots';
 import ProjectDetails from '../../../components/onboarding/ProjectDetails';
@@ -11,7 +12,10 @@ import Deliverables from '../../../components/onboarding/Deliverables';
 import ReceivedAmount from '../../../components/onboarding/ReceivedAmount';
 
 function Page() {
-    // You will collect validation flags from each section
+    const [projectName, setProjectName] = useState('');
+    const [projectPackageCost, setProjectPackageCost] = useState('');
+    const [deliverablesTotalCost, setDeliverablesTotalCost] = useState(0);
+
     const [isClientsValid, setIsClientsValid] = useState(false);
     const [isProjectDetailsValid, setIsProjectDetailsValid] = useState(false);
     const [isShootsValid, setIsShootsValid] = useState(false);
@@ -20,56 +24,117 @@ function Page() {
     const [isScheduleValid, setIsScheduleValid] = useState(false);
 
     const handleSave = () => {
-        if (
-            isClientsValid &&
-            isProjectDetailsValid &&
-            isShootsValid &&
-            isDeliverablesValid &&
-            isReceivedValid &&
-            isScheduleValid
-        ) {
-            toast.success("All data valid. Ready to send to backend.");
+        if (!projectName.trim()) {
+            toast.error("Project name cannot be empty.");
+            return;
+        }
 
-            // Backend integration goes here
-            // Example: axios.post('/api/projects', fullProjectData)
+        let allValid = true;
+        const missingSections = [];
 
+        if (!isClientsValid) { missingSections.push("Clients"); allValid = false; }
+        if (!isProjectDetailsValid) { missingSections.push("Project Details"); allValid = false; }
+        if (!isShootsValid) { missingSections.push("Shoots"); allValid = false; }
+        if (!isDeliverablesValid) { missingSections.push("Deliverables"); allValid = false; }
+        if (!isReceivedValid) { missingSections.push("Received Amount"); allValid = false; }
+        // if (!isScheduleValid && paymentScheduleIsActive) { /* Your condition for schedule validation */
+        //     missingSections.push("Payment Schedule");
+        //     allValid = false;
+        // }
+
+        if (allValid) {
+            toast.success(`Project "${projectName}" data valid. Ready to send to backend.`);
+            console.log("Project Name to save:", projectName);
+            console.log("Package Cost:", projectPackageCost);
+            console.log("Deliverables Additional Cost:", deliverablesTotalCost);
+            console.log("Overall Total Cost:", overallTotalCost);
+            console.log("All other data states:", {
+                isClientsValid, isProjectDetailsValid, isShootsValid,
+                isDeliverablesValid, isReceivedValid, isScheduleValid
+            });
         } else {
-            toast.error("Please fill all required sections before saving.");
+            toast.error(`Please fill all required sections. Missing/Invalid: ${missingSections.join(', ')}.`);
         }
     };
 
+    // --- Themed Styles ---
+    const pageContainerStyles = "min-h-screen p-6 bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200 transition-colors duration-300";
+    const breadcrumbLinkStyles = "text-blue-600 hover:underline dark:text-blue-400";
+    const breadcrumbCurrentPageStyles = "text-gray-600 dark:text-gray-400";
+    const breadcrumbSeparatorStyles = "before:content-['/'] ltr:before:mr-2 rtl:before:ml-2 text-gray-500 dark:text-gray-500";
+    const projectNameInputStyles = "bg-transparent text-3xl font-bold focus:outline-none flex-grow placeholder-gray-500 text-gray-900 dark:text-white dark:placeholder-gray-400";
+    const successButtonStyles = "bg-blue-600 text-white px-6 py-3 rounded text-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 focus:ring-4 focus:ring-blue-300 dark:focus:ring-blue-800";
+    
+    const totalCostSectionStyles = "mt-10 pt-6 border-t border-gray-300 dark:border-gray-700"; // Base style for the section
+    const totalCostLabelStyles = "text-xl font-semibold text-gray-700 dark:text-gray-200";
+    const totalCostValueStyles = "text-3xl font-bold text-green-600 dark:text-green-400 ml-2";
+
+    // Calculate overall total cost
+    const overallTotalCost = (parseFloat(projectPackageCost) || 0) + deliverablesTotalCost;
+
     return (
-        <div className="min-h-screen bg-black text-white p-6">
-            <ToastContainer />
-            <div className="mt-8 text-left">
+        <div className={pageContainerStyles}>
+            <ToastContainer theme={typeof window !== 'undefined' && document.documentElement.classList.contains('dark') ? 'dark' : 'light'} position="top-right" autoClose={3000} />
+            
+            <ul className="flex space-x-2 rtl:space-x-reverse mb-6">
+                <li>
+                    <Link href="/dashboard" className={breadcrumbLinkStyles}>
+                        Dashboard
+                    </Link>
+                </li>
+                <li className={breadcrumbSeparatorStyles}>
+                    <span className={breadcrumbCurrentPageStyles}>Create Project</span>
+                </li>
+            </ul>
+            
+            <div className="text-left">
                 <div className="flex items-center justify-between mb-6">
-                    <h1 className="text-3xl font-bold">New Project</h1>
-                    <button className="bg-blue-600 text-white px-4 py-2 text-xl rounded hover:bg-blue-700">
-                        Create
-                    </button>
+                    <input
+                        type="text"
+                        value={projectName}
+                        onChange={(e) => setProjectName(e.target.value)}
+                        placeholder="Enter Project Name"
+                        className={projectNameInputStyles}
+                    />
                 </div>
             </div>
 
-            <div className="grid gap-8">
+            <div className="grid gap-8 pt-5">
                 <div>
                     <Clients onValidChange={setIsClientsValid} />
-                    <ProjectDetails onValidChange={setIsProjectDetailsValid} />
+                    <ProjectDetails 
+                        onValidChange={setIsProjectDetailsValid}
+                        packageCost={projectPackageCost}
+                        onPackageCostChange={setProjectPackageCost}
+                    />
                 </div>
                 <div>
                     <Shoots onValidChange={setIsShootsValid} />
-                    <Deliverables onValidChange={setIsDeliverablesValid} />
+                    <Deliverables 
+                        onValidChange={setIsDeliverablesValid}
+                        onDeliverablesCostChange={setDeliverablesTotalCost}
+                    />
                     <ReceivedAmount onValidChange={setIsReceivedValid} />
-                    {/* <PaymentSchedule onValidChange={setIsScheduleValid} /> */}
+                    <PaymentSchedule onValidChange={setIsScheduleValid} /> {/* Assuming this is now active */}
                 </div>
             </div>
 
-            {/* Save Button at the Bottom */}
-            <div className="mt-10 text-center">
+            {/* --- Total Cost Section & Save Button --- */}
+            <div className={`${totalCostSectionStyles} flex justify-between items-center`}>
+                {/* Left Side: Total Cost Display */}
+                <div> 
+                    <span className={totalCostLabelStyles}>Overall Total:</span>
+                    <span className={totalCostValueStyles}>
+                        ₹{overallTotalCost.toLocaleString()}
+                    </span>
+                </div>
+
+                {/* Right Side: Save Button */}
                 <button
                     onClick={handleSave}
-                    className="bg-green-600 text-white px-6 py-3 rounded text-lg hover:bg-green-700"
+                    className={successButtonStyles} 
                 >
-                    Save
+                    Save Project
                 </button>
             </div>
         </div>
