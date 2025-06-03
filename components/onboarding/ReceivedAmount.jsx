@@ -1,69 +1,109 @@
 'use client';
-import React, { useState, useEffect } from 'react'; // Added useState, useEffect for input values and validation
+import React, { useState, useEffect } from 'react';
 
-const ReceivedAmount = ({ onValidChange }) => { // Assuming onValidChange prop for consistency
+// Accept onDataChange prop from Page.js
+const ReceivedAmount = ({ onValidChange, onDataChange }) => { 
     const [amount, setAmount] = useState('');
     const [description, setDescription] = useState('');
     const [date, setDate] = useState('');
 
-    // --- Styles for Light/Dark Mode ---
-    const sectionWrapperStyles = "mb-6 p-4 bg-white dark:bg-gray-800/50 rounded-lg shadow-md dark:shadow-gray-700/50";
-    const sectionHeadingStyles = "text-xl font-semibold mb-1 text-gray-800 dark:text-gray-100";
-    const sectionSubheadingStyles = "text-sm text-gray-500 dark:text-gray-400 mb-3"; // Adjusted margin slightly
-
-    const inputBase = "w-full text-sm rounded-lg p-2.5 h-[42px] border"; // Standardized input height
-    const themedInputStyles = `${inputBase} bg-white text-gray-800 border-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400`;
-
-    // Basic validation (optional, as the field is optional)
-    // This example makes it valid if all fields are empty OR if amount is a number and date is present
+    // --- useEffect for Validation ---
     useEffect(() => {
         if (typeof onValidChange === 'function') {
-            const isEmpty = !amount && !description && !date;
-            const isPartiallyFilledValid = 
-                (amount.trim() === '' || (!isNaN(parseFloat(amount)) && parseFloat(amount) >= 0)) &&
-                (date.trim() === '' || date.trim() !== ''); // Date simply needs to be not empty if amount is filled
+            const amountStr = amount.toString().trim(); // Ensure amount is string for trim
+            const dateStr = date.toString().trim();
+
+            // If all fields are empty, it's considered valid (optional section)
+            const isEmpty = !amountStr && !description.trim() && !dateStr;
             
-            // If all are empty, it's valid (optional field).
-            // If amount is entered, it must be a number, and date should ideally be present.
-            // Description is truly optional.
             let isValid = isEmpty;
             if (!isEmpty) {
-                isValid = (amount.trim() === '' || (!isNaN(parseFloat(amount)) && parseFloat(amount) >= 0)) &&
-                          (date.trim() !== ''); // If amount is provided, date becomes more important
+                // If not empty, amount must be a valid non-negative number, and date must be present
+                // Description is truly optional.
+                const isAmountValid = amountStr !== '' && !isNaN(parseFloat(amountStr)) && parseFloat(amountStr) >= 0;
+                const isDatePresent = dateStr !== '';
+                isValid = isAmountValid && isDatePresent;
             }
             onValidChange(isValid);
         }
     }, [amount, description, date, onValidChange]);
+
+    // --- CRITICAL: useEffect for Reporting Data to Parent ---
+    useEffect(() => {
+        if (typeof onDataChange === 'function') {
+            const amountStr = amount.toString().trim();
+            const dateStr = date.toString().trim();
+            const descriptionStr = description.trim();
+
+            // Only send a transaction object if there's meaningful data
+            // Otherwise, send null or an empty indicator for this section
+            const transactionData = (amountStr || descriptionStr || dateStr) 
+                ? {
+                    amount: parseFloat(amountStr) || 0, // Ensure numeric amount, default to 0
+                    description: descriptionStr,
+                    date: dateStr,
+                  }
+                : null; // Or you could send an empty object: { amount: 0, description: '', date: '' }
+
+            const componentData = {
+                transaction: transactionData,
+            };
+            // console.log('[ReceivedAmount.js] Reporting data:', componentData); // UNCOMMENT FOR DEBUGGING
+            onDataChange(componentData);
+        }
+    // Dependencies: All state variables that form the componentData + onDataChange prop
+    }, [amount, description, date, onDataChange]);
+
+
+    // --- Styles for Light/Dark Mode ---
+    const sectionWrapperStyles = "mb-6 p-4 bg-white dark:bg-gray-800/50 rounded-lg shadow-md dark:shadow-gray-700/50";
+    const sectionHeadingStyles = "text-xl font-semibold mb-1 text-gray-800 dark:text-gray-100";
+    const sectionSubheadingStyles = "text-sm text-gray-500 dark:text-gray-400 mb-3";
+    const inputBase = "w-full text-sm rounded-lg p-2.5 h-[42px] border";
+    const themedInputStyles = `${inputBase} bg-white text-gray-800 border-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400`;
+    const labelStyles = "block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300"; // Added for consistency
 
 
     return (
         <div className={sectionWrapperStyles}>
             <h2 className={sectionHeadingStyles}>Received Amount</h2>
             <p className={sectionSubheadingStyles}>
-                Amount already paid by client while creating this project. This field is optional.
+                Optional: Amount already paid by client for this project.
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3"> {/* Adjusted gap and responsive columns */}
-                <input
-                    type="number" // More appropriate for amount
-                    placeholder="Amount"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    className={themedInputStyles}
-                    min="0" // Good for currency
-                />
-                <input
-                    type="text" // Text for description
-                    placeholder="Description"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    className={themedInputStyles}
-                />
-                <input
-                    type="date"
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
-                    className={themedInputStyles}
-                />
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4"> {/* Changed gap to 4 for consistency */}
+                <div>
+                    <label htmlFor="receivedAmount" className={labelStyles}>Amount (₹)</label>
+                    <input
+                        id="receivedAmount"
+                        type="number"
+                        placeholder="e.g., 10000"
+                        value={amount}
+                        onChange={(e) => setAmount(e.target.value)}
+                        className={themedInputStyles}
+                        min="0"
+                    />
+                </div>
+                <div>
+                    <label htmlFor="receivedDesc" className={labelStyles}>Description (Optional)</label>
+                    <input
+                        id="receivedDesc"
+                        type="text"
+                        placeholder="e.g., Advance Payment"
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        className={themedInputStyles}
+                    />
+                </div>
+                <div>
+                    <label htmlFor="receivedDate" className={labelStyles}>Date Received</label>
+                    <input
+                        id="receivedDate"
+                        type="date"
+                        value={date}
+                        onChange={(e) => setDate(e.target.value)}
+                        className={themedInputStyles}
+                    />
+                </div>
             </div>
         </div>
     );
