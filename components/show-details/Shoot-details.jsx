@@ -14,7 +14,7 @@ const ALL_TEAM_MEMBERS = [
     { id: "ar1", name: "Anita Rao", roles: ["Editor"], primaryRole: "Photo Editor" },
     { id: "vc1", name: "Vikram Choudhary", roles: ["Photographer", "Drone Operator"], primaryRole: "Drone Operator & Photo" },
     { id: "mi1", name: "Meena Iyer", roles: ["Videographer"], primaryRole: "Videographer Assistant" },
-    { id: "ap1", name: "Aarav Patel", roles: ["Photographer"], primaryRole: "Event Photographer" },
+    { id: "ap1", name: "Aarav Patel", roles: ["Photographer"], 'primaryRole': "Event Photographer" },
     { id: "ir1", name: "Ishaan Reddy", roles: ["Photographer"], primaryRole: "Assistant Photographer" },
     { id: "zk1", name: "Zara Khan", roles: ["Videographer"], primaryRole: "Lead Videographer" },
     { id: "km1", name: "Kabir Mehta", roles: ["Videographer"], primaryRole: "Second Videographer" },
@@ -154,7 +154,7 @@ const AssignmentModalContent = ({
                     <button
                         onClick={handleSaveChangesClick}
                         className="px-8 py-2.5 rounded-lg text-sm font-bold text-white bg-gradient-to-r from-purple-500 to-pink-600 hover:opacity-90 transition-opacity shadow-lg
-                                   dark:text-slate-900 dark:from-purple-400 dark:to-pink-500" // Primary button looks similar in both modes, gradient adapted slightly for text contrast
+                                   dark:text-slate-900 dark:from-purple-400 dark:to-pink-500"
                     >
                         Save Changes
                     </button>
@@ -177,8 +177,39 @@ const ShootsTab = ({
     const [assignmentContext, setAssignmentContext] = useState(null); 
 
     if (!Array.isArray(shoots) || shoots.length === 0) { 
-        return <p className="text-slate-500 dark:text-slate-400 p-2">No shoots scheduled.</p>;
+        return (
+            <div>
+                 <h3 className={sectionTitleStyles}>
+                    <Camera className="w-5 h-5 mr-2.5 text-indigo-600 dark:text-indigo-400" />
+                    Shoot Schedule
+                </h3>
+                <p className="text-slate-500 dark:text-slate-400 p-2">No shoots scheduled.</p>
+            </div>
+        );
     }
+    
+    // --- NEW: Sort shoots by date and determine the date range ---
+    const sortedShoots = [...shoots].sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    const formatDate = (dateString) => {
+        if (!dateString) return '';
+        // Assuming date format is YYYY-MM-DD
+        return new Date(dateString).toLocaleDateString('en-US', {
+            year: 'numeric', month: 'short', day: 'numeric'
+        });
+    };
+    
+    const startDate = sortedShoots[0]?.date;
+    const endDate = sortedShoots[sortedShoots.length - 1]?.date;
+    let dateRangeDisplay = '';
+    if (startDate) {
+        if (startDate === endDate) {
+            dateRangeDisplay = formatDate(startDate);
+        } else {
+            dateRangeDisplay = `${formatDate(startDate)} - ${formatDate(endDate)}`;
+        }
+    }
+    // --- END NEW ---
 
     const openAssignmentModal = (shootId, serviceName, currentAssignedNamesArray, requiredCount) => {
         const currentIds = (currentAssignedNamesArray || [])
@@ -214,6 +245,8 @@ const ShootsTab = ({
         closeAssignmentModal();
     };
 
+
+
     const getTeamMembersForService = (serviceName) => {
         const requiredRole = SERVICE_TO_REQUIRED_ROLE[serviceName];
         if (requiredRole) {
@@ -234,18 +267,28 @@ const ShootsTab = ({
     return (
         <>
             <div>
-                <h3 className={sectionTitleStyles}> {/* This style comes from props, assumed to be dark mode aware */}
-                    <Camera className="w-5 h-5 mr-2.5 text-indigo-600 dark:text-indigo-400" /> {/* Adjusted icon color for better light/dark contrast */}
-                    Shoot Schedule
-                </h3>
+                <div className="mb-4"> {/* Wrapper for title and date range */}
+                    <h3 className={sectionTitleStyles}>
+                        <Camera className="w-5 h-5 mr-2.5 text-indigo-600 dark:text-indigo-400" />
+                        Shoot Schedule
+                    </h3>
+                    {/* --- NEW: Display the calculated date range --- */}
+                    {dateRangeDisplay && (
+                        <p className="flex items-center text-sm text-slate-500 dark:text-slate-400 mt-1 pl-1">
+                            <CalendarDays size={14} className="mr-2"/>
+                            Event Dates: {dateRangeDisplay}
+                        </p>
+                    )}
+                </div>
+
                 <div> 
-                    {shoots.map((shoot, index) => ( 
-                        <ContentListItemComponent key={shoot.id || index} className="mb-6 last:mb-0"> {/* This component comes from props, assumed to be dark mode aware */}
+                    {/* --- UPDATED: Map over the sorted shoots --- */}
+                    {sortedShoots.map((shoot, index) => ( 
+                        <ContentListItemComponent key={shoot.id || index} className="mb-6 last:mb-0">
                             <h4 className="text-md font-semibold text-indigo-700 dark:text-indigo-300 mb-2 flex items-center">
-                                <Camera size={18} className="mr-2 text-indigo-600 dark:text-indigo-400"/> Shoot {index + 1}: {shoot.title} {/* Adjusted icon color */}
+                                <Camera size={18} className="mr-2 text-indigo-600 dark:text-indigo-400"/> Shoot {index + 1}: {shoot.title}
                             </h4>
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-4 mb-3">
-                                {/* DetailPairStylishComponent comes from props, assumed to be dark mode aware */}
                                 <DetailPairStylishComponent label="Date" value={shoot.date} isDate icon={CalendarDays}/>
                                 <DetailPairStylishComponent label="Time" value={shoot.time} icon={Clock}/>
                                 <DetailPairStylishComponent label="City" value={shoot.city} icon={MapPin}/>
@@ -281,7 +324,7 @@ const ShootsTab = ({
                                                             <div className="text-sm font-medium text-slate-700 dark:text-slate-200 flex-grow group-hover:text-indigo-500 dark:group-hover:text-indigo-400 transition-colors">
                                                                 {assignedPersonNames.join(', ')}
                                                                 {assignedPersonNames.length < requiredCount && 
-                                                                    <span className="text-xs text-amber-600 dark:text-amber-500 ml-1">({requiredCount - assignedPersonNames.length} more needed)</span>} {/* Adjusted amber color */}
+                                                                    <span className="text-xs text-amber-600 dark:text-amber-500 ml-1">({requiredCount - assignedPersonNames.length} more needed)</span>}
                                                             </div>
                                                         ) : (
                                                             <span className="text-sm italic text-slate-500 dark:text-slate-500 flex-grow group-hover:text-indigo-500 dark:group-hover:text-indigo-400 transition-colors">

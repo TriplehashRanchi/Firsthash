@@ -163,7 +163,7 @@ const ShootRow = ({
                 <input ref={servicesTriggerRef} placeholder="Services*" readOnly onClick={() => setShowServiceOptions()} value={selectedServicesText} className={`${fullInputStyle} cursor-pointer truncate pr-10`} title={Object.keys(shoot.selectedServices || {}).join(', ')} />
                 <Settings2 size={18} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 pointer-events-none" />
             </div>
-            <input placeholder="City*" className={fullInputStyle} value={shoot.city || ''} onChange={e => onChange('city', e.target.value)} />
+            <input placeholder="Venue*" className={fullInputStyle} value={shoot.city || ''} onChange={e => onChange('city', e.target.value)} />
             {!isFirst && canDelete && (
                 <button onClick={onDelete} className="bg-red-600 text-white hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 rounded p-2 h-10 w-10 flex items-center justify-center" title="Delete Shoot" type="button">
                     <Trash size={16} />
