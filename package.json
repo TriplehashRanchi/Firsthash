@@ -36,6 +36,7 @@
         "highlight.js": "^11.7.0",
         "i18next": "^23.13.0",
         "intl-tel-input": "^17.0.19",
+        "jwt-decode": "^4.0.0",
         "lucide-react": "^0.511.0",
         "mantine-datatable": "^1.7.35",
         "next": "14.2.13",
