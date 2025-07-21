@@ -15,55 +15,38 @@ import Setting from '@/components/layouts/setting';
 import Sidebar from '@/components/layouts/sidebar';
 import Portals from '@/components/portals';
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const { currentUser, isAdmin, isSubscribedUser, loading } = useAuth();
+export default function EmployeeLayout({ children }: { children: React.ReactNode }) {
+  const { currentUser, isEmployee, isSubscribedUser, loading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
     if (!loading) {
       if (!currentUser) {
         router.push('/register');
-      } else if (!isAdmin) {
+      } else if (!isEmployee) {
         router.push('/unauthorized');
       } else if (!isSubscribedUser) {
         router.push('/subscribe');
       }
     }
-  }, [loading, currentUser, isAdmin, isSubscribedUser]);
+  }, [loading, currentUser, isEmployee, isSubscribedUser]);
 
-  if (loading || !currentUser || !isAdmin || !isSubscribedUser) {
+  if (loading || !currentUser || !isEmployee || !isSubscribedUser) {
     return <Loading />;
   }
 
   return (
     <>
-      {/* BEGIN MAIN CONTAINER */}
       <div className="relative">
         <Overlay />
         <ScrollToTop />
-
-        {/* BEGIN APP SETTING LAUNCHER */}
         <Setting />
-        {/* END APP SETTING LAUNCHER */}
-
         <MainContainer>
-          {/* BEGIN SIDEBAR */}
           <Sidebar />
-          {/* END SIDEBAR */}
-
           <div className="main-content flex min-h-screen flex-col">
-            {/* BEGIN TOP NAVBAR */}
             <Header />
-            {/* END TOP NAVBAR */}
-
-            {/* BEGIN CONTENT AREA */}
             <ContentAnimation>{children}</ContentAnimation>
-            {/* END CONTENT AREA */}
-
-            {/* BEGIN FOOTER */}
             <Footer />
-            {/* END FOOTER */}
-
             <Portals />
           </div>
         </MainContainer>
