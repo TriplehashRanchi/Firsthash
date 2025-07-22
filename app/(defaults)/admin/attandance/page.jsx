@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Sun, Moon } from 'lucide-react';
-import AttendanceDashboard from '../../../components/attandance-comp/AttendanceDashboard';
+import AttendanceDashboard from '../../../../components/attandance-comp/AttendanceDashboard';
 
 // =======================================================================================
 //  DATA SOURCE (Stays in the main page as requested)
