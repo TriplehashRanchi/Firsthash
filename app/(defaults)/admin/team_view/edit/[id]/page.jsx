@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import axios from 'axios';
+import { getAuth } from 'firebase/auth';
 
 const API_URL = 'http://localhost:8080';
 const TYPE_OPTIONS = [
@@ -73,39 +74,43 @@ export default function MemberEditPage() {
 
     // Data Fetching
     useEffect(() => {
-        if (!id) return;
-        const fetchInitialData = async () => {
-            try {
-                const [rolesRes, memberRes, bankRes] = await Promise.all([
-                    axios.get(`${API_URL}/api/roles`),
-                    axios.get(`${API_URL}/api/members/${id}`),
-                    axios.get(`${API_URL}/api/members/${id}/payment-details`)
-                ]);
+    if (!id) return;
+    const fetchInitialData = async () => {
+      const user = getAuth().currentUser;
+      if (!user) {
+        setToast({ message: "Admin not logged in", type: "error" });
+        setPageLoading(false);
+        return;
+      }
+      let token;
+      try { token = await user.getIdToken(); }
+      catch (e) { console.error(e); setToast({ message:"Auth failed",type:"error" }); setPageLoading(false); return; }
 
-                setRoles(rolesRes.data);
-                const memberData = memberRes.data;
-                setForm({
-                    full_name: memberData.name || '',
-                    email: memberData.email || '',
-                    phone: memberData.phone || '',
-                    employee_type: memberData.employee_type,
-                    address: memberData.address || '',
-                    salary: memberData.salary || '',
-                    role_id: memberData.role_id || ''
-                });
+      try {
+        const [rolesRes, memberRes, bankRes] = await Promise.all([
+          axios.get(`${API_URL}/api/roles`,    { headers:{ Authorization:`Bearer ${token}` } }),
+          axios.get(`${API_URL}/api/members/${id}`, { headers:{ Authorization:`Bearer ${token}` } }),
+          axios.get(`${API_URL}/api/members/${id}/payment-details`, { headers:{ Authorization:`Bearer ${token}` } })
+        ]);
 
-                if (bankRes.data) {
-                    setBankForm(bankRes.data);
-                }
-            } catch (err) {
-                console.error('Error fetching initial data:', err);
-                setToast({ message: 'Failed to load member data.', type: 'error' });
-            } finally {
-                setPageLoading(false);
-            }
-        };
-        fetchInitialData();
-    }, [id]);
+        setRoles(rolesRes.data);
+        const m = memberRes.data;
+        setForm({
+          full_name: m.name, email: m.email, phone: m.phone,
+          employee_type: m.employee_type,
+          address: m.address||'', salary: m.salary||'', role_id: m.role_id||''
+        });
+        if (bankRes.data) setBankForm(bankRes.data);
+      } catch (err) {
+        console.error("Error loading data:", err);
+        const msg = err.response?.data?.error || err.message;
+        setToast({ message: msg, type:"error" });
+      } finally {
+        setPageLoading(false);
+      }
+    };
+    fetchInitialData();
+  }, [id]);
 
     // Handlers
     const handleChange = (e) => {
@@ -120,36 +125,63 @@ export default function MemberEditPage() {
         setBankForm(prev => ({ ...prev, [name]: value }));
     };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setFormLoading(true);
-        try {
-            await axios.put(`${API_URL}/api/members/${id}`, {
-                ...form,
-                salary: form.employee_type === 1 ? form.salary : null
-            });
-            setToast({ message: 'Member details saved successfully.', type: 'success' });
-        } catch (err) {
-            console.error('Error updating member:', err);
-            setToast({ message: 'Failed to save details.', type: 'error' });
-        } finally {
-            setFormLoading(false);
-        }
-    };
 
-    const handleBankSubmit = async (e) => {
-        e.preventDefault();
-        setBankLoading(true);
-        try {
-            await axios.put(`${API_URL}/api/members/${id}/payment-details`, bankForm);
-            setToast({ message: 'Payment details saved successfully.', type: 'success' });
-        } catch (err) {
-            console.error('Error saving bank details:', err);
-            setToast({ message: 'Failed to save payment details.', type: 'error' });
-        } finally {
-            setBankLoading(false);
-        }
-    };
+
+
+const handleSubmit = async e => {
+    e.preventDefault();
+    const user = getAuth().currentUser;
+    if (!user) {
+      setToast({ message: "Admin not logged in", type:"error" });
+      return;
+    }
+
+    setFormLoading(true);
+    try {
+      const token = await user.getIdToken();
+      await axios.put(
+        `${API_URL}/api/members/${id}`,
+        { ...form, salary: form.employee_type===1?form.salary:null },
+        { headers: { Authorization:`Bearer ${token}` } }
+      );
+      setToast({ message:"Member saved!", type:"success" });
+    } catch (err) {
+      console.error(err);
+      const msg = err.response?.data?.error || err.message;
+      setToast({ message:msg, type:"error" });
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+
+const handleBankSubmit = async e => {
+    e.preventDefault();
+    const user = getAuth().currentUser;
+    if (!user) {
+      setToast({ message: "Admin not logged in", type:"error" });
+      return;
+    }
+
+    setBankLoading(true);
+    try {
+      const token = await user.getIdToken();
+      await axios.put(
+        `${API_URL}/api/members/${id}/payment-details`,
+        bankForm,
+        { headers: { Authorization:`Bearer ${token}` } }
+      );
+      setToast({ message:"Payment details saved!", type:"success" });
+    } catch (err) {
+      console.error(err);
+      const msg = err.response?.data?.error || err.message;
+      setToast({ message:msg, type:"error" });
+    } finally {
+      setBankLoading(false);
+    }
+  };
+
+
     
     if (pageLoading) {
         return <div className="flex justify-center items-center h-screen bg-gray-50"><div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div></div>;

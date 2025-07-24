@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import axios from 'axios';
+import { getAuth } from 'firebase/auth';
 
 // Icon Components
 import IconEye from '@/components/icon/icon-eye';
@@ -128,86 +129,154 @@ export default function TeamViewPage() {
         fetchRoles();
     }, []);
 
-    const fetchMembers = async () => {
-        try {
-            const { data } = await axios.get(`${API_URL}/api/members`);
-            setMembers(data);
-        } catch (err) {
-            console.error('Error fetching members:', err);
-            setToast({ message: 'Failed to fetch members.', type: 'error' });
-        }
-    };
+    async function fetchMembers() {
+    const user = getAuth().currentUser;
+    if (!user) {
+      setToast({ message: 'Admin not logged in', type: 'error' });
+      return;
+    }
+    try {
+      const token = await user.getIdToken();
+      const { data } = await axios.get(`${API_URL}/api/members`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setMembers(data);
+    } catch (err) {
+      console.error('Error fetching members:', err);
+      const msg = err.response?.data?.error || err.message;
+      setToast({ message: msg, type: 'error' });
+    }
+  }
 
-    const fetchRoles = async () => {
-        try {
-            const { data } = await axios.get(`${API_URL}/api/roles`);
-            setRolesList(data);
-        } catch (err) {
-            console.error('Error fetching roles:', err);
-        }
-    };
+    async function fetchRoles() {
+    const user = getAuth().currentUser;
+    if (!user) {
+      setToast({ message: 'Admin not logged in', type: 'error' });
+      return;
+    }
+    try {
+      const token = await user.getIdToken();
+      const { data } = await axios.get(`${API_URL}/api/roles`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setRolesList(data);
+    } catch (err) {
+      console.error('Error fetching roles:', err);
+      const msg = err.response?.data?.error || err.message;
+      setToast({ message: msg, type: 'error' });
+    }
+  }
 
-    const toggleAuth = async (uid, checked) => {
-        try {
-            const status = checked ? 'active' : 'inactive';
-            await axios.patch(`${API_URL}/api/members/${uid}/status`, { status });
-            setMembers(prev => prev.map(m => m.firebase_uid === uid ? { ...m, status } : m));
-            setToast({ message: 'Member status updated.', type: 'success' });
-        } catch (err) {
-            console.error('Error toggling auth:', err);
-            setToast({ message: 'Error updating status.', type: 'error' });
-        }
-    };
+    async function toggleAuth(uid, checked) {
+    const user = getAuth().currentUser;
+    if (!user) {
+      setToast({ message: 'Admin not logged in', type: 'error' });
+      return;
+    }
+    try {
+      const token = await user.getIdToken();
+      const status = checked ? 'active' : 'inactive';
+      await axios.patch(
+        `${API_URL}/api/members/${uid}/status`,
+        { status },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setMembers(prev =>
+        prev.map(m => (m.firebase_uid === uid ? { ...m, status } : m))
+      );
+      setToast({ message: 'Member status updated.', type: 'success' });
+    } catch (err) {
+      console.error('Error toggling auth:', err);
+      const msg = err.response?.data?.error || err.message;
+      setToast({ message: msg, type: 'error' });
+    }
+  }
 
     const handleDeleteRequest = (uid) => setConfirmDelete({ isOpen: true, uid });
 
-    const deleteMember = async () => {
-        const { uid } = confirmDelete;
-        if (!uid) return;
-        try {
-            await axios.delete(`${API_URL}/api/members/${uid}`);
-            setMembers(prev => prev.filter(m => m.firebase_uid !== uid));
-            setToast({ message: 'Member deleted successfully.', type: 'success' });
-        } catch (err) {
-            console.error('Error deleting member:', err);
-            setToast({ message: 'Failed to delete member.', type: 'error' });
-        } finally {
-            setConfirmDelete({ isOpen: false, uid: null });
-        }
-    };
+    async function deleteMember() {
+    const { uid } = confirmDelete;
+    setConfirmDelete({ isOpen: false, uid: null });
+    if (!uid) return;
+    const user = getAuth().currentUser;
+    if (!user) {
+      setToast({ message: 'Admin not logged in', type: 'error' });
+      return;
+    }
+    try {
+      const token = await user.getIdToken();
+      await axios.delete(`${API_URL}/api/members/${uid}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setMembers(prev => prev.filter(m => m.firebase_uid !== uid));
+      setToast({ message: 'Member deleted successfully.', type: 'success' });
+    } catch (err) {
+      console.error('Error deleting member:', err);
+      const msg = err.response?.data?.error || err.message;
+      setToast({ message: msg, type: 'error' });
+    }
+  }
 
-    const showAttendance = async (uid, name) => {
-        const today = new Date().toISOString().slice(0, 10);
-        try {
-            const { data } = await axios.get(`${API_URL}/api/attendance?date=${today}`);
-            let rec = data.find(r => r.firebase_uid === uid) || { firebase_uid: uid, a_date: today, in_time: '', out_time: '', a_status: 0 };
-            rec = { ...rec, in_time: rec.in_time || '', out_time: rec.out_time || '' };
-            setTodayRecord(rec);
-            setSelectedMember({ firebase_uid: uid, name });
-            setShowAttendanceModal(true);
-        } catch (err) {
-            console.error('Error fetching attendance:', err);
-            setToast({ message: 'Failed to fetch attendance.', type: 'error' });
-        }
-    };
+    async function showAttendance(uid, name) {
+    const user = getAuth().currentUser;
+    if (!user) {
+      setToast({ message: 'Admin not logged in', type: 'error' });
+      return;
+    }
+    const today = new Date().toISOString().slice(0, 10);
+    try {
+      const token = await user.getIdToken();
+      const { data } = await axios.get(`${API_URL}/api/attendance?date=${today}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      let rec =
+        data.find(r => r.firebase_uid === uid) ||
+        { firebase_uid: uid, a_date: today, in_time: '', out_time: '', a_status: 0 };
+      setTodayRecord({ ...rec, in_time: rec.in_time || '', out_time: rec.out_time || '' });
+      setSelectedMember({ firebase_uid: uid, name });
+      setShowAttendanceModal(true);
+    } catch (err) {
+      console.error('Error fetching attendance:', err);
+      const msg = err.response?.data?.error || err.message;
+      setToast({ message: msg, type: 'error' });
+    }
+  }
+
     
     const handleTodayChange = (field, value) => setTodayRecord(prev => ({ ...prev, [field]: value }));
     
-    const saveAttendance = async () => {
-        if (!todayRecord) return;
-        setSavingAttendance(true);
-        try {
-            const payload = [{ ...todayRecord, in_time: todayRecord.in_time || null, out_time: todayRecord.out_time || null }];
-            await axios.post(`${API_URL}/api/attendance`, payload);
-            setToast({ message: "Attendance saved", type: 'success' });
-            setShowAttendanceModal(false);
-        } catch (err) {
-            console.error('Error saving attendance:', err);
-            setToast({ message: 'Failed to save attendance', type: 'error' });
-        } finally {
-            setSavingAttendance(false);
+    async function saveAttendance() {
+    if (!todayRecord) return;
+    const user = getAuth().currentUser;
+    if (!user) {
+      setToast({ message: 'Admin not logged in', type: 'error' });
+      return;
+    }
+    setSavingAttendance(true);
+    try {
+      const token = await user.getIdToken();
+      const payload = [
+        {
+          ...todayRecord,
+          in_time: todayRecord.in_time || null,
+          out_time: todayRecord.out_time || null
         }
-    };
+      ];
+      await axios.post(`${API_URL}/api/attendance`, payload, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setToast({ message: 'Attendance saved', type: 'success' });
+      setShowAttendanceModal(false);
+      fetchMembers(); // refresh list if needed
+    } catch (err) {
+      console.error('Error saving attendance:', err);
+      const msg = err.response?.data?.error || err.message;
+      setToast({ message: msg, type: 'error' });
+    } finally {
+      setSavingAttendance(false);
+    }
+  }
+
     
     return (
         <div className="p-8 bg-gray-50 min-h-screen">

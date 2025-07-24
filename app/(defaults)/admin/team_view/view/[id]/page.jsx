@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import axios from 'axios';
+import { getAuth } from 'firebase/auth';
 
 const API_URL = 'http://localhost:8080';
 const TYPE_LABELS = { 0: 'Freelancer', 1: 'In-house' };
@@ -25,36 +26,52 @@ const LoadingSpinner = () => (
 );
 
 export default function MemberViewPage() {
-    const router = useRouter();
-    const { id } = useParams();
-    const [member, setMember] = useState(null);
-    const [paymentDetails, setPaymentDetails] = useState(null);
-    const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter();
+  const { id } = useParams();
+  const [member, setMember] = useState(null);
+  const [paymentDetails, setPaymentDetails] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-    useEffect(() => {
-        if (!id) return;
-        const fetchAllDetails = async () => {
-            setIsLoading(true);
-            try {
-                // Fetch both details in parallel
-                const memberPromise = axios.get(`${API_URL}/api/members/${id}`);
-                const paymentPromise = axios.get(`${API_URL}/api/members/${id}/payment-details`);
-                
-                const [memberRes, paymentRes] = await Promise.all([memberPromise, paymentPromise]);
-                
-                setMember(memberRes.data);
-                setPaymentDetails(paymentRes.data);
-                
-            } catch (err) {
-                console.error('Error loading member details:', err);
-                // Optionally set an error state to show a user-friendly message
-            } finally {
-                setIsLoading(false);
-            }
-        };
+  useEffect(() => {
+    if (!id) return;
 
-        fetchAllDetails();
-    }, [id]);
+    const fetchDetails = async () => {
+      setIsLoading(true);
+      setError(null);
+
+      // 1️⃣ Ensure admin is logged in
+      const user = getAuth().currentUser;
+      if (!user) {
+        setError("Admin not logged in.");
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        // 2️⃣ Fetch fresh token
+        const token = await user.getIdToken();
+        const headers = { Authorization: `Bearer ${token}` };
+
+        // 3️⃣ Fetch member info + payment details in parallel
+        const [memberRes, paymentRes] = await Promise.all([
+          axios.get(`${API_URL}/api/members/${id}`, { headers }),
+          axios.get(`${API_URL}/api/members/${id}/payment-details`, { headers }),
+        ]);
+
+        setMember(memberRes.data);
+        setPaymentDetails(paymentRes.data);
+      } catch (err) {
+        console.error("Failed to fetch details", err);
+        setError("Could not load member data.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchDetails();
+  }, [id]);
+
 
     if (isLoading) return <LoadingSpinner />;
     if (!member) return <p className="p-6 text-center text-red-500">Failed to load member data.</p>;

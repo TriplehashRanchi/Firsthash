@@ -45,7 +45,14 @@ export default function MemberForm() {
             setLoading(true);
             setError(null);
             try {
-                const res = await fetch(`http://localhost:8080/api/roles?company_id=${companyId}`);
+                const auth = getAuth();
+                const user = auth.currentUser;
+                if (!user) throw new Error('Not logged in');
+                const token = await user.getIdToken();
+
+                const res = await fetch(`http://localhost:8080/api/roles?company_id=${companyId}`,
+          { headers: { Authorization: `Bearer ${token}` } });
+
                 if (!res.ok) throw new Error(`Fetch error: ${res.statusText}`);
                 const data = await res.json();
                 setTypes(data);
@@ -129,8 +136,10 @@ export default function MemberForm() {
                 const err = await response.json().catch(() => ({}));
                 throw new Error(err.error || response.statusText);
             }
-            alert('Member saved successfully!');
-            // reset form…
+            toast.success('Member created!');
+      // reset
+      setFullName(''); setMobileNo(''); setEmail('');
+      setPassword(''); setConfirmPwd(''); setSelectedRoles([]);
         } catch (err) {
             console.error('Submission error:', err);
             alert(`Error: ${err.message}`);
