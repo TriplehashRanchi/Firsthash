@@ -2,6 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import axios from 'axios';
+
+// Icon Components
 import IconEye from '@/components/icon/icon-eye';
 import IconEdit from '@/components/icon/icon-edit';
 import IconCalendar from '@/components/icon/icon-calendar';
@@ -9,7 +11,7 @@ import IconCalendar from '@/components/icon/icon-calendar';
 const API_URL = 'http://localhost:8080';
 const TYPE_LABELS = { 0: 'Freelancer', 1: 'In-house' };
 
-// --- Reusable UI Components ---
+// --- Reusable UI Components (Unchanged) ---
 
 const Toast = ({ message, type, onClose }) => {
     if (!message) return null;
@@ -61,7 +63,6 @@ const IconButton = ({ as: Component = 'button', children, text, ...props }) => (
 
 const AttendanceModal = ({ isOpen, onClose, record, onRecordChange, onSave, isSaving, memberName }) => {
     if (!isOpen) return null;
-
     const handleStatusToggle = (checked) => {
         onRecordChange('a_status', checked ? 1 : 0);
         if (!checked) {
@@ -69,7 +70,6 @@ const AttendanceModal = ({ isOpen, onClose, record, onRecordChange, onSave, isSa
             onRecordChange('out_time', '');
         }
     };
-
     return (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
             <div className="bg-white rounded-xl shadow-xl p-8 w-full max-w-md">
@@ -80,12 +80,9 @@ const AttendanceModal = ({ isOpen, onClose, record, onRecordChange, onSave, isSa
                     </div>
                     <button onClick={onClose} className="p-1 text-gray-400 hover:text-gray-600">×</button>
                 </div>
-
                 <div className="mt-6 space-y-6">
                     <div className="flex items-center justify-between bg-gray-50 p-4 rounded-lg">
-                        <span className={`font-semibold ${record.a_status === 1 ? 'text-green-700' : 'text-gray-700'}`}>
-                            {record.a_status === 1 ? 'Present' : 'Absent'}
-                        </span>
+                        <span className={`font-semibold ${record.a_status === 1 ? 'text-green-700' : 'text-gray-700'}`}>{record.a_status === 1 ? 'Present' : 'Absent'}</span>
                         <label className="relative inline-flex items-center cursor-pointer">
                             <input type="checkbox" checked={record.a_status === 1} onChange={e => handleStatusToggle(e.target.checked)} className="sr-only peer" />
                             <div className="w-14 h-8 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-1 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-green-600"></div>
@@ -102,7 +99,6 @@ const AttendanceModal = ({ isOpen, onClose, record, onRecordChange, onSave, isSa
                         </div>
                     </div>
                 </div>
-
                 <div className="mt-8 flex justify-end space-x-3">
                     <button onClick={onClose} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Cancel</button>
                     <button onClick={onSave} disabled={isSaving} className="px-4 py-2 w-28 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-400 flex items-center justify-center">
@@ -119,6 +115,7 @@ const AttendanceModal = ({ isOpen, onClose, record, onRecordChange, onSave, isSa
 
 export default function TeamViewPage() {
     const [members, setMembers] = useState([]);
+    const [rolesList, setRolesList] = useState([]);
     const [todayRecord, setTodayRecord] = useState(null);
     const [showAttendanceModal, setShowAttendanceModal] = useState(false);
     const [selectedMember, setSelectedMember] = useState(null);
@@ -126,7 +123,10 @@ export default function TeamViewPage() {
     const [toast, setToast] = useState({ message: '', type: '' });
     const [confirmDelete, setConfirmDelete] = useState({ isOpen: false, uid: null });
 
-    useEffect(() => { fetchMembers(); }, []);
+    useEffect(() => {
+        fetchMembers();
+        fetchRoles();
+    }, []);
 
     const fetchMembers = async () => {
         try {
@@ -135,6 +135,15 @@ export default function TeamViewPage() {
         } catch (err) {
             console.error('Error fetching members:', err);
             setToast({ message: 'Failed to fetch members.', type: 'error' });
+        }
+    };
+
+    const fetchRoles = async () => {
+        try {
+            const { data } = await axios.get(`${API_URL}/api/roles`);
+            setRolesList(data);
+        } catch (err) {
+            console.error('Error fetching roles:', err);
         }
     };
 
@@ -150,9 +159,7 @@ export default function TeamViewPage() {
         }
     };
 
-    const handleDeleteRequest = (uid) => {
-        setConfirmDelete({ isOpen: true, uid });
-    };
+    const handleDeleteRequest = (uid) => setConfirmDelete({ isOpen: true, uid });
 
     const deleteMember = async () => {
         const { uid } = confirmDelete;
@@ -173,12 +180,8 @@ export default function TeamViewPage() {
         const today = new Date().toISOString().slice(0, 10);
         try {
             const { data } = await axios.get(`${API_URL}/api/attendance?date=${today}`);
-            let rec = data.find(r => r.firebase_uid === uid);
-            if (!rec) {
-                rec = { firebase_uid: uid, a_date: today, in_time: '', out_time: '', a_status: 0 };
-            } else {
-                rec = { ...rec, in_time: rec.in_time || '', out_time: rec.out_time || '' };
-            }
+            let rec = data.find(r => r.firebase_uid === uid) || { firebase_uid: uid, a_date: today, in_time: '', out_time: '', a_status: 0 };
+            rec = { ...rec, in_time: rec.in_time || '', out_time: rec.out_time || '' };
             setTodayRecord(rec);
             setSelectedMember({ firebase_uid: uid, name });
             setShowAttendanceModal(true);
@@ -187,22 +190,14 @@ export default function TeamViewPage() {
             setToast({ message: 'Failed to fetch attendance.', type: 'error' });
         }
     };
-
-    const handleTodayChange = (field, value) => {
-        setTodayRecord(prev => ({ ...prev, [field]: value }));
-    };
-
+    
+    const handleTodayChange = (field, value) => setTodayRecord(prev => ({ ...prev, [field]: value }));
+    
     const saveAttendance = async () => {
         if (!todayRecord) return;
         setSavingAttendance(true);
         try {
-            const payload = [{
-                firebase_uid: todayRecord.firebase_uid,
-                a_date: todayRecord.a_date,
-                in_time: todayRecord.in_time || null,
-                out_time: todayRecord.out_time || null,
-                a_status: todayRecord.a_status
-            }];
+            const payload = [{ ...todayRecord, in_time: todayRecord.in_time || null, out_time: todayRecord.out_time || null }];
             await axios.post(`${API_URL}/api/attendance`, payload);
             setToast({ message: "Attendance saved", type: 'success' });
             setShowAttendanceModal(false);
@@ -213,71 +208,98 @@ export default function TeamViewPage() {
             setSavingAttendance(false);
         }
     };
-
+    
     return (
         <div className="p-8 bg-gray-50 min-h-screen">
             <Toast message={toast.message} type={toast.type} onClose={() => setToast({ message: '', type: '' })} />
             {confirmDelete.isOpen && (
                 <ConfirmationModal onConfirm={deleteMember} onCancel={() => setConfirmDelete({ isOpen: false, uid: null })} />
             )}
-            
-            <AttendanceModal
-                isOpen={showAttendanceModal}
-                onClose={() => setShowAttendanceModal(false)}
-                record={todayRecord}
-                onRecordChange={handleTodayChange}
-                onSave={saveAttendance}
-                isSaving={savingAttendance}
-                memberName={selectedMember?.name}
-            />
+            <AttendanceModal isOpen={showAttendanceModal} onClose={() => setShowAttendanceModal(false)} record={todayRecord} onRecordChange={handleTodayChange} onSave={saveAttendance} isSaving={savingAttendance} memberName={selectedMember?.name}/>
 
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-3xl font-bold text-gray-800">Team Members</h1>
             </div>
 
             <div className="bg-white shadow-lg rounded-xl overflow-hidden">
-                <table className="min-w-full">
-                    <thead className="bg-gray-100 border-b border-gray-200">
-                        <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role ID</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Auth</th>
-                            <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                        {members.map(m => (
-                            <tr key={m.firebase_uid} className="hover:bg-gray-50 transition-colors">
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{m.name}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{TYPE_LABELS[m.employee_type]}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{m.role_id}</td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                    <label className="relative inline-flex items-center cursor-pointer">
-                                        <input type="checkbox" checked={m.status === 'active'} onChange={e => toggleAuth(m.firebase_uid, e.target.checked)} className="sr-only peer" />
-                                        <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                                    </label>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                                    <div className="flex items-center justify-center space-x-4">
-                                        <IconButton as={Link} href={`/admin/team_view/view/${m.firebase_uid}`} text="View">
-                                           <IconEye/> 
-                                        </IconButton>
-                                        <IconButton as={Link} href={`/admin/team_view/edit/${m.firebase_uid}`} text="Edit">
-                                           <IconEdit/>
-                                        </IconButton>
-                                        <IconButton onClick={() => showAttendance(m.firebase_uid, m.name)} text="Attendance">
-                                           <IconCalendar/>
-                                        </IconButton>
-                                        <IconButton onClick={() => handleDeleteRequest(m.firebase_uid)} text="Delete">
-                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-red-600 hover:text-red-800"><path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.134-2.033-2.134h-3.868c-1.123 0-2.033.954-2.033 2.134v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>
-                                        </IconButton>
-                                    </div>
-                                </td>
+                <div className="overflow-x-auto">
+                    <table className="min-w-full">
+                        <thead className="bg-gray-100 border-b border-gray-200">
+                            <tr>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Roles</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Auth</th>
+                                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200">
+                            {members.map(m => {
+                                // ===== ERROR FIX STARTS HERE =====
+                                // Safely parse role_ids, ensuring it's always an array.
+                                let roleIdsArray = [];
+                                if (Array.isArray(m.role_ids)) {
+                                    roleIdsArray = m.role_ids;
+                                } else if (typeof m.role_ids === 'string' && m.role_ids.trim().startsWith('[')) {
+                                    // Handle JSON string case, e.g., '[1,5]'
+                                    try {
+                                        roleIdsArray = JSON.parse(m.role_ids);
+                                    } catch (e) {
+                                        console.error("Failed to parse role_ids:", m.role_ids, e);
+                                    }
+                                } else if (m.role_ids === null || m.role_ids === undefined) {
+                                     // This handles cases where the user has no roles and the value is null.
+                                     roleIdsArray = [];
+                                } else {
+                                     // Fallback for unexpected formats, though less likely.
+                                     console.warn("Unexpected format for role_ids:", m.role_ids);
+                                }
+                                
+                                // Now, we can safely map over roleIdsArray.
+                                const assignedRoleNames = roleIdsArray
+                                    .map(id => rolesList.find(role => role.id === id)?.type_name)
+                                    .filter(Boolean); // Filter out any undefined names if a role is not found
+                                // ===== ERROR FIX ENDS HERE =====
+                                
+                                return (
+                                <tr key={m.firebase_uid} className="hover:bg-gray-50 transition-colors">
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{m.name}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{TYPE_LABELS[m.employee_type]}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <div className="flex flex-wrap gap-2">
+                                            {assignedRoleNames.length > 0 ? (
+                                                assignedRoleNames.map((roleName) => (
+                                                    <span key={roleName} className="px-2.5 py-1 text-xs font-semibold leading-none text-blue-800 bg-blue-100 rounded-full">
+                                                        {roleName}
+                                                    </span>
+                                                ))
+                                            ) : (
+                                                <span className="text-sm text-gray-400 italic">Not assigned</span>
+                                            )}
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <label className="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" checked={m.status === 'active'} onChange={e => toggleAuth(m.firebase_uid, e.target.checked)} className="sr-only peer" />
+                                            <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                        </label>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                                        <div className="flex items-center justify-center space-x-4">
+                                            <IconButton as={Link} href={`/admin/team_view/view/${m.firebase_uid}`} text="View"><IconEye/></IconButton>
+                                            <IconButton as={Link} href={`/admin/team_view/edit/${m.firebase_uid}`} text="Edit"><IconEdit/></IconButton>
+                                            <IconButton onClick={() => showAttendance(m.firebase_uid, m.name)} text="Attendance"><IconCalendar/></IconButton>
+                                            <IconButton onClick={() => handleDeleteRequest(m.firebase_uid)} text="Delete">
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-red-600 hover:text-red-800"><path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.134-2.033-2.134h-3.868c-1.123 0-2.033.954-2.033 2.134v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>
+                                            </IconButton>
+                                        </div>
+                                    </td>
+                                </tr>
+                                )
+                            })}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     );

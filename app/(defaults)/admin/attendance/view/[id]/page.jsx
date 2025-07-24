@@ -15,8 +15,9 @@ const LoadingSpinner = ({ text }) => (
     </div>
 );
 
+
 export default function AttendanceViewPage() {
-    const { id } = useParams(); // This hook correctly extracts 'id' from the URL
+    const { id } = useParams(); 
     const router = useRouter();
     const [member, setMember] = useState(null);
     const [history, setHistory] = useState([]);
@@ -29,10 +30,9 @@ export default function AttendanceViewPage() {
         const fetchDetails = async () => {
             setLoading(true);
             try {
-                // Fetch member details and attendance history in parallel
                 const [memberRes, historyRes] = await Promise.all([
                     axios.get(`${API_URL}/api/members/${id}`),
-                    axios.get(`${API_URL}/api/attendance/${id}`),
+                    axios.get(`${API_URL}/api/members/${id}/attendance`),
                 ]);
                 
                 if (memberRes.data) {
@@ -67,7 +67,6 @@ export default function AttendanceViewPage() {
             <div className="flex justify-between items-center mb-6">
                 <div>
                     <h1 className="text-3xl font-bold text-gray-800">Attendance History</h1>
-                    {/* Ensure member exists before trying to access its properties */}
                     {member && <p className="text-lg text-gray-600">For {member.name}</p>}
                 </div>
                 <button 
