@@ -163,6 +163,9 @@ export default function RegisterPage() {
         </div>
 
         <p className="text-xs text-center text-gray-400">
+          <p className="text-sm text-center text-gray-500">
+            Already have an account? <a href="/login" className="underline">Login</a>
+          </p>
           By signing up, you agree to our Terms of Service and Privacy Policy
         </p>
       </div>
