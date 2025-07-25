@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import TeamAllocationCalendar from '../../../components/team/TeamAllocationCalendar';
+import TeamAllocationCalendar from '../../../../components/team/TeamAllocationCalendar';
 import Link from 'next/link';
 import { Sun, Moon } from 'lucide-react';
 
@@ -45,19 +45,19 @@ function AllocationsPage() {
     }, []);
 
     // Effect to apply theme class to <html> and save to localStorage
-    useEffect(() => {
-        if (theme === 'dark') {
-            document.documentElement.classList.add('dark');
-            localStorage.setItem('theme', 'dark');
-        } else {
-            document.documentElement.classList.remove('dark');
-            localStorage.setItem('theme', 'light');
-        }
-    }, [theme]);
+    // useEffect(() => {
+    //     if (theme === 'dark') {
+    //         document.documentElement.classList.add('dark');
+    //         localStorage.setItem('theme', 'dark');
+    //     } else {
+    //         document.documentElement.classList.remove('dark');
+    //         localStorage.setItem('theme', 'light');
+    //     }
+    // }, [theme]);
 
-    const toggleTheme = () => {
-        setTheme(prevTheme => (prevTheme === 'light' ? 'dark' : 'light'));
-    };
+    // const toggleTheme = () => {
+    //     setTheme(prevTheme => (prevTheme === 'light' ? 'dark' : 'light'));
+    // };
     
     // --- Theme-aware Styles ---
     const pageContainerStyles = "min-h-screen p-4 sm:p-6 bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 transition-colors duration-300";

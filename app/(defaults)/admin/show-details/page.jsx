@@ -7,9 +7,9 @@ import {
 } from 'lucide-react';
 
 // Import your tab components
-import Shoots from '../../../components/show-details/Shoot-details';
-import DeliverablesDetails from '../../../components/show-details/Deliverables-details';
-import Expence from '../../../components/show-details/Expence';
+import Shoots from '@/components/show-details/Shoot-details';
+import DeliverablesDetails from '@/components/show-details/Deliverables-details';
+import Expence from '@/components/show-details/Expence';
 
 // --- NEW: Helper Component for Status Badge ---
 const StatusBadge = ({ status }) => {
