@@ -22,7 +22,7 @@ export default function EmployeeRolesPage({ searchParams }) {
   const [editName, setEditName] = useState('');
   const [editCode, setEditCode] = useState(0);
 
-  const API_URL = 'http://localhost:8080';
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
 
   // helper: fetch fresh token + add to headers

@@ -6,7 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import axios from 'axios';
 import { getAuth } from 'firebase/auth';
 
-const API_URL = 'http://localhost:8080';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
 // A simple loading component for better user experience
 const LoadingSpinner = ({ text }) => (

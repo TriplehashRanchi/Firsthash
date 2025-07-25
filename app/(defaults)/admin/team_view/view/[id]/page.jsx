@@ -4,7 +4,7 @@ import { useRouter, useParams } from 'next/navigation';
 import axios from 'axios';
 import { getAuth } from 'firebase/auth';
 
-const API_URL = 'http://localhost:8080';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 const TYPE_LABELS = { 0: 'Freelancer', 1: 'In-house' };
 
 // A dedicated component for displaying a piece of information.
