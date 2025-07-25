@@ -8,7 +8,7 @@ import { getAuth } from 'firebase/auth';
 import toast from 'react-hot-toast';
 
 export default function MemberForm() {
-    const {currentUser, company} = useAuth();
+    const { currentUser, company } = useAuth();
     console.log('Company:', company);
     console.log('Current user:', currentUser);
     const GLOBAL_ID = '00000000-0000-0000-0000-000000000000';
@@ -18,8 +18,6 @@ export default function MemberForm() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [selectedRoles, setSelectedRoles] = useState([]);
-
-  
 
     // First-level category options with icons
     const categories = [
@@ -38,6 +36,7 @@ export default function MemberForm() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPwd, setConfirmPwd] = useState('');
+    const [showRoles, setShowRoles] = useState(false);
 
     // Fetch all role types from backend
     useEffect(() => {
@@ -50,8 +49,7 @@ export default function MemberForm() {
                 if (!user) throw new Error('Not logged in');
                 const token = await user.getIdToken();
 
-                const res = await fetch(`http://localhost:8080/api/roles?company_id=${companyId}`,
-          { headers: { Authorization: `Bearer ${token}` } });
+                const res = await fetch(`http://localhost:8080/api/roles?company_id=${companyId}`, { headers: { Authorization: `Bearer ${token}` } });
 
                 if (!res.ok) throw new Error(`Fetch error: ${res.statusText}`);
                 const data = await res.json();
@@ -89,10 +87,10 @@ export default function MemberForm() {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-           const auth = getAuth();
-           const admin = auth.currentUser;
-           if (!admin) toast.error('Admin not logged in');
-           const token = await admin.getIdToken();
+        const auth = getAuth();
+        const admin = auth.currentUser;
+        if (!admin) toast.error('Admin not logged in');
+        const token = await admin.getIdToken();
 
         if (selectedRoles.length === 0) {
             alert('Please select at least one role.');
@@ -116,7 +114,7 @@ export default function MemberForm() {
         }
 
         const payload = {
-            member_type: Number(roleId),// instead of category
+            member_type: Number(roleId), // instead of category
             role_ids: selectedRoles.map(Number),
             full_name: fullName,
             mobile_no: mobileNo,
@@ -129,7 +127,7 @@ export default function MemberForm() {
         try {
             const response = await fetch('http://localhost:8080/api/members', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' , Authorization: `Bearer ${token}`},
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                 body: JSON.stringify(payload),
             });
             if (!response.ok) {
@@ -137,9 +135,13 @@ export default function MemberForm() {
                 throw new Error(err.error || response.statusText);
             }
             toast.success('Member created!');
-      // reset
-      setFullName(''); setMobileNo(''); setEmail('');
-      setPassword(''); setConfirmPwd(''); setSelectedRoles([]);
+            // reset
+            setFullName('');
+            setMobileNo('');
+            setEmail('');
+            setPassword('');
+            setConfirmPwd('');
+            setSelectedRoles([]);
         } catch (err) {
             console.error('Submission error:', err);
             alert(`Error: ${err.message}`);
@@ -204,30 +206,47 @@ export default function MemberForm() {
                                 </div>
                             </div>
 
-                            {category !== 'manager' ? (
+                            
+                            {category !== 'manager' && (
                                 <div className="space-y-2">
-                                    <label className="block text-sm font-medium text-gray-600 mb-2">Specific Roles (select one or more)</label>
-                                    {subtypes.length > 0 ? (
-                                        subtypes.map((t) => (
-                                            <label key={t.id} className="inline-flex items-center mr-4">
-                                                <input
-                                                    type="checkbox"
-                                                    value={t.id}
-                                                    checked={selectedRoles.includes(String(t.id))}
-                                                    onChange={(e) => {
-                                                        const id = e.target.value;
-                                                        setSelectedRoles((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
-                                                    }}
-                                                    className="form-checkbox h-5 w-5 text-indigo-600"
-                                                />
-                                                <span className="ml-2 text-gray-700">{t.type_name}</span>
-                                            </label>
-                                        ))
-                                    ) : (
-                                        <p className="text-gray-500">No roles available for this category</p>
-                                    )}
+                                    <label className="block text-sm font-medium text-gray-600 mb-1">
+                                        Specific Roles <span className="text-gray-500 text-xs">(select one or more)</span>
+                                    </label>
+
+                                    <div className="relative">
+                                        <button
+                                            onClick={() => setShowRoles(!showRoles)}
+                                            className="w-full px-4 py-2 border rounded-md text-left bg-white hover:bg-gray-50 focus:outline-none focus:ring"
+                                        >
+                                            {selectedRoles.length > 0 ? `${selectedRoles.length} role(s) selected` : 'Select roles...'}
+                                        </button>
+
+                                        {showRoles && (
+                                            <div className="mt-2 p-3 border rounded-md bg-gray-50 max-h-60 overflow-y-auto space-y-2">
+                                                {subtypes.length > 0 ? (
+                                                    subtypes.map((t) => (
+                                                        <label key={t.id} className="flex items-center">
+                                                            <input
+                                                                type="checkbox"
+                                                                value={t.id}
+                                                                checked={selectedRoles.includes(String(t.id))}
+                                                                onChange={(e) => {
+                                                                    const id = e.target.value;
+                                                                    setSelectedRoles((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+                                                                }}
+                                                                className="form-checkbox h-4 w-4 text-indigo-600"
+                                                            />
+                                                            <span className="ml-2 text-sm text-gray-700">{t.type_name}</span>
+                                                        </label>
+                                                    ))
+                                                ) : (
+                                                    <p className="text-sm text-gray-500">No roles available for this category</p>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
-                            ) : null}
+                            )}
                         </div>
 
                         {/* --- Personal & Account Information --- */}
