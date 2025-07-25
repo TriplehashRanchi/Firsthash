@@ -4,6 +4,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import axios from 'axios';
+import { getAuth } from 'firebase/auth';
 
 const API_URL = 'http://localhost:8080';
 
@@ -15,9 +16,8 @@ const LoadingSpinner = ({ text }) => (
     </div>
 );
 
-
 export default function AttendanceViewPage() {
-    const { id } = useParams(); 
+    const { id } = useParams();
     const router = useRouter();
     const [member, setMember] = useState(null);
     const [history, setHistory] = useState([]);
@@ -26,26 +26,37 @@ export default function AttendanceViewPage() {
 
     useEffect(() => {
         if (!id) return;
-        
+
         const fetchDetails = async () => {
             setLoading(true);
+            setError(null);
+
+            // 1️⃣ Ensure admin is logged in
+            const user = getAuth().currentUser;
+            if (!user) {
+                setError('Admin not logged in.');
+                setLoading(false);
+                return;
+            }
+
             try {
-                const [memberRes, historyRes] = await Promise.all([
-                    axios.get(`${API_URL}/api/members/${id}`),
-                    axios.get(`${API_URL}/api/members/${id}/attendance`),
-                ]);
-                
-                if (memberRes.data) {
-                    setMember(memberRes.data);
-                } else {
-                    throw new Error("Member not found.");
+                // 2️⃣ Get a fresh Firebase JWT
+                const token = await user.getIdToken();
+                const headers = { Authorization: `Bearer ${token}` };
+
+                // 3️⃣ Fetch both member and attendance in parallel, with auth headers
+                const [memberRes, historyRes] = await Promise.all([axios.get(`${API_URL}/api/members/${id}`, { headers }),
+                     axios.get(`${API_URL}/api/members/${id}/attendance`, { headers })]
+                    );
+
+                if (!memberRes.data) {
+                    throw new Error('Member not found.');
                 }
-
+                setMember(memberRes.data);
                 setHistory(historyRes.data);
-
             } catch (err) {
-                console.error("Failed to fetch details", err);
-                setError("Could not load attendance data for this member.");
+                console.error('Failed to fetch details', err);
+                setError(err.response?.data?.error || err.message || 'Could not load attendance data for this member.');
             } finally {
                 setLoading(false);
             }
@@ -69,11 +80,14 @@ export default function AttendanceViewPage() {
                     <h1 className="text-3xl font-bold text-gray-800">Attendance History</h1>
                     {member && <p className="text-lg text-gray-600">For {member.name}</p>}
                 </div>
-                <button 
-                    onClick={() => router.back()}
-                    className="px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-md hover:bg-gray-700 flex items-center"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 mr-2"><path fillRule="evenodd" d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z" clipRule="evenodd" /></svg>
+                <button onClick={() => router.back()} className="px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-md hover:bg-gray-700 flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 mr-2">
+                        <path
+                            fillRule="evenodd"
+                            d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z"
+                            clipRule="evenodd"
+                        />
+                    </svg>
                     Back to Dashboard
                 </button>
             </div>
@@ -89,22 +103,29 @@ export default function AttendanceViewPage() {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
-                        {history.length > 0 ? history.map(rec => (
-                            <tr key={rec.a_id} className="hover:bg-gray-50">
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800">
-                                    {new Date(rec.a_date).toLocaleDateString(undefined, {
-                                        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-                                    })}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${rec.a_status === 1 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                                        {rec.a_status === 1 ? 'Present' : 'Absent'}
-                                    </span>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{rec.in_time || 'N/A'}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{rec.out_time || 'N/A'}</td>
-                            </tr>
-                        )) : (
+                        {history.length > 0 ? (
+                            history.map((rec) => (
+                                <tr key={rec.a_id} className="hover:bg-gray-50">
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800">
+                                        {new Date(rec.a_date).toLocaleDateString(undefined, {
+                                            weekday: 'long',
+                                            year: 'numeric',
+                                            month: 'long',
+                                            day: 'numeric',
+                                        })}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <span
+                                            className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${rec.a_status === 1 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}
+                                        >
+                                            {rec.a_status === 1 ? 'Present' : 'Absent'}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{rec.in_time || 'N/A'}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{rec.out_time || 'N/A'}</td>
+                                </tr>
+                            ))
+                        ) : (
                             <tr>
                                 <td colSpan="4" className="text-center py-10 text-gray-500">
                                     No attendance records found for this member.

@@ -3,6 +3,11 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Check, Trash2, X, AlertTriangle } from 'lucide-react';
+import { getAuth } from 'firebase/auth';
+import toast from 'react-hot-toast';
+
+
+ const API_URL = 'http://localhost:8080';
 
 export default function RoleDetailPage({ params }) {
   const { id } = params;
@@ -13,55 +18,119 @@ export default function RoleDetailPage({ params }) {
   const [code, setCode] = useState(0);
   const [isPredefined, setIsPredefined] = useState(false);
 
+ 
+
+  // — FETCH ROLE ON MOUNT —
   useEffect(() => {
-    fetch(`http://localhost:8080/api/roles/${id}`)
-      .then(r => {
-        if (!r.ok) throw new Error();
-        return r.json();
-      })
-      .then(data => {
+    if (!id) return;
+
+    (async () => {
+      const user = getAuth().currentUser;
+      if (!user) {
+        toast.error('Admin not logged in');
+        router.push('/boarding/employee');
+        return;
+      }
+
+      let token;
+      try {
+        token = await user.getIdToken();
+      } catch (err) {
+        console.error('Error fetching token:', err);
+        toast.error('Authentication error');
+        router.push('/boarding/employee');
+        return;
+      }
+
+      try {
+        const res = await fetch(`${API_URL}/api/roles/${id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error(`Status ${res.status}`);
+        const data = await res.json();
+
         setRole(data);
         setName(data.type_name);
         setCode(data.role_code);
-        // Determine if the role is predefined
         setIsPredefined(data.role_code <= 2);
-      })
-      .catch(() => {
-        alert('Role not found');
+      } catch (err) {
+        toast.error('Role not found or you lack permissions');
         router.push('/boarding/employee');
-      });
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, [id, router]);
+
 
   const save = async () => {
     if (isPredefined) {
-      alert("Predefined roles cannot be modified.");
+      toast.error("Predefined roles cannot be modified.");
+      return;
+    }
+    const user = getAuth().currentUser;
+    if (!user) {
+      toast.error('Admin not logged in');
+      return;
+    }
+    let token;
+    try {
+      token = await user.getIdToken();
+    } catch (err) {
+      console.error('Error fetching token:', err);
+      toast.error('Authentication error');
       return;
     }
     try {
-      const res = await fetch(`http://localhost:8080/api/roles/${id}`, {
+      const res = await fetch(`${API_URL}/api/roles/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type_name: name, role_code: Number(code) }),
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ type_name: name, role_code: Number(code) })
       });
-      if (!res.ok) throw new Error();
+      if (!res.ok) throw new Error(`Status ${res.status}`);
+      toast.success('Role updated successfully');
       router.push('/boarding/employee');
-    } catch {
-      alert('Update failed');
+    } catch (err) {
+      console.error('Update failed', err);
+      toast.error('Update failed');
     }
   };
 
+  // — DELETE ROLE —
   const del = async () => {
     if (isPredefined) {
-      alert("Predefined roles cannot be deleted.");
+      toast.error("Predefined roles cannot be deleted.");
       return;
     }
     if (!confirm('Delete this role?')) return;
+
+    const user = getAuth().currentUser;
+    if (!user) {
+      toast.error('Admin not logged in');
+      return;
+    }
+    let token;
     try {
-      const res = await fetch(`http://localhost:8080/api/roles/${id}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error();
+      token = await user.getIdToken();
+    } catch (err) {
+      console.error('Error fetching token:', err);
+      toast.error('Authentication error');
+      return;
+    }
+    try {
+      const res = await fetch(`${API_URL}/api/roles/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error(`Status ${res.status}`);
+      toast.success('Role deleted');
       router.push('/boarding/employee');
-    } catch {
-      alert('Delete failed');
+    } catch (err) {
+      console.error('Delete failed', err);
+      toast.error('Delete failed');
     }
   };
 

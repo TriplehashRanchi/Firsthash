@@ -3,7 +3,10 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
+import { getAuth } from 'firebase/auth';
 import axios from 'axios';
+import toast from 'react-hot-toast';
+
 
 const API_URL = 'http://localhost:8080';
 
@@ -53,26 +56,55 @@ const AttendanceModal = ({ member, onClose, onSave }) => {
         }
     };
 
-    const handleSave = async () => {
-        setIsSaving(true);
-        const payload = [{
-            firebase_uid: member.id,
-            a_date: today,
-            in_time: record.in_time || null,
-            out_time: record.out_time || null,
-            a_status: record.a_status,
-        }];
-        try {
-            // FIX: Use the correct API route within the members' namespace
-            await axios.post(`${API_URL}/api/members/attendance`, payload);
-            onSave();
-        } catch (err) {
-            console.error("Failed to save attendance", err);
-            // Parent component will show a toast if needed, or you can add one here
-        } finally {
-            setIsSaving(false);
+
+const handleSave = async () => {
+  // 1️⃣ Ensure admin is logged in
+  const user = getAuth().currentUser;
+  if (!user) {
+    toast.error('Admin not logged in');
+    return;
+  }
+
+  // 2️⃣ Get fresh Firebase JWT
+  let token;
+  try {
+    token = await user.getIdToken();
+  } catch (err) {
+    console.error("Error fetching auth token:", err);
+    toast.error('Failed to authenticate');
+    return;
+  }
+
+  // 3️⃣ Build your payload
+  const payload = [{
+    firebase_uid: member.id,
+    a_date: today,
+    in_time: record.in_time || null,
+    out_time: record.out_time || null,
+    a_status: record.a_status,
+  }];
+
+  setIsSaving(true);
+  try {
+    // 4️⃣ Send with auth header
+    await axios.post(
+      `${API_URL}/api/members/attendance`,
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`
         }
-    };
+      }
+    );
+    onSave();
+  } catch (err) {
+    console.error("Failed to save attendance", err);
+    toast.error(err.response?.data?.error || 'Error saving attendance');
+  } finally {
+    setIsSaving(false);
+  }
+};
+
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
@@ -128,38 +160,62 @@ export default function AttendancePage() {
     const [toast, setToast] = useState({ message: '', type: '' });
     const [modalMember, setModalMember] = useState(null);
 
-    const fetchData = async () => {
-        try {
-            const [membersRes, attendanceRes] = await Promise.all([
-                axios.get(`${API_URL}/api/members`),
-                axios.get(`${API_URL}/api/members/attendance`),
-            ]);
-            
-            setMembers(membersRes.data.map(m => ({ id: m.firebase_uid, name: m.name })));
 
-            // ===== FIX #2: USE THE HELPER FUNCTION WHEN BUILDING THE OBJECT =====
-            const attendanceByDate = attendanceRes.data.reduce((acc, rec) => {
-                const { firebase_uid, a_date, a_status, in_time, out_time } = rec;
+const fetchData = async () => {
+  setLoading(true)
 
-                // Use the reliable helper function to create the key
-                const dateKey = toLocalYYYYMMDD(a_date);
+  // 1️⃣ Ensure admin is logged in
+  const user = getAuth().currentUser
+  if (!user) {
+    toast.error('Admin not logged in')
+    setLoading(false)
+    return
+  }
 
-                if (!acc[firebase_uid]) {
-                    acc[firebase_uid] = {};
-                }
-                // Use the normalized dateKey to build the object
-                acc[firebase_uid][dateKey] = { a_status, in_time, out_time };
-                return acc;
-            }, {});
-            setAttendance(attendanceByDate);
+  // 2️⃣ Grab a fresh token
+  let token
+  try {
+    token = await user.getIdToken()
+  } catch (err) {
+    console.error('Error getting token', err)
+    toast.error('Authentication failed')
+    setLoading(false)
+    return
+  }
 
-        } catch (err) {
-            console.error("Error fetching data:", err);
-            setToast({ message: 'Failed to load data.', type: 'error' });
-        } finally {
-            setLoading(false);
-        }
-    };
+  const headers = { Authorization: `Bearer ${token}` }
+
+  try {
+    // 3️⃣ Fire both requests with the auth header
+    const [membersRes, attendanceRes] = await Promise.all([
+      axios.get(`${API_URL}/api/members`, { headers }),
+      axios.get(`${API_URL}/api/members/attendance`, { headers }),
+    ])
+
+    // map members
+    setMembers(
+      membersRes.data.map(m => ({ id: m.firebase_uid, name: m.name }))
+    )
+
+    // reduce attendance into a date-indexed object
+    const attendanceByDate = attendanceRes.data.reduce((acc, rec) => {
+      const { firebase_uid, a_date, a_status, in_time, out_time } = rec
+      const dateKey = toLocalYYYYMMDD(a_date)
+
+      acc[firebase_uid] = acc[firebase_uid] || {}
+      acc[firebase_uid][dateKey] = { a_status, in_time, out_time }
+      return acc
+    }, {})
+
+    setAttendance(attendanceByDate)
+  } catch (err) {
+    console.error('Error fetching data:', err)
+    toast.error('Failed to load data.')
+  } finally {
+    setLoading(false)
+  }
+}
+
 
     useEffect(() => {
         fetchData();

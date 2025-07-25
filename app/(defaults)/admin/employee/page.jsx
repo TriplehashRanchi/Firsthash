@@ -1,6 +1,8 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { PlusCircle, Edit, Trash2, Save, X, ShieldCheck } from 'lucide-react';
+import { getAuth } from 'firebase/auth';
+import toast from 'react-hot-toast';
 
 export default function EmployeeRolesPage({ searchParams }) {
   const GLOBAL_ID = '00000000-0000-0000-0000-000000000000';
@@ -20,23 +22,40 @@ export default function EmployeeRolesPage({ searchParams }) {
   const [editName, setEditName] = useState('');
   const [editCode, setEditCode] = useState(0);
 
+  const API_URL = 'http://localhost:8080';
+
+
+  // helper: fetch fresh token + add to headers
+  const withAuth = async (opts = {}) => {
+    const user = getAuth().currentUser;
+    if (!user) throw new Error('Admin not logged in');
+    const token = await user.getIdToken();
+    return {
+      ...opts,
+      headers: {
+        ...(opts.headers||{}),
+        Authorization: `Bearer ${token}`,
+        'Content-Type': opts.body ? 'application/json' : undefined
+      }
+    };
+  };
+
   // Load (READ)
   const loadRoles = async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(
-        `http://localhost:8080/api/roles?company_id=${companyId}`
-      );
+      const init = await withAuth();
+      const res = await fetch(`${API_URL}/api/roles?company_id=${companyId}`, init);
       if (!res.ok) throw new Error('Failed to fetch roles');
       const data = await res.json();
-      const processedRoles = data.map(role => ({
-        ...role,
-        // ✅ LOGIC UPDATED: Predefined roles are identified by ID <= 13
-        is_predefined: role.id <= PREDEFINED_ROLE_IDS_MAX,
-      }));
-      setRoles(processedRoles);
+      setRoles(data.map(r => ({
+        ...r,
+        is_predefined: r.id <= PREDEFINED_ROLE_IDS_MAX
+      })));
     } catch (err) {
+      console.error(err);
+      toast.error(err.message);
       setError(err.message);
     }
     setLoading(false);
@@ -47,18 +66,21 @@ export default function EmployeeRolesPage({ searchParams }) {
   }, [companyId]);
 
   // Improved API call handler
-  const handleApiCall = async (url, options, successMessage) => {
+  const handleApiCall = async (url, init, successMsg) => {
     try {
-      const res = await fetch(url, options);
+      const authInit = await withAuth(init);
+      const res = await fetch(url, authInit);
       if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || 'An unknown error occurred');
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || res.statusText);
       }
-      if(res.status !== 204) await res.json(); // Consume body if any
-      await loadRoles(); // Refresh data on success
+      if (successMsg) toast.success(successMsg);
+      // refresh list
+      await loadRoles();
       return true;
     } catch (err) {
-      alert(err.message);
+      console.error(err);
+      toast.error(err.message);
       return false;
     }
   };
@@ -66,19 +88,17 @@ export default function EmployeeRolesPage({ searchParams }) {
   // Create
   const handleCreate = async e => {
     e.preventDefault();
-    const success = await handleApiCall('http://localhost:8080/api/roles', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        type_name: newName,
-        role_code: Number(newCode),
-        company_id: companyId,
-      }),
-    });
-    if (success) {
-      setNewName('');
-      setNewCode(0);
-    }
+    if(!newName.trim()) return toast.error('Name required');
+    await handleApiCall(
+      `${API_URL}/api/roles`,
+      { method: 'POST', body: JSON.stringify({
+          type_name: newName,
+          role_code: Number(newCode),
+          company_id: companyId
+      })},
+      'Role created'
+    );
+    setNewName(''); setNewCode(0);
   };
 
   // Begin inline edit
@@ -93,26 +113,26 @@ export default function EmployeeRolesPage({ searchParams }) {
 
   // Save inline update
   const saveEdit = async id => {
-    const success = await handleApiCall(`http://localhost:8080/api/roles/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        type_name: editName,
-        role_code: Number(editCode),
-      }),
-    });
-    if (success) {
-      setEditingId(null);
-    }
+    if (!editName.trim()) return toast.error('Name required');
+    await handleApiCall(
+      `${API_URL}/api/roles/${id}`,
+      { method: 'PUT', body: JSON.stringify({
+          type_name: editName,
+          role_code: Number(editCode)
+      })},
+      'Role updated'
+    );
+    setEditingId(null);
   };
 
   // Delete
   const handleDelete = async id => {
-    if (confirm('Are you sure you want to delete this role?')) {
-      await handleApiCall(`http://localhost:8080/api/roles/${id}`, {
-        method: 'DELETE',
-      });
-    }
+    if (!confirm('Delete this role?')) return;
+    await handleApiCall(
+      `${API_URL}/api/roles/${id}`,
+      { method: 'DELETE' },
+      'Role deleted'
+    );
   };
 
   return (
