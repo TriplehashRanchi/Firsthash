@@ -9,7 +9,7 @@ import IconEye from '@/components/icon/icon-eye';
 import IconEdit from '@/components/icon/icon-edit';
 import IconCalendar from '@/components/icon/icon-calendar';
 
-const API_URL = 'http://localhost:8080';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 const TYPE_LABELS = { 0: 'Freelancer', 1: 'In-house' };
 
 // --- Reusable UI Components (Unchanged) ---
