@@ -73,7 +73,7 @@ const AttendanceModal = ({ isOpen, onClose, record, onRecordChange, onSave, isSa
     };
     return (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
-            <div className="bg-white rounded-xl shadow-xl p-8 w-full max-w-md">
+            <div className="bg-white rounded-xl p-8 w-full max-w-md">
                 <div className="flex justify-between items-start">
                     <div>
                         <h2 className="text-2xl font-bold text-gray-800">Mark Attendance</h2>
@@ -279,27 +279,25 @@ export default function TeamViewPage() {
 
     
     return (
-        <div className="p-8 bg-gray-50 min-h-screen">
+        <div className="p-8 bg-white min-h-screen">
             <Toast message={toast.message} type={toast.type} onClose={() => setToast({ message: '', type: '' })} />
             {confirmDelete.isOpen && (
                 <ConfirmationModal onConfirm={deleteMember} onCancel={() => setConfirmDelete({ isOpen: false, uid: null })} />
             )}
             <AttendanceModal isOpen={showAttendanceModal} onClose={() => setShowAttendanceModal(false)} record={todayRecord} onRecordChange={handleTodayChange} onSave={saveAttendance} isSaving={savingAttendance} memberName={selectedMember?.name}/>
 
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-3xl font-bold text-gray-800">Team Members</h1>
-            </div>
+           <ul class="flex space-x-2 rtl:space-x-reverse mb-6"><li><a class="text-blue-600 hover:underline dark:text-blue-400" href="/dashboard">Dashboard</a></li><li class="before:content-['/'] ltr:before:mr-2 rtl:before:ml-2 text-gray-500 dark:text-gray-500"><span class="text-gray-600 dark:text-gray-400">View Team</span></li></ul>
 
-            <div className="bg-white shadow-lg rounded-xl overflow-hidden">
+            <div className="bg-white overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="min-w-full">
-                        <thead className="bg-gray-100 border-b border-gray-200">
-                            <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Roles</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Auth</th>
-                                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        <thead className="bg-black border-b border-gray-200">
+                            <tr className='bg-black'>
+                                <th className="px-6 py-3 bg-gray-100 text-left text-xs font-medium text-black uppercase tracking-wider">Name</th>
+                                <th className="px-6 py-3  bg-gray-100 text-left text-xs font-medium text-black uppercase tracking-wider">Type</th>
+                                <th className="px-6 py-3 bg-gray-100 text-left text-xs font-medium text-black uppercase tracking-wider">Roles</th>
+                                <th className="px-6 py-3  bg-gray-100 text-left text-xs font-medium text-black uppercase tracking-wider">Auth</th>
+                                <th className="px-6 py-3 bg-gray-100 text-center text-xs font-medium text-black uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
@@ -331,14 +329,14 @@ export default function TeamViewPage() {
                                 // ===== ERROR FIX ENDS HERE =====
                                 
                                 return (
-                                <tr key={m.firebase_uid} className="hover:bg-gray-50 transition-colors">
+                                <tr key={m.firebase_uid} className="hover:bg-gray-100 bg-white transition-colors">
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{m.name}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{TYPE_LABELS[m.employee_type]}</td>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <div className="flex flex-wrap gap-2">
                                             {assignedRoleNames.length > 0 ? (
                                                 assignedRoleNames.map((roleName) => (
-                                                    <span key={roleName} className="px-2.5 py-1 text-xs font-semibold leading-none text-blue-800 bg-blue-100 rounded-full">
+                                                    <span key={roleName} className="px-2.5 py-1 text-xs font-semibold leading-none text-gray-100 bg-gray-700 rounded-full">
                                                         {roleName}
                                                     </span>
                                                 ))
@@ -350,7 +348,7 @@ export default function TeamViewPage() {
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <label className="relative inline-flex items-center cursor-pointer">
                                             <input type="checkbox" checked={m.status === 'active'} onChange={e => toggleAuth(m.firebase_uid, e.target.checked)} className="sr-only peer" />
-                                            <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                            <div className="w-11 h-6 bg-gray-200 rounded-full peer  peer-focus:ring-black peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-black"></div>
                                         </label>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
