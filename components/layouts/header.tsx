@@ -34,11 +34,16 @@ import IconMenuMore from '@/components/icon/menu/icon-menu-more';
 import { usePathname, useRouter } from 'next/navigation';
 import { getTranslation } from '@/i18n';
 
+
+import { useAuth } from '@/context/AuthContext';
+
 const Header = () => {
     const pathname = usePathname();
     const dispatch = useDispatch();
     const router = useRouter();
     const { t, i18n } = getTranslation();
+
+    const { logout, auth, user } = useAuth();
 
     useEffect(() => {
         const selector = document.querySelector('ul.horizontal-menu a[href="' + window.location.pathname + '"]');
@@ -444,12 +449,12 @@ const Header = () => {
                                             Lock Screen
                                         </Link>
                                     </li>
-                                    <li className="border-t border-white-light dark:border-white-light/10">
-                                        <Link href="/auth/boxed-signin" className="!py-3 text-danger">
-                                            <IconLogout className="h-4.5 w-4.5 shrink-0 rotate-90 ltr:mr-2 rtl:ml-2" />
-                                            Sign Out
-                                        </Link>
-                                    </li>
+                                    <li className="border-t border-white-light dark:border-white-light/10 cursor-pointer ">
+                                            <a onClick={logout} className="!py-3 text-danger">
+                                                <IconLogout className="h-4.5 w-4.5 shrink-0 rotate-90 ltr:mr-2 rtl:ml-2" />
+                                                Sign Out
+                                            </a>
+                                        </li>
                                 </ul>
                             </Dropdown>
                         </div>

@@ -108,8 +108,8 @@ const handleSave = async () => {
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
-            <div className="bg-white rounded-xl shadow-xl p-8 w-full max-w-md">
-                <h2 className="text-2xl font-bold text-gray-800">Mark Attendance</h2>
+            <div className="bg-white  p-8 w-full max-w-md">
+                <ul class="flex space-x-2 rtl:space-x-reverse mb-6"><li><a class="text-blue-600 hover:underline dark:text-blue-400" href="/dashboard">Dashboard</a></li><li class="before:content-['/'] ltr:before:mr-2 rtl:before:ml-2 text-gray-500 dark:text-gray-500"><span class="text-gray-600 dark:text-gray-400">Mark Attendance</span></li></ul>
                 <p className="text-gray-600 mt-1">For {member.name} on {new Date().toLocaleDateString()}</p>
                 <div className="mt-6 space-y-6">
                     <div className="flex items-center justify-between bg-gray-50 p-4 rounded-lg">
@@ -252,19 +252,19 @@ const fetchData = async () => {
 
     // --- The rest of the return statement is unchanged and will now work ---
     return (
-        <main className="min-h-screen p-6 md:p-8 bg-gray-50">
+        <main className="min-h-screen p-6 md:p-8 bg-white">
             <Toast message={toast.message} type={toast.type} onClose={() => setToast({ message: '', type: '' })} />
             {modalMember && <AttendanceModal member={modalMember} onClose={() => setModalMember(null)} onSave={handleSaveSuccess} />}
             
-            <h1 className="text-3xl font-bold text-gray-800 mb-6">Attendance Dashboard</h1>
+            <ul class="flex space-x-2 rtl:space-x-reverse mb-6"><li><a class="text-blue-600 hover:underline dark:text-blue-400" href="/dashboard">Dashboard</a></li><li class="before:content-['/'] ltr:before:mr-2 rtl:before:ml-2 text-gray-500 dark:text-gray-500"><span class="text-gray-600 dark:text-gray-400">Attendance Dashboard</span></li></ul>
 
-            <div className="bg-white shadow-md rounded-lg overflow-hidden">
+            <div className="bg-white overflow-hidden">
                 <table className="min-w-full">
-                    <thead className="bg-gray-100 border-b">
+                    <thead className="bg-gray-200 border-b">
                         <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Member</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Today's Status</th>
-                            <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            <th className="px-6 py-3  text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Member</th>
+                            <th className="px-6 py-3  text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Today's Status</th>
+                            <th className="px-6 py-3  text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">

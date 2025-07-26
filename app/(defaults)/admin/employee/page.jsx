@@ -137,24 +137,19 @@ export default function EmployeeRolesPage({ searchParams }) {
 
   return (
     // ✅ FULL-WIDTH LAYOUT
-    <div className="min-h-screen bg-gray-100 w-full">
+    <div className="min-h-screen bg-white w-full">
       <div className="w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-8">
-        <h1 className="text-3xl font-bold text-gray-800">
-          Add Employee Type
-          {/* <span className="text-indigo-600">
-            {companyId === GLOBAL_ID ? 'Global' : companyId}
-          </span> */}
-        </h1>
+         <ul class="flex space-x-2 rtl:space-x-reverse mb-6"><li><a class="text-blue-600 hover:underline dark:text-blue-400" href="/dashboard">Dashboard</a></li><li class="before:content-['/'] ltr:before:mr-2 rtl:before:ml-2 text-gray-500 dark:text-gray-500"><span class="text-gray-600 dark:text-gray-400">Create Role</span></li></ul>
 
         {/* CREATE FORM */}
-        <div className="bg-white p-6 rounded-xl shadow-md">
+        <div className="bg-white p-6 ">
             <h2 className="text-xl font-semibold text-gray-700 mb-4">Add New Role</h2>
             <form onSubmit={handleCreate} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                 <label className="block mb-1 font-medium text-gray-600">New Title</label>
                 <input
-                    className="w-full border-gray-300 p-3 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                    className="w-full p-3 border rounded"
                     value={newName}
                     onChange={e => setNewName(e.target.value)}
                     required
@@ -164,7 +159,7 @@ export default function EmployeeRolesPage({ searchParams }) {
                 <div>
                 <label className="block mb-1 font-medium text-gray-600">Role Code</label>
                 <select
-                    className="w-full border-gray-300 p-3 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                    className="w-full p-3 border rounded"
                     value={newCode}
                     onChange={e => setNewCode(e.target.value)}
                 >
@@ -176,7 +171,7 @@ export default function EmployeeRolesPage({ searchParams }) {
             </div>
             <button
                 type="submit"
-                className="inline-flex items-center gap-2 bg-indigo-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-indigo-700 transition-colors"
+                className="inline-flex items-center gap-2 bg-black text-white px-6 py-3 rounded"
             >
                 <PlusCircle size={20} />
                 Add Role
@@ -185,7 +180,7 @@ export default function EmployeeRolesPage({ searchParams }) {
         </div>
 
         {/* DATA DISPLAY */}
-        <div className="bg-white p-6 rounded-xl shadow-md">
+        <div className="bg-white p-6 ">
             <h2 className="text-xl font-semibold text-gray-700 mb-4">Existing Roles</h2>
             {loading && <p className="text-center text-gray-500">Loading…</p>}
             {error && <p className="text-center text-red-500">Error: {error}</p>}
@@ -194,7 +189,7 @@ export default function EmployeeRolesPage({ searchParams }) {
               {roles.map(r =>
                 editingId === r.id ? (
                   // INLINE EDIT MODE
-                  <li key={r.id} className="flex flex-col border border-indigo-300 bg-indigo-50 p-4 rounded-lg space-y-3 shadow-md">
+                  <li key={r.id} className="flex flex-col border-b-1 bg-indigo-50 p-4 rounded-lg space-y-3 shadow-md">
                     <input
                       className="border-gray-300 p-2 rounded-lg"
                       value={editName}
@@ -216,10 +211,10 @@ export default function EmployeeRolesPage({ searchParams }) {
                   </li>
                 ) : (
                   // VIEW MODE
-                  <li key={r.id} className="flex justify-between items-center border border-gray-200 p-4 rounded-lg hover:bg-gray-50 transition-colors">
+                  <li key={r.id} className="flex justify-between items-center border-b-2 border-gray p-2  hover:bg-gray-50">
                     <div className="flex items-center gap-3">
                       <span className="font-semibold text-gray-800">{r.type_name}</span>
-                      <em className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded-full">ID: {r.id}</em>
+                      {/* <em className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded-full">ID: {r.id}</em> */}
                       {r.is_predefined && (
                         <span className="flex items-center gap-1 text-xs text-green-700 bg-green-100 px-2 py-1 rounded-full font-medium">
                           <ShieldCheck size={14} /> Predefined
