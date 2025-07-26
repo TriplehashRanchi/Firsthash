@@ -11,13 +11,14 @@ import Clients from '../../../../components/onboarding/Clients';
 import PaymentSchedule from '../../../../components/onboarding/PaymentSchedule';
 import Deliverables from '../../../../components/onboarding/Deliverables';
 import ReceivedAmount from '../../../../components/onboarding/ReceivedAmount';
+import { useAuth } from '@/context/AuthContext';
 
 function Page() {
     const [projectName, setProjectName] = useState('');
     const [projectPackageCost, setProjectPackageCost] = useState(''); // Will hold string from input
     const [deliverablesTotalCost, setDeliverablesTotalCost] = useState(0);
 
-    
+    const {currentUser, company, loading} = useAuth();
 
     // --- State to hold data from child components ---
     const [clientsData, setClientsData] = useState(null);
@@ -26,9 +27,6 @@ function Page() {
     const [deliverablesData, setDeliverablesData] = useState(null);
     const [receivedAmountData, setReceivedAmountData] = useState(null);
     const [paymentScheduleData, setPaymentScheduleData] = useState(null);
-
-
-    console.log(clientsData)
 
     // Validation states
     const [isClientsValid, setIsClientsValid] = useState(false);
@@ -118,6 +116,7 @@ function Page() {
                 <div>
                     {/* --- PASS onDataChange TO EACH CHILD --- */}
                     <Clients 
+                        company={company}
                         onValidChange={setIsClientsValid} 
                         onDataChange={setClientsData} 
                     />
@@ -130,10 +129,12 @@ function Page() {
                 </div>
                 <div>
                     <Shoots 
+                        company={company}
                         onValidChange={setIsShootsValid} 
                         onDataChange={setShootsData} 
                     />
                     <Deliverables 
+                        company={company}
                         onValidChange={setIsDeliverablesValid}
                         onDeliverablesCostChange={setDeliverablesTotalCost}
                         onDataChange={setDeliverablesData} 
