@@ -385,10 +385,10 @@ const Shoots = ({company, onValidChange, onDataChange }) => {
                 s.city.trim() !== '' || Object.keys(s.selectedServices).length > 0
             );
 
-            const componentData = {
-                shootList: relevantShoots.length > 0 ? relevantShoots : (shoots.length === 1 && relevantShoots.length === 0 ? [] : []),
-            };
-            onDataChange(componentData);
+            // const componentData = {
+            //     shootList: relevantShoots.length > 0 ? relevantShoots : (shoots.length === 1 && relevantShoots.length === 0 ? [] : []),
+            // };
+           onDataChange(relevantShoots.length > 0 ? relevantShoots : []);
         }
     }, [shoots, onDataChange]);
 

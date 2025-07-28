@@ -1,42 +1,20 @@
-// components/show-details/Shoot-details.jsx (or ShootsTab.jsx)
-
 'use client';
 import React, { useState } from 'react';
 import { Camera, CalendarDays, Clock, MapPin, Edit3, X, UserPlus, Users as UsersIcon, CheckCircle } from 'lucide-react';
 
-// --- Team Data ---
-const ALL_TEAM_MEMBERS = [
-    { id: "tg1", name: "Dheeraj Giri", roles: ["Photographer"], primaryRole: "Traditional Photographer" },
-    { id: "as1", name: "Amit Sharma", roles: ["Photographer", "Drone Operator"], primaryRole: "Candid Photographer" },
-    { id: "ps1", name: "Priya Singh", roles: ["Videographer", "Editor"], primaryRole: "Cinematic Videographer" },
-    { id: "rv1", name: "Rahul Verma", roles: ["Photographer"], primaryRole: "General Photographer" },
-    { id: "sp1", name: "Sneha Patel", roles: ["Videographer"], primaryRole: "Traditional Videographer" },
-    { id: "ar1", name: "Anita Rao", roles: ["Editor"], primaryRole: "Photo Editor" },
-    { id: "vc1", name: "Vikram Choudhary", roles: ["Photographer", "Drone Operator"], primaryRole: "Drone Operator & Photo" },
-    { id: "mi1", name: "Meena Iyer", roles: ["Videographer"], primaryRole: "Videographer Assistant" },
-    { id: "ap1", name: "Aarav Patel", roles: ["Photographer"], 'primaryRole': "Event Photographer" },
-    { id: "ir1", name: "Ishaan Reddy", roles: ["Photographer"], primaryRole: "Assistant Photographer" },
-    { id: "zk1", name: "Zara Khan", roles: ["Videographer"], primaryRole: "Lead Videographer" },
-    { id: "km1", name: "Kabir Mehta", roles: ["Videographer"], primaryRole: "Second Videographer" },
-    { id: "rj1", name: "Rohan Joshi", roles: ["Drone Operator"], primaryRole: "FPV Drone Pilot" },
-    { id: "ng1", name: "Naina Gupta", roles: ["Editor"], primaryRole: "Video Editor" },
-    { id: "rk1", name: "Raj Kumar", roles: ["Assistant"], primaryRole: "General Assistant" },
-    { id: "sk1", name: "Simran Kaur", roles: ["Assistant"], primaryRole: "Production Assistant" },
-];
+// --- REMOVED: The hardcoded ALL_TEAM_MEMBERS array is gone. ---
+// This component now receives the team members list as a prop.
 
+// --- CONFIGURATION: This logic can remain as it's part of the component's business logic ---
 const SERVICE_TO_REQUIRED_ROLE = {
     "Candid Photography": "Photographer",
     "Traditional Photography": "Photographer",
     "Cinematic Videography": "Videographer",
     "Traditional Videography": "Videographer",
     "Drone Aerial Shots": "Drone Operator",
-    // "Photo Editing": "Editor",
-    // "Video Editing": "Editor",
 };
-// --- End Team Data ---
 
-
-// --- Inline Modal Component Logic ---
+// --- MODAL COMPONENT: Now accepts teamMembers as a prop ---
 const AssignmentModalContent = ({
     onClose,
     teamMembersToDisplay,
@@ -44,6 +22,7 @@ const AssignmentModalContent = ({
     requiredCount,
     currentAssignedMemberIds,
     onSaveChanges,
+    teamMembers // <-- NEW: Receives the full team list to find members by ID
 }) => {
     const [selectedMemberIds, setSelectedMemberIds] = useState([...currentAssignedMemberIds]);
 
@@ -64,7 +43,8 @@ const AssignmentModalContent = ({
         onSaveChanges(selectedMemberIds);
     };
     
-    const getMemberById = (id) => ALL_TEAM_MEMBERS.find(member => member.id === id);
+    // Uses the teamMembers prop instead of a hardcoded array
+    const getMemberById = (id) => teamMembers.find(member => member.id === id);
 
     return (
         <div className="fixed inset-0 bg-gray-600 dark:bg-slate-900 bg-opacity-50 dark:bg-opacity-80 flex items-center justify-center p-4 z-[60] backdrop-blur-sm">
@@ -163,16 +143,19 @@ const AssignmentModalContent = ({
         </div>
     );
 };
-// --- End Inline Modal Component Logic ---
 
-
+// --- MAIN COMPONENT: Now accepts teamMembers as a prop ---
 const ShootsTab = ({ 
     shoots, 
+    teamMembers, // <-- NEW PROP
     sectionTitleStyles, 
     DetailPairStylishComponent, 
     ContentListItemComponent,
     onUpdateShootAssignment
 }) => {
+
+    console.log("🟡 shoots:", shoots);
+    console.log("🟡 teamMembers:", teamMembers);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [assignmentContext, setAssignmentContext] = useState(null); 
 
@@ -188,12 +171,10 @@ const ShootsTab = ({
         );
     }
     
-    // --- NEW: Sort shoots by date and determine the date range ---
     const sortedShoots = [...shoots].sort((a, b) => new Date(a.date) - new Date(b.date));
 
     const formatDate = (dateString) => {
         if (!dateString) return '';
-        // Assuming date format is YYYY-MM-DD
         return new Date(dateString).toLocaleDateString('en-US', {
             year: 'numeric', month: 'short', day: 'numeric'
         });
@@ -209,11 +190,11 @@ const ShootsTab = ({
             dateRangeDisplay = `${formatDate(startDate)} - ${formatDate(endDate)}`;
         }
     }
-    // --- END NEW ---
 
     const openAssignmentModal = (shootId, serviceName, currentAssignedNamesArray, requiredCount) => {
+        // Uses the teamMembers prop to find employee IDs from their names
         const currentIds = (currentAssignedNamesArray || [])
-            .map(name => ALL_TEAM_MEMBERS.find(m => m.name === name)?.id)
+            .map(name => teamMembers.find(m => m.name === name)?.id)
             .filter(id => id); 
 
         setAssignmentContext({ 
@@ -232,8 +213,9 @@ const ShootsTab = ({
 
     const handleSaveChangesFromModal = (selectedMemberIdsArray) => {
         if (assignmentContext && onUpdateShootAssignment) {
+            // Uses the teamMembers prop to find employee names from their IDs
             const selectedNames = selectedMemberIdsArray
-                .map(id => ALL_TEAM_MEMBERS.find(m => m.id === id)?.name)
+                .map(id => teamMembers.find(m => m.id === id)?.name)
                 .filter(name => name); 
 
             onUpdateShootAssignment(
@@ -252,7 +234,8 @@ const ShootsTab = ({
         if (requiredRole) {
             const directMatches = [];
             const otherMembers = [];
-            ALL_TEAM_MEMBERS.forEach(member => {
+            // Uses the teamMembers prop
+            (teamMembers || []).forEach(member => {
                 if (member.roles.includes(requiredRole)) {
                     directMatches.push(member);
                 } else {
@@ -261,18 +244,17 @@ const ShootsTab = ({
             });
             return [...directMatches, ...otherMembers];
         }
-        return ALL_TEAM_MEMBERS; 
+        return teamMembers || []; // Returns the prop, or an empty array if undefined
     };
     
     return (
         <>
             <div>
-                <div className="mb-4"> {/* Wrapper for title and date range */}
+                <div className="mb-4">
                     <h3 className={sectionTitleStyles}>
                         <Camera className="w-5 h-5 mr-2.5 text-indigo-600 dark:text-indigo-400" />
                         Shoot Schedule
                     </h3>
-                    {/* --- NEW: Display the calculated date range --- */}
                     {dateRangeDisplay && (
                         <p className="flex items-center text-sm text-slate-500 dark:text-slate-400 mt-1 pl-1">
                             <CalendarDays size={14} className="mr-2"/>
@@ -282,7 +264,6 @@ const ShootsTab = ({
                 </div>
 
                 <div> 
-                    {/* --- UPDATED: Map over the sorted shoots --- */}
                     {sortedShoots.map((shoot, index) => ( 
                         <ContentListItemComponent key={shoot.id || index} className="mb-6 last:mb-0">
                             <h4 className="text-md font-semibold text-indigo-700 dark:text-indigo-300 mb-2 flex items-center">
@@ -351,6 +332,7 @@ const ShootsTab = ({
                     requiredCount={assignmentContext.requiredCount}
                     currentAssignedMemberIds={assignmentContext.currentAssignedMemberIds}
                     onSaveChanges={handleSaveChangesFromModal}
+                    teamMembers={teamMembers} // <-- Pass the teamMembers list down to the modal
                 />
             )}
         </>
