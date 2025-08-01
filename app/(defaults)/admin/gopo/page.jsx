@@ -8,27 +8,29 @@ import Link from 'next/link';
 import Shoots from '../../../../components/onboarding/Shoots';
 import ProjectDetails from '../../../../components/onboarding/ProjectDetails';
 import Clients from '../../../../components/onboarding/Clients';
-import PaymentSchedule from '../../../../components/onboarding/PaymentSchedule';
+// import PaymentSchedule from '../../../../components/onboarding/PaymentSchedule';
 import Deliverables from '../../../../components/onboarding/Deliverables';
 import ReceivedAmount from '../../../../components/onboarding/ReceivedAmount';
+import { useAuth } from '@/context/AuthContext';
+import axios from 'axios';
+
 
 function Page() {
+
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
     const [projectName, setProjectName] = useState('');
     const [projectPackageCost, setProjectPackageCost] = useState(''); // Will hold string from input
     const [deliverablesTotalCost, setDeliverablesTotalCost] = useState(0);
 
-    
+    const {currentUser, company, loading} = useAuth();
 
     // --- State to hold data from child components ---
     const [clientsData, setClientsData] = useState(null);
-    const [projectDetailsData, setProjectDetailsData] = useState(null);
+    // const [projectDetailsData, setProjectDetailsData] = useState(null);
     const [shootsData, setShootsData] = useState(null);
     const [deliverablesData, setDeliverablesData] = useState(null);
     const [receivedAmountData, setReceivedAmountData] = useState(null);
-    const [paymentScheduleData, setPaymentScheduleData] = useState(null);
-
-
-    console.log(clientsData)
+    // const [paymentScheduleData, setPaymentScheduleData] = useState(null);
 
     // Validation states
     const [isClientsValid, setIsClientsValid] = useState(false);
@@ -36,54 +38,85 @@ function Page() {
     const [isShootsValid, setIsShootsValid] = useState(false);
     const [isDeliverablesValid, setIsDeliverablesValid] = useState(false);
     const [isReceivedValid, setIsReceivedValid] = useState(false);
-    const [isScheduleValid, setIsScheduleValid] = useState(false);
+    // const [isScheduleValid, setIsScheduleValid] = useState(false);
 
-    const handleSave = () => {
-        if (!projectName.trim()) {
-            toast.error("Project name cannot be empty.");
-            return;
-        }
+const handleSave = async () => {
+console.log("🟡 handleSave triggered");
+  if (!projectName.trim()) {
+    toast.error("Project name cannot be empty.");
+    return;
+  }
 
-        const validationChecks = [
-            { isValid: isClientsValid, name: "Clients" },
-            { isValid: isProjectDetailsValid, name: "Project Details" },
-            { isValid: isShootsValid, name: "Shoots" },
-            { isValid: isDeliverablesValid, name: "Deliverables" },
-            { isValid: isReceivedValid, name: "Received Amount" },
-            { isValid: isScheduleValid, name: "Payment Schedule" }, // Make sure this is correctly set by PaymentSchedule
-        ];
+  console.log("🔍 Validation States:", {
+  isClientsValid,
+  isProjectDetailsValid,
+  isShootsValid,
+  isDeliverablesValid,
+  isReceivedValid,
+  // isScheduleValid
+});
 
-        const invalidSections = validationChecks.filter(check => !check.isValid).map(check => check.name);
+if (!currentUser) {
+  toast.error("User not authenticated");
+  return;
+}
 
-        if (invalidSections.length === 0) {
-            toast.success(`Project "${projectName}" data valid. Logging all data...`);
-            
-            const numericPackageCostValue = parseFloat(projectPackageCost) || 0;
-            const currentOverallTotalCost = numericPackageCostValue + deliverablesTotalCost;
 
-            // --- THIS IS WHERE ALL THE DATA IS GATHERED ---
-            const fullProjectData = {
-                projectName,
-                projectPackageCost: numericPackageCostValue,
-                deliverablesAdditionalCost: deliverablesTotalCost,
-                overallTotalCost: currentOverallTotalCost,
-                clients: clientsData,                 // Data from Clients component
-                projectDetails: projectDetailsData,   // Data from ProjectDetails component
-                shoots: shootsData,                   // Data from Shoots component
-                deliverables: deliverablesData,       // Data from Deliverables component
-                receivedAmount: receivedAmountData,   // Data from ReceivedAmount component
-                paymentSchedule: paymentScheduleData, // Data from PaymentSchedule component
-            };
+  const validationChecks = [
+    { isValid: isClientsValid, name: "Clients" },
+    { isValid: isProjectDetailsValid, name: "Project Details" },
+    { isValid: isShootsValid, name: "Shoots" },
+    { isValid: isDeliverablesValid, name: "Deliverables" },
+    { isValid: isReceivedValid, name: "Received Amount" },
+    // { isValid: isScheduleValid, name: "Payment Schedule" },
+  ];
 
-            console.log("--- FULL PROJECT DATA TO BE SAVED ---");
-            console.log(JSON.stringify(fullProjectData, null, 2)); // Pretty print for readability
-            console.log("------------------------------------");
-            
-            // TODO: Send `fullProjectData` to your backend API
-        } else {
-            toast.error(`Please fill all required sections. Missing/Invalid: ${invalidSections.join(', ')}.`);
-        }
+  const invalidSections = validationChecks.filter(check => !check.isValid).map(check => check.name);
+
+  if (invalidSections.length === 0) {
+    console.log("🟢 All validations passed. Attempting API call...");
+    const numericPackageCostValue = parseFloat(projectPackageCost) || 0;
+    const currentOverallTotalCost = numericPackageCostValue + deliverablesTotalCost;
+
+    const fullProjectData = {
+      projectName,
+      projectPackageCost: numericPackageCostValue,
+      deliverablesAdditionalCost: deliverablesTotalCost,
+      overallTotalCost: currentOverallTotalCost,
+      clients: clientsData,
+    //   projectDetails: projectDetailsData,
+      shoots: shootsData,
+      deliverables: deliverablesData,
+      receivedAmount: receivedAmountData,
+      // paymentSchedule: paymentScheduleData,
     };
+
+    try {
+        console.log("🌐 Posting to:", `${API_URL}/api/projects`);
+     const token = await currentUser.getIdToken();
+console.log("🔐 Token fetched:", token);
+        
+      const res = await axios.post(`${API_URL}/api/projects`, fullProjectData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (res.data.success) {
+        toast.success("Project saved successfully!");
+        // Optionally redirect or clear form
+      } else {
+        toast.error("Something went wrong.");
+      }
+    } catch (err) {
+      console.error('❌ Save failed:', err?.response?.data || err.message);
+      toast.error("Failed to save project.");
+    }
+  } else {
+    toast.error(`Please fill all required sections: ${invalidSections.join(', ')}`);
+  }
+};
+
 
     // --- Themed Styles ---
     const pageContainerStyles = "min-h-screen p-6 bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200 transition-colors duration-300";
@@ -118,6 +151,7 @@ function Page() {
                 <div>
                     {/* --- PASS onDataChange TO EACH CHILD --- */}
                     <Clients 
+                        company={company}
                         onValidChange={setIsClientsValid} 
                         onDataChange={setClientsData} 
                     />
@@ -125,15 +159,17 @@ function Page() {
                         onValidChange={setIsProjectDetailsValid}
                         packageCost={projectPackageCost}
                         onPackageCostChange={setProjectPackageCost}
-                        onDataChange={setProjectDetailsData} 
+                        // onDataChange={setProjectDetailsData} 
                     />
                 </div>
                 <div>
                     <Shoots 
+                        company={company}
                         onValidChange={setIsShootsValid} 
                         onDataChange={setShootsData} 
                     />
                     <Deliverables 
+                        company={company}
                         onValidChange={setIsDeliverablesValid}
                         onDeliverablesCostChange={setDeliverablesTotalCost}
                         onDataChange={setDeliverablesData} 
@@ -142,10 +178,10 @@ function Page() {
                         onValidChange={setIsReceivedValid} 
                         onDataChange={setReceivedAmountData} 
                     />
-                    <PaymentSchedule 
+                    {/* <PaymentSchedule 
                         onValidChange={setIsScheduleValid} 
                         onDataChange={setPaymentScheduleData} 
-                    />
+                    /> */}
                 </div>
             </div>
 

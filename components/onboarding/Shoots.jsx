@@ -1,9 +1,53 @@
 'use client';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Trash, Plus, X, Search, Settings2, ListChecks, FolderOpen } from 'lucide-react';
+import { Trash, Plus, X, Search, Settings2, ListChecks } from 'lucide-react';
 import CreatableSelect from 'react-select/creatable';
+import { getAuth } from "firebase/auth"; // Correctly imported for authentication
 
-// Helper Hook
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+
+// --- Authentication Helper Functions ---
+
+/**
+ * Retrieves the Firebase ID token for the current user.
+ * @returns {Promise<string|null>} The token or null if the user is not signed in.
+ */
+const getFirebaseToken = async () => {
+  const user = getAuth().currentUser;
+  if (!user) {
+    console.error("User is not authenticated.");
+    return null;
+  }
+  return await user.getIdToken();
+};
+
+/**
+ * A wrapper around the native fetch API that automatically adds the
+ * Firebase Authentication bearer token to the request headers.
+ * @param {string} url The URL to fetch.
+ * @param {object} options The options object for the fetch call.
+ * @returns {Promise<Response>} The fetch response.
+ */
+const fetchWithAuth = async (url, options = {}) => {
+    const token = await getFirebaseToken();
+    if (!token) {
+        // Immediately stop the request if no token is available
+        throw new Error("Authentication token is missing. Cannot make API request.");
+    }
+
+    // Prepare the headers by merging existing headers with the authorization token.
+    const headers = {
+        ...options.headers,
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json', // Default to JSON content type
+    };
+
+    // Make the fetch call with the updated options
+    return fetch(url, { ...options, headers });
+};
+
+
+// --- Helper Hook ---
 function useClickOutside(ref, callback, excludeRef) {
     useEffect(() => {
         function handleClickOutside(event) {
@@ -15,14 +59,6 @@ function useClickOutside(ref, callback, excludeRef) {
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, [ref, callback, excludeRef]);
 }
-
-// Initial Data Arrays - Defined at the module level
-const initialEventTitles = [
-    'Haldi Ceremony', 'Mehndi Night', 'Sangeet Celebration', 'Wedding Ceremony', 'Reception Party', 'Engagement Soiree', 'Birthday Bash', 'Anniversary Gala', 'Corporate Conference', 'Product Launch Event', 'Baby Shower', 'Graduation Celebration', 'Housewarming', 'Roka Ceremony', 'Bridal Shower', 'Naming Ceremony', 'Retirement Party', 'Farewell Party', 'Get-Together', 'Festive Party (Diwali/Eid/Christmas)', 'Workshop/Seminar', 'Team Offsite', 'Influencer Meetup', 'Award Night', 'Music Concert', 'Charity Fundraiser', 'Cultural Fest'
-];
-const initialAvailableServices = [
-    'Candid Photography', 'Traditional Photography', 'Cinematic Videography', 'Traditional Videography', 'Drone Aerial Shots', 'Drone FPV', 'Pre-Wedding Shoot', 'Post-Wedding Shoot', 'Album Design', 'Photo Booth', 'Live Streaming', 'Same Day Edit (SDE)', 'Makeup Artist (MUA)', 'Event MC/Anchor', 'DJ & Sound', 'Lighting Setup', 'Teaser Video', 'Highlight Reel', '4K Video Output', 'RAW Footages', 'Instagram Reels', 'Behind The Scenes (BTS)', 'Save The Date Video', 'Event Decor Photography', 'Wardrobe Styling', 'Venue Decor Services', 'Dance Choreography Coverage', 'Slow Motion Booth', 'Time-lapse Video', '360° Video Booth', 'Virtual Reality Experience', 'Social Media Content Creation', 'Green Screen Setup', 'Live Band Recording', 'Aerial Venue Mapping'
-];
 
 // --- Custom Option Component for Titles with Delete Button ---
 const TitleOptionWithDelete = (props) => {
@@ -210,51 +246,100 @@ const ShootRow = ({
 };
 
 // --- Shoots Component (Main Container) ---
-const Shoots = ({ onValidChange, onDataChange }) => { // Added onDataChange prop
+const Shoots = ({company, onValidChange, onDataChange }) => {
     const [shoots, setShoots] = useState([{ id: Date.now(), title: '', date: '', time: '', city: '', selectedServices: {}, showServiceOptions: false }]);
-    const [masterEventTitles, setMasterEventTitles] = useState([...initialEventTitles].sort());
-    const [masterServices, setMasterServices] = useState([...initialAvailableServices].sort());
+    const [masterEventTitles, setMasterEventTitles] = useState([]);
+    const [masterServices, setMasterServices] = useState([]);
+
+    useEffect(() => {
+        const fetchMasterData = async () => {
+            if (!company?.id) return;
+            try {
+                // Use the authenticated fetch wrapper for all API calls
+                const [eventRes, serviceRes] = await Promise.all([
+                    fetchWithAuth(`${API_URL}/api/events?company_id=${company.id}`),
+                    fetchWithAuth(`${API_URL}/api/services?company_id=${company.id}`)
+                ]);
+
+                if (!eventRes.ok || !serviceRes.ok) {
+                    throw new Error(`API Error: ${eventRes.status} | ${serviceRes.status}`)
+                }
+
+                const eventTitles = await eventRes.json();
+                const services = await serviceRes.json();
+
+                setMasterEventTitles(eventTitles.map(e => e.title));
+                setMasterServices(services.map(s => s.name));
+            } catch (err) {
+                console.error('Error fetching master data:', err);
+                // Optionally, handle UI feedback for the user here (e.g., show an error message)
+            }
+        };
+        fetchMasterData();
+    }, [company]);
     
     const addShootButtonStyles = "text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 focus:ring-4 focus:ring-blue-300 dark:focus:ring-blue-800 p-2.5 rounded-lg flex items-center justify-center text-sm";
 
-    // --- useCallback Handlers (as in your original code) ---
-    const handleAddMasterTitle = useCallback((newTitle) => {
-        const trimmedNewTitle = newTitle.trim();
-        if (trimmedNewTitle && !masterEventTitles.some(t => t.toLowerCase() === trimmedNewTitle.toLowerCase())) {
-            setMasterEventTitles(prev => [...prev, trimmedNewTitle].sort());
-        } else if (trimmedNewTitle && masterEventTitles.some(t => t.toLowerCase() === trimmedNewTitle.toLowerCase())) {
-            /* Already exists */
-        } else if (trimmedNewTitle) {
-            alert(`Title "${trimmedNewTitle}" is invalid.`);
+    const handleAddMasterTitle = useCallback(async (newTitle) => {
+        const trimmed = newTitle.trim();
+        if (!trimmed || masterEventTitles.some(t => t.toLowerCase() === trimmed.toLowerCase())) return;
+        setMasterEventTitles(prev => [...prev, trimmed].sort());
+        if (company?.id) {
+            try {
+                await fetchWithAuth(`${API_URL}/api/events`, {
+                    method: 'POST',
+                    body: JSON.stringify({ title: trimmed, company_id: company.id })
+                });
+            } catch (err) { console.error('Failed to add event title:', err); }
         }
-    }, [masterEventTitles]);
+    }, [masterEventTitles, company]);
 
-    const handleDeleteMasterTitle = useCallback((titleToDelete) => {
+    const handleDeleteMasterTitle = useCallback(async (titleToDelete) => {
         setMasterEventTitles(prev => prev.filter(t => t !== titleToDelete));
-        setShoots(prevShoots => prevShoots.map(s =>
-            s.title === titleToDelete ? { ...s, title: '' } : s
-        ));
-    }, []); // Removed masterEventTitles from deps as it uses setMasterEventTitles
-
-    const handleAddMasterService = useCallback((newService) => {
-        const trimmedNewService = newService.trim();
-        if (trimmedNewService && !masterServices.some(s => s.toLowerCase() === trimmedNewService.toLowerCase())) {
-            setMasterServices(prev => [...prev, trimmedNewService].sort());
-        } else if (trimmedNewService) { 
-            alert(`Service "${trimmedNewService}" already exists or is invalid.`); 
+        setShoots(prevShoots => prevShoots.map(s => s.title === titleToDelete ? { ...s, title: '' } : s));
+        if (company?.id) {
+            try {
+                await fetchWithAuth(`${API_URL}/api/events`, {
+                    method: 'DELETE',
+                    body: JSON.stringify({ title: titleToDelete, company_id: company.id })
+                });
+            } catch (err) { console.error('Failed to delete event title:', err); }
         }
-    }, [masterServices]);
+    }, [company]);
 
-    const handleDeleteMasterService = useCallback((serviceToDelete) => {
+    const handleAddMasterService = useCallback(async (newService) => {
+        const trimmed = newService.trim();
+        if (!trimmed || masterServices.some(s => s.toLowerCase() === trimmed.toLowerCase())) return;
+        setMasterServices(prev => [...prev, trimmed].sort());
+        if (company?.id) {
+            try {
+                await fetchWithAuth(`${API_URL}/api/services`, {
+                    method: 'POST',
+                    body: JSON.stringify({ name: trimmed, company_id: company.id })
+                });
+            } catch (err) { console.error('Failed to add service:', err); }
+        }
+    }, [masterServices, company]);
+
+    const handleDeleteMasterService = useCallback(async (serviceToDelete) => {
         setMasterServices(prev => prev.filter(s => s !== serviceToDelete));
         setShoots(prevShoots => prevShoots.map(shoot => {
-            if (shoot.selectedServices && shoot.selectedServices[serviceToDelete] !== undefined) {
-                const updatedSelectedServices = { ...shoot.selectedServices };
-                delete updatedSelectedServices[serviceToDelete];
-                return { ...shoot, selectedServices: updatedSelectedServices };
-            } return shoot;
+            if (shoot.selectedServices?.[serviceToDelete]) {
+                const updated = { ...shoot.selectedServices };
+                delete updated[serviceToDelete];
+                return { ...shoot, selectedServices: updated };
+            }
+            return shoot;
         }));
-    }, []); // Removed masterServices from deps
+        if (company?.id) {
+            try {
+                await fetchWithAuth(`${API_URL}/api/services`, {
+                    method: 'DELETE',
+                    body: JSON.stringify({ name: serviceToDelete, company_id: company.id })
+                });
+            } catch (err) { console.error('Failed to delete service:', err); }
+        }
+    }, [company]);
 
     const handleShootFieldChange = (id, field, value) => setShoots(prevShoots => prevShoots.map(s => s.id === id ? { ...s, [field]: value } : s));
     const handleServiceToggleForShoot = (id, serviceName) => setShoots(prevShoots => prevShoots.map(s => { if (s.id !== id) return s; const updatedSelectedServices = { ...(s.selectedServices || {}) }; if (updatedSelectedServices[serviceName] !== undefined) delete updatedSelectedServices[serviceName]; else updatedSelectedServices[serviceName] = 1; return { ...s, selectedServices: updatedSelectedServices }; }));
@@ -265,14 +350,13 @@ const Shoots = ({ onValidChange, onDataChange }) => { // Added onDataChange prop
         const remainingShoots = prevShoots.filter(s => s.id !== id);
         return remainingShoots.length > 0 ? remainingShoots : [{ id: Date.now(), title: '', date: '', time: '', city: '', selectedServices: {}, showServiceOptions: false }];
     });
-    // --- END useCallback Handlers ---
 
     // --- useEffect for Validation ---
     useEffect(() => {
         if (typeof onValidChange === 'function') {
             let allShootsAreValid = true;
             if (shoots.length === 1 && shoots[0].title.trim() === '' && shoots[0].date.trim() === '' && shoots[0].city.trim() === '' && Object.keys(shoots[0].selectedServices).length === 0) {
-                allShootsAreValid = true; // Consider a single, completely empty shoot row as "not yet started" / valid
+                allShootsAreValid = true; // A single, empty shoot is considered valid (not yet started)
             } else {
                 allShootsAreValid = shoots.every(s => 
                     s && s.title?.trim() !== '' && 
@@ -285,7 +369,7 @@ const Shoots = ({ onValidChange, onDataChange }) => { // Added onDataChange prop
         }
     }, [shoots, onValidChange]);
 
-    // --- useEffect for body overflow (keep as is) ---
+    // --- useEffect for body overflow ---
     useEffect(() => {
         const hasOpenModal = shoots.some(s => s.showServiceOptions);
         if (hasOpenModal) document.body.style.overflow = 'hidden'; 
@@ -293,30 +377,23 @@ const Shoots = ({ onValidChange, onDataChange }) => { // Added onDataChange prop
         return () => { document.body.style.overflow = ''; };
     }, [shoots]);
 
-    // --- CRITICAL: useEffect for Reporting Data to Parent ---
+    // --- useEffect for Reporting Data to Parent ---
     useEffect(() => {
         if (typeof onDataChange === 'function') {
-            // Filter out completely empty shoot objects before sending, unless it's the only one and is also empty
             const relevantShoots = shoots.filter(s => 
                 s.title.trim() !== '' || s.date.trim() !== '' || s.time.trim() !== '' || 
                 s.city.trim() !== '' || Object.keys(s.selectedServices).length > 0
             );
 
-            const componentData = {
-                shootList: relevantShoots.length > 0 ? relevantShoots : (shoots.length === 1 && relevantShoots.length === 0 ? [] : []), // Send empty array if only one blank shoot
-                // Decide if master lists are project-specific or global templates.
-                // If global, don't send. If project-specific, include them:
-                // currentMasterEventTitles: masterEventTitles,
-                // currentMasterServices: masterServices,
-            };
-            // console.log('[Shoots.js] Reporting data to parent:', componentData); // UNCOMMENT FOR DEBUGGING
-            onDataChange(componentData);
+            // const componentData = {
+            //     shootList: relevantShoots.length > 0 ? relevantShoots : (shoots.length === 1 && relevantShoots.length === 0 ? [] : []),
+            // };
+           onDataChange(relevantShoots.length > 0 ? relevantShoots : []);
         }
-    // Dependencies: The state variables that make up `componentData` + `onDataChange` itself.
-    }, [shoots, masterEventTitles, masterServices, onDataChange]);
+    }, [shoots, onDataChange]);
 
 
-    return (
+   return (
         <div className="mb-6 p-4 bg-white dark:bg-gray-800/50 rounded-lg shadow-md dark:shadow-gray-700/50">
             <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-semibold text-gray-700 dark:text-gray-200">Shoot Schedule</h2>
@@ -324,7 +401,7 @@ const Shoots = ({ onValidChange, onDataChange }) => { // Added onDataChange prop
                     <Plus size={16} className="mr-1.5" /> Add Shoot
                 </button>
             </div>
-            {shoots.map((shootItem, idx) => ( // Use map directly
+            {shoots.map((shootItem, idx) => (
                 <ShootRow
                     key={shootItem.id} shoot={shootItem}
                     onChange={(field, value) => handleShootFieldChange(shootItem.id, field, value)}
@@ -333,7 +410,7 @@ const Shoots = ({ onValidChange, onDataChange }) => { // Added onDataChange prop
                     showServiceOptions={shootItem.showServiceOptions}
                     setShowServiceOptions={() => toggleServiceOptionsPanelForShoot(shootItem.id)}
                     onDelete={() => handleDeleteShoot(shootItem.id)}
-                    canDelete={shoots.length > 1} 
+                    canDelete={shoots.length > 1}
                     isFirst={idx === 0}
                     masterEventTitles={masterEventTitles}
                     onAddMasterTitle={handleAddMasterTitle}
@@ -343,7 +420,6 @@ const Shoots = ({ onValidChange, onDataChange }) => { // Added onDataChange prop
                     onDeleteMasterService={handleDeleteMasterService}
                 />
             ))}
-            {/* Removed the shoots.length === 0 empty state as handleDeleteShoot ensures at least one row */}
         </div>
     );
 };
