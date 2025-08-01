@@ -8,7 +8,7 @@ import Link from 'next/link';
 import Shoots from '../../../../components/onboarding/Shoots';
 import ProjectDetails from '../../../../components/onboarding/ProjectDetails';
 import Clients from '../../../../components/onboarding/Clients';
-import PaymentSchedule from '../../../../components/onboarding/PaymentSchedule';
+// import PaymentSchedule from '../../../../components/onboarding/PaymentSchedule';
 import Deliverables from '../../../../components/onboarding/Deliverables';
 import ReceivedAmount from '../../../../components/onboarding/ReceivedAmount';
 import { useAuth } from '@/context/AuthContext';
@@ -30,7 +30,7 @@ function Page() {
     const [shootsData, setShootsData] = useState(null);
     const [deliverablesData, setDeliverablesData] = useState(null);
     const [receivedAmountData, setReceivedAmountData] = useState(null);
-    const [paymentScheduleData, setPaymentScheduleData] = useState(null);
+    // const [paymentScheduleData, setPaymentScheduleData] = useState(null);
 
     // Validation states
     const [isClientsValid, setIsClientsValid] = useState(false);
@@ -38,7 +38,7 @@ function Page() {
     const [isShootsValid, setIsShootsValid] = useState(false);
     const [isDeliverablesValid, setIsDeliverablesValid] = useState(false);
     const [isReceivedValid, setIsReceivedValid] = useState(false);
-    const [isScheduleValid, setIsScheduleValid] = useState(false);
+    // const [isScheduleValid, setIsScheduleValid] = useState(false);
 
 const handleSave = async () => {
 console.log("🟡 handleSave triggered");
@@ -53,7 +53,7 @@ console.log("🟡 handleSave triggered");
   isShootsValid,
   isDeliverablesValid,
   isReceivedValid,
-  isScheduleValid
+  // isScheduleValid
 });
 
 if (!currentUser) {
@@ -68,7 +68,7 @@ if (!currentUser) {
     { isValid: isShootsValid, name: "Shoots" },
     { isValid: isDeliverablesValid, name: "Deliverables" },
     { isValid: isReceivedValid, name: "Received Amount" },
-    { isValid: isScheduleValid, name: "Payment Schedule" },
+    // { isValid: isScheduleValid, name: "Payment Schedule" },
   ];
 
   const invalidSections = validationChecks.filter(check => !check.isValid).map(check => check.name);
@@ -88,7 +88,7 @@ if (!currentUser) {
       shoots: shootsData,
       deliverables: deliverablesData,
       receivedAmount: receivedAmountData,
-      paymentSchedule: paymentScheduleData,
+      // paymentSchedule: paymentScheduleData,
     };
 
     try {
@@ -178,10 +178,10 @@ console.log("🔐 Token fetched:", token);
                         onValidChange={setIsReceivedValid} 
                         onDataChange={setReceivedAmountData} 
                     />
-                    <PaymentSchedule 
+                    {/* <PaymentSchedule 
                         onValidChange={setIsScheduleValid} 
                         onDataChange={setPaymentScheduleData} 
-                    />
+                    /> */}
                 </div>
             </div>
 

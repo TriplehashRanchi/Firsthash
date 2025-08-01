@@ -2,19 +2,7 @@
 import React, { useState } from 'react';
 import { Camera, CalendarDays, Clock, MapPin, Edit3, X, UserPlus, Users as UsersIcon, CheckCircle } from 'lucide-react';
 
-// --- REMOVED: The hardcoded ALL_TEAM_MEMBERS array is gone. ---
-// This component now receives the team members list as a prop.
-
-// --- CONFIGURATION: This logic can remain as it's part of the component's business logic ---
-const SERVICE_TO_REQUIRED_ROLE = {
-    "Candid Photography": "Photographer",
-    "Traditional Photography": "Photographer",
-    "Cinematic Videography": "Videographer",
-    "Traditional Videography": "Videographer",
-    "Drone Aerial Shots": "Drone Operator",
-};
-
-// --- MODAL COMPONENT: Now accepts teamMembers as a prop ---
+// --- MODAL COMPONENT (with corrected prop name) ---
 const AssignmentModalContent = ({
     onClose,
     teamMembersToDisplay,
@@ -22,19 +10,29 @@ const AssignmentModalContent = ({
     requiredCount,
     currentAssignedMemberIds,
     onSaveChanges,
-    teamMembers // <-- NEW: Receives the full team list to find members by ID
+    teamMembers, // <-- This prop name is what we will use consistently
 }) => {
     const [selectedMemberIds, setSelectedMemberIds] = useState([...currentAssignedMemberIds]);
 
     const handleMemberSelect = (memberId) => {
-        setSelectedMemberIds(prevIds => {
+        console.log('Selecting member:', memberId);
+        console.log('Current selected:', selectedMemberIds);
+        console.log('Required count:', requiredCount);
+
+        setSelectedMemberIds((prevIds) => {
             if (prevIds.includes(memberId)) {
-                return prevIds.filter(id => id !== memberId);
+                const newIds = prevIds.filter((id) => id !== memberId);
+                console.log('Removing member, new selection:', newIds);
+                return newIds;
             } else {
                 if (prevIds.length < requiredCount) {
-                    return [...prevIds, memberId];
+                    const newIds = [...prevIds, memberId];
+                    console.log('Adding member, new selection:', newIds);
+                    return newIds;
+                } else {
+                    console.log('Max count reached, cannot add more. Current:', prevIds.length, 'Required:', requiredCount);
+                    return prevIds;
                 }
-                return prevIds;
             }
         });
     };
@@ -42,16 +40,16 @@ const AssignmentModalContent = ({
     const handleSaveChangesClick = () => {
         onSaveChanges(selectedMemberIds);
     };
-    
-    // Uses the teamMembers prop instead of a hardcoded array
-    const getMemberById = (id) => teamMembers.find(member => member.id === id);
+
+    // Now correctly uses the 'teamMembers' prop for lookups
+    const getMemberById = (id) => (teamMembers || []).find((member) => member.id === id);
 
     return (
         <div className="fixed inset-0 bg-gray-600 dark:bg-slate-900 bg-opacity-50 dark:bg-opacity-80 flex items-center justify-center p-4 z-[60] backdrop-blur-sm">
             <div className="bg-white dark:bg-gradient-to-br dark:from-slate-800 dark:to-slate-900 p-6 rounded-xl shadow-2xl w-full max-w-lg border border-slate-300 dark:border-slate-700">
                 <div className="flex justify-between items-center mb-6 pb-4 border-b border-slate-300 dark:border-slate-700">
                     <h3 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-pink-600 dark:from-purple-400 dark:to-pink-500 flex items-center">
-                        <UserPlus size={26} className="mr-3 text-purple-500 dark:text-purple-400"/> Assign Team
+                        <UserPlus size={26} className="mr-3 text-purple-500 dark:text-purple-400" /> Assign Team
                     </h3>
                     <button
                         onClick={onClose}
@@ -67,18 +65,24 @@ const AssignmentModalContent = ({
                         For Service: <span className="font-semibold text-slate-700 dark:text-slate-200">{serviceName}</span>
                     </p>
                     <p className="text-xs text-slate-500 dark:text-slate-400">
-                        Required: <span className="font-semibold text-slate-700 dark:text-slate-200">{selectedMemberIds.length} / {requiredCount}</span> assigned
+                        Required:{' '}
+                        <span className="font-semibold text-slate-700 dark:text-slate-200">
+                            {selectedMemberIds.length} / {requiredCount}
+                        </span>{' '}
+                        assigned
                     </p>
                 </div>
-                
+
                 {currentAssignedMemberIds.length > 0 && (
                     <div className="mb-4 p-3 bg-slate-100 dark:bg-slate-700/50 rounded-md">
                         <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Currently assigned:</p>
                         <div className="flex flex-wrap gap-2">
-                            {currentAssignedMemberIds.map(id => {
+                            {currentAssignedMemberIds.map((id) => {
                                 const member = getMemberById(id);
                                 return member ? (
-                                    <span key={id} className="text-xs bg-indigo-100 text-indigo-700 dark:bg-indigo-500 dark:text-white px-2 py-0.5 rounded-full">{member.name}</span>
+                                    <span key={id} className="text-xs bg-indigo-100 text-indigo-700 dark:bg-indigo-500 dark:text-white px-2 py-0.5 rounded-full">
+                                        {member.name}
+                                    </span>
                                 ) : null;
                             })}
                         </div>
@@ -87,55 +91,45 @@ const AssignmentModalContent = ({
 
                 {teamMembersToDisplay.length > 0 ? (
                     <ul className="max-h-60 overflow-y-auto space-y-2 pr-1 mb-6 border border-slate-300 dark:border-slate-700 rounded-md p-3 bg-slate-50 dark:bg-slate-800/50">
-                        {teamMembersToDisplay.map(member => (
+                        {teamMembersToDisplay.map((member) => (
                             <li key={member.id}>
-                                <label
-                                    htmlFor={`member-${member.id}-${serviceName}`}
-                                    className={`flex items-center w-full p-3 rounded-lg cursor-pointer transition-all duration-200 ease-in-out
-                                                border-2 
-                                                ${selectedMemberIds.includes(member.id)
-                                                    ? 'bg-indigo-500/10 dark:bg-indigo-600/20 border-indigo-500 dark:border-indigo-500 shadow-lg transform scale-[1.02]' 
-                                                    : 'bg-slate-100 dark:bg-slate-700/50 border-slate-300 dark:border-slate-600 hover:bg-slate-200 dark:hover:bg-slate-600/70 hover:border-slate-400 dark:hover:border-slate-500'
-                                                }
-                                                ${!selectedMemberIds.includes(member.id) && selectedMemberIds.length >= requiredCount ? 'opacity-60 cursor-not-allowed' : ''}
-                                            `}
-                                >
-                                    <input
-                                        type="checkbox"
-                                        id={`member-${member.id}-${serviceName}`}
-                                        checked={selectedMemberIds.includes(member.id)}
-                                        onChange={() => handleMemberSelect(member.id)}
-                                        disabled={!selectedMemberIds.includes(member.id) && selectedMemberIds.length >= requiredCount}
-                                        className="h-5 w-5 rounded border-slate-400 dark:border-slate-500 text-indigo-600 dark:text-indigo-500 focus:ring-indigo-500 dark:focus:ring-indigo-400 bg-white dark:bg-slate-600 mr-4 shadow-sm"
-                                    />
-                                    <div className="flex-grow">
-                                        <span className="block text-sm font-medium text-slate-800 dark:text-slate-100">{member.name}</span>
-                                        <span className="block text-xs text-slate-600 dark:text-slate-400">{member.primaryRole}</span>
-                                    </div>
-                                    {selectedMemberIds.includes(member.id) && <CheckCircle size={18} className="text-green-500 dark:text-green-400 ml-auto" />}
-                                </label>
-                            </li>
+            <label
+                htmlFor={`member-${member.id}-${serviceName}`}
+                className={`flex items-center w-full p-3 rounded-lg cursor-pointer transition-all duration-200 ease-in-out border-2 ${selectedMemberIds.includes(member.id) ? 'bg-indigo-500/10 dark:bg-indigo-600/20 border-indigo-500' : 'bg-slate-100 dark:bg-slate-700/50 border-slate-300 dark:border-slate-600 hover:bg-slate-200 dark:hover:bg-slate-600/70'}`}
+            >
+                <input
+                    type="checkbox"
+                    id={`member-${member.id}-${serviceName}`}
+                    checked={selectedMemberIds.includes(member.id)}
+                    onChange={() => handleMemberSelect(member.id)}
+                    disabled={!selectedMemberIds.includes(member.id) && selectedMemberIds.length >= requiredCount}
+                    className="h-5 w-5 rounded border-slate-400 text-indigo-600 focus:ring-indigo-500"
+                />
+                <div className="flex-grow ml-4">
+                    <span className="block text-sm font-medium text-slate-800 dark:text-slate-100">{member.name}</span>
+                    {/* This now displays only the member's relevant "on-production" roles */}
+                    <span className="block text-xs text-slate-600 dark:text-slate-400">
+                        {member.onProductionRoles.join(', ')}
+                    </span>
+                </div>
+                {selectedMemberIds.includes(member.id) && <CheckCircle size={18} className="text-green-500 ml-auto" />}
+            </label>
+        </li>
                         ))}
                     </ul>
                 ) : (
-                    <div className="text-slate-500 dark:text-slate-400 text-center py-10 my-4 border border-dashed border-slate-300 dark:border-slate-700 rounded-lg">
-                        <UsersIcon size={32} className="mx-auto mb-2 text-slate-400 dark:text-slate-500" />
-                        No suitable employees found for this service.
+                    <div className="text-center py-10 my-4 border border-dashed border-slate-300 dark:border-slate-700 rounded-lg">
+                        <UsersIcon size={32} className="mx-auto mb-2 text-slate-400" />
+                        <p className="text-slate-600 dark:text-slate-400">No suitable employees found for {serviceName}.</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">Available roles in team: {(teamMembers || []).map((m) => m.primaryRole).join(', ')}</p>
                     </div>
                 )}
 
                 <div className="flex justify-end space-x-4 pt-4 border-t border-slate-300 dark:border-slate-700">
-                    <button
-                        onClick={onClose}
-                        className="px-6 py-2.5 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 bg-slate-200 dark:bg-slate-600/50 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors ring-1 ring-slate-300 dark:ring-slate-500"
-                    >
+                    <button onClick={onClose} className="px-6 py-2.5 rounded-lg text-sm font-medium bg-slate-200 dark:bg-slate-600/50 ring-1 ring-slate-300 dark:ring-slate-500">
                         Cancel
                     </button>
-                    <button
-                        onClick={handleSaveChangesClick}
-                        className="px-8 py-2.5 rounded-lg text-sm font-bold text-white bg-gradient-to-r from-purple-500 to-pink-600 hover:opacity-90 transition-opacity shadow-lg
-                                   dark:text-slate-900 dark:from-purple-400 dark:to-pink-500"
-                    >
+                    <button onClick={handleSaveChangesClick} className="px-8 py-2.5 rounded-lg text-sm font-bold text-white bg-gradient-to-r from-purple-500 to-pink-600">
                         Save Changes
                     </button>
                 </div>
@@ -144,65 +138,58 @@ const AssignmentModalContent = ({
     );
 };
 
-// --- MAIN COMPONENT: Now accepts teamMembers as a prop ---
-const ShootsTab = ({ 
-    shoots, 
-    teamMembers, // <-- NEW PROP
-    sectionTitleStyles, 
-    DetailPairStylishComponent, 
-    ContentListItemComponent,
-    onUpdateShootAssignment
-}) => {
-
-    console.log("🟡 shoots:", shoots);
-    console.log("🟡 teamMembers:", teamMembers);
+// --- MAIN COMPONENT (with corrected props and logic) ---
+const ShootsTab = ({ shoots, eligibleTeamMembers, sectionTitleStyles, DetailPairStylishComponent, ContentListItemComponent, onUpdateShootAssignment }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [assignmentContext, setAssignmentContext] = useState(null); 
+    const [assignmentContext, setAssignmentContext] = useState(null);
 
-    if (!Array.isArray(shoots) || shoots.length === 0) { 
+    if (!Array.isArray(shoots) || shoots.length === 0) {
         return (
-            <div>
-                 <h3 className={sectionTitleStyles}>
-                    <Camera className="w-5 h-5 mr-2.5 text-indigo-600 dark:text-indigo-400" />
-                    Shoot Schedule
-                </h3>
-                <p className="text-slate-500 dark:text-slate-400 p-2">No shoots scheduled.</p>
+            <div className="text-center py-10">
+                <Camera size={48} className="mx-auto mb-4 text-slate-400" />
+                <p className="text-slate-600 dark:text-slate-400">No shoots scheduled</p>
             </div>
         );
     }
-    
+
     const sortedShoots = [...shoots].sort((a, b) => new Date(a.date) - new Date(b.date));
 
     const formatDate = (dateString) => {
         if (!dateString) return '';
-        return new Date(dateString).toLocaleDateString('en-US', {
-            year: 'numeric', month: 'short', day: 'numeric'
-        });
+        return new Date(dateString).toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: 'numeric' });
     };
-    
-    const startDate = sortedShoots[0]?.date;
-    const endDate = sortedShoots[sortedShoots.length - 1]?.date;
-    let dateRangeDisplay = '';
-    if (startDate) {
-        if (startDate === endDate) {
-            dateRangeDisplay = formatDate(startDate);
-        } else {
-            dateRangeDisplay = `${formatDate(startDate)} - ${formatDate(endDate)}`;
-        }
-    }
 
-    const openAssignmentModal = (shootId, serviceName, currentAssignedNamesArray, requiredCount) => {
-        // Uses the teamMembers prop to find employee IDs from their names
-        const currentIds = (currentAssignedNamesArray || [])
-            .map(name => teamMembers.find(m => m.name === name)?.id)
-            .filter(id => id); 
+    // Calculate date range for display
+    const dateRangeDisplay =
+        sortedShoots.length > 0
+            ? sortedShoots.length === 1
+                ? formatDate(sortedShoots[0].date)
+                : `${formatDate(sortedShoots[0].date)} - ${formatDate(sortedShoots[sortedShoots.length - 1].date)}`
+            : '';
 
-        setAssignmentContext({ 
-            shootId, 
-            serviceName, 
-            currentAssignedMemberIds: currentIds,
-            requiredCount 
+    const openAssignmentModal = (shootId, serviceName, currentAssignments, requiredCount) => {
+        console.log('Opening assignment modal:', {
+            shootId,
+            serviceName,
+            currentAssignments,
+            requiredCount,
         });
+
+        // Handle both formats: array of objects with id/name OR array of names
+        let currentIds = [];
+        if (currentAssignments && Array.isArray(currentAssignments)) {
+            if (currentAssignments.length > 0 && typeof currentAssignments[0] === 'object' && currentAssignments[0].id) {
+                // Format: [{ id: 'xxx', name: 'John' }, ...]
+                currentIds = currentAssignments.map((assignee) => assignee.id);
+            } else {
+                // Format: ['John Doe', 'Jane Smith', ...] - convert names to IDs
+                currentIds = currentAssignments.map((name) => eligibleTeamMembers?.find((m) => m.name === name)?.id).filter((id) => id);
+            }
+        }
+
+        console.log('Current assigned IDs:', currentIds);
+
+        setAssignmentContext({ shootId, serviceName, currentAssignedMemberIds: currentIds, requiredCount });
         setIsModalOpen(true);
     };
 
@@ -212,105 +199,138 @@ const ShootsTab = ({
     };
 
     const handleSaveChangesFromModal = (selectedMemberIdsArray) => {
-        if (assignmentContext && onUpdateShootAssignment) {
-            // Uses the teamMembers prop to find employee names from their IDs
-            const selectedNames = selectedMemberIdsArray
-                .map(id => teamMembers.find(m => m.id === id)?.name)
-                .filter(name => name); 
+        console.log('Saving changes:', {
+            shootId: assignmentContext?.shootId,
+            serviceName: assignmentContext?.serviceName,
+            selectedIds: selectedMemberIdsArray,
+        });
 
+        if (assignmentContext && onUpdateShootAssignment) {
+            // Pass the IDs directly - don't convert to names
+            // Your backend expects: { serviceName, assigneeIds }
             onUpdateShootAssignment(
-                assignmentContext.shootId, 
-                assignmentContext.serviceName, 
-                selectedNames
+                assignmentContext.shootId,
+                assignmentContext.serviceName,
+                selectedMemberIdsArray, // Pass IDs directly
             );
         }
         closeAssignmentModal();
     };
 
-
-
+    // --- SIMPLIFIED: Just return all team members for now ---
+    // --- START: THE ONE-LINE FIX ---
     const getTeamMembersForService = (serviceName) => {
-        const requiredRole = SERVICE_TO_REQUIRED_ROLE[serviceName];
-        if (requiredRole) {
-            const directMatches = [];
-            const otherMembers = [];
-            // Uses the teamMembers prop
-            (teamMembers || []).forEach(member => {
-                if (member.roles.includes(requiredRole)) {
-                    directMatches.push(member);
-                } else {
-                    otherMembers.push(member);
-                }
-            });
-            return [...directMatches, ...otherMembers];
-        }
-        return teamMembers || []; // Returns the prop, or an empty array if undefined
+        // Step 1: Infer the ideal role keyword from the service name using a regular expression.
+        // This handles variations like "Videographer" or "VideoGraphy".
+        const lowerServiceName = serviceName.toLowerCase();
+        let idealRoleKeyword = '';
+        if (/photo/i.test(lowerServiceName)) idealRoleKeyword = 'photographer';
+        else if (/video|cinematic/i.test(lowerServiceName)) idealRoleKeyword = 'videographer';
+        else if (/drone/i.test(lowerServiceName)) idealRoleKeyword = 'drone';
+        else if (/light/i.test(lowerServiceName)) idealRoleKeyword = 'lightman';
+
+        // Step 2: Score and prepare each eligible team member.
+        const scoredMembers = (eligibleTeamMembers || []).map((member) => {
+            let score = 0;
+
+            // Get a clean list of just their "on-production" roles for display.
+            const onProductionRoles = member.roles.filter((role) => role.code === 1).map((role) => role.role);
+
+            // Check if any of their on-production roles match the ideal keyword for this service.
+            const hasIdealRole = onProductionRoles.some((role) => role.toLowerCase().includes(idealRoleKeyword));
+
+            // Give a high score if they have the ideal role.
+            if (idealRoleKeyword && hasIdealRole) {
+                score = 10;
+            }
+
+            return {
+                ...member,
+                score,
+                onProductionRoles, // Store the filtered roles for display in the modal
+            };
+        });
+
+        // Step 3: Sort the members. Higher scores (more relevant) will appear first.
+        return scoredMembers.sort((a, b) => b.score - a.score);
     };
-    
+
     return (
         <>
             <div>
                 <div className="mb-4">
                     <h3 className={sectionTitleStyles}>
-                        <Camera className="w-5 h-5 mr-2.5 text-indigo-600 dark:text-indigo-400" />
+                        <Camera className="w-5 h-5 mr-2.5 text-indigo-600" />
                         Shoot Schedule
                     </h3>
                     {dateRangeDisplay && (
-                        <p className="flex items-center text-sm text-slate-500 dark:text-slate-400 mt-1 pl-1">
-                            <CalendarDays size={14} className="mr-2"/>
+                        <p className="flex items-center text-sm text-slate-500 mt-1 pl-1">
+                            <CalendarDays size={14} className="mr-2" />
                             Event Dates: {dateRangeDisplay}
                         </p>
                     )}
                 </div>
 
-                <div> 
-                    {sortedShoots.map((shoot, index) => ( 
+                <div>
+                    {sortedShoots.map((shoot, index) => (
                         <ContentListItemComponent key={shoot.id || index} className="mb-6 last:mb-0">
                             <h4 className="text-md font-semibold text-indigo-700 dark:text-indigo-300 mb-2 flex items-center">
-                                <Camera size={18} className="mr-2 text-indigo-600 dark:text-indigo-400"/> Shoot {index + 1}: {shoot.title}
+                                <Camera size={18} className="mr-2 text-indigo-600" />
+                                Shoot {index + 1}: {shoot.title}
                             </h4>
+
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-4 mb-3">
-                                <DetailPairStylishComponent label="Date" value={shoot.date} isDate icon={CalendarDays}/>
-                                <DetailPairStylishComponent label="Time" value={shoot.time} icon={Clock}/>
-                                <DetailPairStylishComponent label="City" value={shoot.city} icon={MapPin}/>
+                                <DetailPairStylishComponent label="Date" value={shoot.date} isDate icon={CalendarDays} />
+                                <DetailPairStylishComponent label="Time" value={shoot.time} icon={Clock} />
+                                <DetailPairStylishComponent label="City" value={shoot.city} icon={MapPin} />
                             </div>
 
                             {shoot.selectedServices && Object.keys(shoot.selectedServices).length > 0 && (
                                 <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700/60">
                                     <div className="grid grid-cols-2 gap-x-4 mb-3 px-2">
-                                        <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Requirements</p>
-                                        <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Assign To</p>
+                                        <p className="text-xs font-semibold text-slate-500 uppercase">Requirements</p>
+                                        <p className="text-xs font-semibold text-slate-500 uppercase">Assign To</p>
                                     </div>
 
-                                    {Object.entries(shoot.selectedServices).map(([serviceName, requiredCount]) => {
-                                        const assignedPersonNames = (shoot.assignments && Array.isArray(shoot.assignments[serviceName]))
-                                                                    ? shoot.assignments[serviceName] 
-                                                                    : [];
+                                    {Object.entries(shoot.selectedServices).map(([serviceName, serviceDetails]) => {
+                                        // Handle different possible structures for serviceDetails
+                                        const quantity = serviceDetails?.quantity || serviceDetails?.count || serviceDetails || 1;
+                                        const currentAssignments = shoot.assignments && shoot.assignments[serviceName] ? shoot.assignments[serviceName] : [];
+
+                                        // Handle both assignment formats
+                                        let assignedPersonNames = [];
+                                        if (Array.isArray(currentAssignments)) {
+                                            if (currentAssignments.length > 0 && typeof currentAssignments[0] === 'object' && currentAssignments[0].name) {
+                                                // Format: [{ id: 'xxx', name: 'John' }, ...]
+                                                assignedPersonNames = currentAssignments.map((a) => a.name);
+                                            } else {
+                                                // Format: ['John Doe', 'Jane Smith', ...]
+                                                assignedPersonNames = currentAssignments;
+                                            }
+                                        }
+
+                                        console.log('Service details for', serviceName, ':', serviceDetails, 'quantity:', quantity);
+
                                         return (
-                                            <div 
-                                                key={serviceName} 
-                                                className="grid grid-cols-2 gap-x-4 py-3 px-2 border-b border-slate-200 dark:border-slate-700/60 last:border-b-0"
-                                            >
+                                            <div key={serviceName} className="grid grid-cols-2 gap-x-4 py-3 px-2 border-b dark:border-slate-700/60 last:border-b-0">
                                                 <p className="text-sm text-slate-800 dark:text-slate-200 flex items-center">
-                                                    {serviceName} {requiredCount > 1 ? `(x${requiredCount})` : ''}
+                                                    {serviceName} {quantity > 1 ? `(x${quantity})` : ''}
                                                 </p>
-                                                
                                                 <div className="flex items-center group">
-                                                    <button 
-                                                        onClick={() => openAssignmentModal(shoot.id, serviceName, assignedPersonNames, requiredCount)}
-                                                        className="flex items-center text-left w-full p-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                                                    <button
+                                                        onClick={() => openAssignmentModal(shoot.id, serviceName, currentAssignments, quantity)}
+                                                        className="flex items-center text-left w-full p-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700"
                                                     >
-                                                        <Edit3 size={16} className="mr-2 text-slate-500 dark:text-slate-400 flex-shrink-0 group-hover:text-indigo-500 dark:group-hover:text-indigo-400 transition-colors" />
+                                                        <Edit3 size={16} className="mr-2 text-slate-500 flex-shrink-0 group-hover:text-indigo-500" />
                                                         {assignedPersonNames.length > 0 ? (
-                                                            <div className="text-sm font-medium text-slate-700 dark:text-slate-200 flex-grow group-hover:text-indigo-500 dark:group-hover:text-indigo-400 transition-colors">
+                                                            <div className="text-sm font-medium text-slate-700 dark:text-slate-200 flex-grow group-hover:text-indigo-500">
                                                                 {assignedPersonNames.join(', ')}
-                                                                {assignedPersonNames.length < requiredCount && 
-                                                                    <span className="text-xs text-amber-600 dark:text-amber-500 ml-1">({requiredCount - assignedPersonNames.length} more needed)</span>}
+                                                                {assignedPersonNames.length < quantity && (
+                                                                    <span className="text-xs text-amber-600 ml-1">({quantity - assignedPersonNames.length} more needed)</span>
+                                                                )}
                                                             </div>
                                                         ) : (
-                                                            <span className="text-sm italic text-slate-500 dark:text-slate-500 flex-grow group-hover:text-indigo-500 dark:group-hover:text-indigo-400 transition-colors">
-                                                                Team not assign
-                                                            </span>
+                                                            <span className="text-sm italic text-slate-500 flex-grow group-hover:text-indigo-500">Assign Team</span>
                                                         )}
                                                     </button>
                                                 </div>
@@ -332,7 +352,7 @@ const ShootsTab = ({
                     requiredCount={assignmentContext.requiredCount}
                     currentAssignedMemberIds={assignmentContext.currentAssignedMemberIds}
                     onSaveChanges={handleSaveChangesFromModal}
-                    teamMembers={teamMembers} // <-- Pass the teamMembers list down to the modal
+                    teamMembers={eligibleTeamMembers}
                 />
             )}
         </>

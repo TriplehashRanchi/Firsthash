@@ -1,7 +1,7 @@
 'use client';
 
 // --- START: ADDED FOR API INTEGRATION ---
-import React, { useState, useEffect } from 'react'; // Changed from just 'useState'
+import React, { useState, useEffect, useMemo } from 'react'; // Changed from just 'useState'
 import { useParams } from 'next/navigation';
 import axios from 'axios';
 import { useAuth } from '@/context/AuthContext';
@@ -17,6 +17,8 @@ import {
 import Shoots from '@/components/show-details/Shoot-details';
 import DeliverablesDetails from '@/components/show-details/Deliverables-details';
 import Expence from '@/components/show-details/Expence';
+import  {TaskManagementModal}  from '@/components/show-details/TaskManagementModal';
+import { VoiceNoteRecorder } from '@/components/show-details/VoiceNoteRecorder';
 
 // --- NEW: Helper Component for Status Badge ---
 const StatusBadge = ({ status }) => {
@@ -229,6 +231,10 @@ function ProjectReviewPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
     const [isAddPaymentModalOpen, setIsAddPaymentModalOpen] = useState(false);
+    const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
+    const [currentDeliverable, setCurrentDeliverable] = useState(null);
+    const [isVoiceNoteModalOpen, setIsVoiceNoteModalOpen] = useState(false);
+    const [taskForVoiceNote, setTaskForVoiceNote] = useState(null);
 
     const params = useParams();
     const projectId = params.id;
@@ -262,33 +268,274 @@ function ProjectReviewPage() {
     }, [projectId, currentUser]);
     // --- END: ADDED/MODIFIED FOR API INTEGRATION ---
 
+      const handleManageTasks = (deliverable) => {
+        setCurrentDeliverable(deliverable);
+        setIsTaskModalOpen(true);
+    };
+
+    // --- NEW: Handler to create a task via API ---
+// File: ProjectReviewPage.jsx
+
+// --- START: COMPLETE TASK HANDLER FUNCTIONS ---
+
+
+    const handleTaskVoiceNote = (task) => {
+        setTaskForVoiceNote(task);
+        setIsVoiceNoteModalOpen(true);
+    };
+
+    /**
+     * This function is passed to the VoiceNoteRecorder. It handles the actual upload and DB update.
+     */
+    const handleUploadVoiceNote = async (audioBlob) => {
+        if (!currentUser || !taskForVoiceNote) return;
+        try {
+            const formData = new FormData();
+            formData.append('file', audioBlob, 'voicenote.webm');
+            formData.append('uploadType', 'voice-notes');
+
+            const token = await currentUser.getIdToken();
+
+            // 1. Upload the file to your server
+            const uploadResponse = await axios.post(`${API_URL}/api/uploads`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data', Authorization: `Bearer ${token}` }
+            });
+            const { url: voice_note_url } = uploadResponse.data;
+
+            // 2. Update the task with the new URL
+            await handleTaskUpdate(taskForVoiceNote.id, { voice_note_url });
+            
+            // 3. (Optional but good UX) Update local state immediately
+            setFullProjectData(prevData => ({
+                ...prevData,
+                tasks: prevData.tasks.map(t => 
+                    t.id === taskForVoiceNote.id ? { ...t, voice_note_url } : t
+                )
+            }));
+            
+        } catch (err) {
+            console.error("Voice note upload failed:", err);
+            alert("Error: Could not upload voice note.");
+        }
+    };
+
+/**
+ * Creates a new task via the API and optimistically updates the local state.
+ * @param {object} taskData - The data for the new task (e.g., { title, deliverable_id }).
+ */
+const handleTaskCreate = async (taskData) => {
+    if (!currentUser || !projectId) return alert('Cannot create task: Missing user or project context.');
+    
+    // Optimistic UI Update: Add the new task to the state immediately for a fast UX.
+    // We create a temporary ID for the React key and mark it as 'syncing'.
+    const tempId = `temp_${Date.now()}`;
+    const newTaskOptimistic = { 
+        ...taskData, 
+        id: tempId, 
+        status: 'to_do', 
+        assignments: [], 
+        isSyncing: true // A flag to show it's being saved
+    };
+    setFullProjectData(prevData => ({
+        ...prevData,
+        tasks: [...(prevData.tasks || []), newTaskOptimistic]
+    }));
+
+    try {
+        const token = await currentUser.getIdToken();
+        const response = await axios.post(`${API_URL}/api/tasks`, taskData, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        const savedTask = response.data;
+
+        // Final UI Update: Replace the temporary task with the real one from the server.
+        setFullProjectData(prevData => ({
+            ...prevData,
+            tasks: prevData.tasks.map(task => 
+                task.id === tempId ? { ...savedTask, assignments: [] } : task
+            )
+        }));
+
+    } catch (err) {
+        console.error("Failed to create task:", err);
+        alert("Error: Could not save the new task. Please try again.");
+        // Rollback: If the API call fails, remove the temporary task from the UI.
+        setFullProjectData(prevData => ({
+            ...prevData,
+            tasks: prevData.tasks.filter(task => task.id !== tempId)
+        }));
+    }
+};
+
+/**
+ * Updates an existing task's details (e.g., title, status) via the API.
+ * @param {string} taskId - The UUID of the task to update.
+ * @param {object} updateData - The fields to update (e.g., { status: 'completed' }).
+ */
+const handleTaskUpdate = async (taskId, updateData) => {
+    if (!currentUser) return alert('Cannot update task: Missing user context.');
+
+    // Store the original tasks in case we need to revert
+    const originalTasks = fullProjectData.tasks;
+    
+    // Optimistic UI Update: Apply the change immediately.
+    setFullProjectData(prevData => ({
+        ...prevData,
+        tasks: prevData.tasks.map(task => 
+            task.id === taskId ? { ...task, ...updateData } : task
+        )
+    }));
+
+    try {
+        const token = await currentUser.getIdToken();
+        await axios.put(`${API_URL}/api/tasks/${taskId}`, updateData, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        // If successful, the optimistic update is now confirmed. No further action needed.
+
+    } catch (err) {
+        console.error("Failed to update task:", err);
+        alert("Error: Could not save task updates. Reverting changes.");
+        // Rollback: If the API call fails, revert to the original state.
+        setFullProjectData(prevData => ({
+            ...prevData,
+            tasks: originalTasks
+        }));
+    }
+};
+
+/**
+ * Deletes a task via the API.
+ * @param {string} taskId - The UUID of the task to delete.
+ */
+const handleTaskDelete = async (taskId) => {
+    if (!currentUser) return alert('Cannot delete task: Missing user context.');
+
+    // Store the original tasks in case we need to revert
+    const originalTasks = fullProjectData.tasks;
+
+    // Optimistic UI Update: Remove the task from the list immediately.
+    setFullProjectData(prevData => ({
+        ...prevData,
+        tasks: prevData.tasks.filter(task => task.id !== taskId)
+    }));
+
+    try {
+        const token = await currentUser.getIdToken();
+        await axios.delete(`${API_URL}/api/tasks/${taskId}`, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        // If successful, the optimistic deletion is confirmed.
+
+    } catch (err) {
+        console.error("Failed to delete task:", err);
+        alert("Error: Could not delete the task. Reverting changes.");
+        // Rollback: If the API call fails, restore the task list.
+        setFullProjectData(prevData => ({
+            ...prevData,
+            tasks: originalTasks
+        }));
+    }
+};
+
+/**
+ * Updates the assignees for a specific task via the API.
+ * @param {string} taskId - The UUID of the task.
+ * @param {string[]} assigneeIds - An array of employee firebase_uids to be assigned.
+ */
+const handleTaskAssign = async (taskId, assigneeIds) => {
+    if (!currentUser) return alert('Cannot assign task: Missing user context.');
+
+    const originalTasks = fullProjectData.tasks;
+
+    // Optimistic UI Update: Find the names from the IDs and update the local state.
+    const assigneeNames = assigneeIds.map(id => 
+        fullProjectData.teamMembers.find(m => m.id === id)?.name
+    ).filter(Boolean); // Filter out any nulls if a member isn't found
+
+    setFullProjectData(prevData => ({
+        ...prevData,
+        tasks: prevData.tasks.map(task => 
+            task.id === taskId ? { ...task, assignments: assigneeNames } : task
+        )
+    }));
+    
+    try {
+        const token = await currentUser.getIdToken();
+        await axios.put(`${API_URL}/api/tasks/${taskId}/assignees`, { assigneeIds }, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        // If successful, the optimistic update is confirmed.
+
+    } catch (err) {
+        console.error("Failed to update assignees:", err);
+        alert("Error: Could not save assignee changes. Reverting changes.");
+        // Rollback: If the API call fails, restore the original task list.
+        setFullProjectData(prevData => ({
+            ...prevData,
+            tasks: originalTasks
+        }));
+    }
+};
+
+// --- END: COMPLETE TASK HANDLER FUNCTIONS ---
 
     // --- State Update Handlers ---
 
-    const handleAddPayment = (newTransaction) => {
-        setFullProjectData(prev => {
-            const existingTransactions = prev.receivedAmount?.transactions || [];
-            return {
-                ...prev,
-                receivedAmount: {
-                    ...prev.receivedAmount,
-                    transactions: [...existingTransactions, { ...newTransaction, id: Date.now() }]
-                }
-            };
-        });
-        setIsAddPaymentModalOpen(false);
-    };
+    // const handleAddPayment = (newTransaction) => {
+    //     setFullProjectData(prev => {
+    //         const existingTransactions = prev.receivedAmount?.transactions || [];
+    //         return {
+    //             ...prev,
+    //             receivedAmount: {
+    //                 ...prev.receivedAmount,
+    //                 transactions: [...existingTransactions, { ...newTransaction, id: Date.now() }]
+    //             }
+    //         };
+    //     });
+    //     setIsAddPaymentModalOpen(false);
+    // };
 
-    const handleUpdateShootAssignment = (shootId, serviceName, assignedPersonNamesArray) => {
+ // --- START: NEW, API-CONNECTED SHOOT ASSIGNMENT HANDLER ---
+    const handleUpdateShootAssignment = async (shootId, serviceName, assigneeIds) => {
+        if (!currentUser) return alert('Cannot update assignment: Missing user context.');
+
+        const originalShoots = fullProjectData.shoots.shootList;
+
+        // Optimistic UI Update
+        const assigneeObjects = assigneeIds.map(id => {
+            const member = fullProjectData.teamMembers.find(m => m.id === id);
+            return { id, name: member ? member.name : 'Unknown' };
+        });
+
         setFullProjectData(prevData => {
             const updatedShootList = prevData.shoots.shootList.map(shoot => {
                 if (shoot.id === shootId) {
-                    return { ...shoot, assignments: { ...(shoot.assignments || {}), [serviceName]: assignedPersonNamesArray } };
+                    const newAssignments = { ...shoot.assignments, [serviceName]: assigneeObjects };
+                    return { ...shoot, assignments: newAssignments };
                 }
                 return shoot;
             });
             return { ...prevData, shoots: { ...prevData.shoots, shootList: updatedShootList } };
         });
+
+        try {
+            const token = await currentUser.getIdToken();
+            await axios.put(`${API_URL}/api/shoots/${shootId}/assignments`, 
+                { serviceName, assigneeIds }, 
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            // Success! The optimistic update is now confirmed.
+
+        } catch (err) {
+            console.error("Failed to update shoot assignment:", err);
+            alert("Error: Could not save shoot assignment. Reverting changes.");
+            // Rollback on failure
+            setFullProjectData(prevData => ({
+                ...prevData,
+                shoots: { ...prevData.shoots, shootList: originalShoots }
+            }));
+        }
     };
 
     const handleUpdateDeliverableAssignment = (deliverableId, assignedPersonNamesArray) => {
@@ -315,17 +562,113 @@ function ProjectReviewPage() {
         });
     };
 
-    const handleAddExpense = (formData) => {
-        const newExpense = { ...formData, id: Date.now(), expense: parseFloat(formData.expense) };
-        setFullProjectData(prev => ({ ...prev, expenses: [...(prev.expenses || []), newExpense] }));
+ const handleAddPayment = async (newTransaction) => {
+        if (!currentUser || !projectId) return;
+        const tempId = `temp_${Date.now()}`;
+        const optimisticPayment = { ...newTransaction, id: tempId };
+
+        setFullProjectData(prev => ({
+            ...prev,
+            receivedAmount: {
+                transactions: [...(prev.receivedAmount?.transactions || []), optimisticPayment]
+            }
+        }));
+        setIsAddPaymentModalOpen(false);
+
+        try {
+            const token = await currentUser.getIdToken();
+            const response = await axios.post(`${API_URL}/api/projects/${projectId}/payments`, newTransaction, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            const savedPayment = response.data;
+            setFullProjectData(prev => ({
+                ...prev,
+                receivedAmount: {
+                    transactions: prev.receivedAmount.transactions.map(t => t.id === tempId ? savedPayment : t)
+                }
+            }));
+        } catch (err) {
+            console.error("Failed to add payment:", err);
+            alert("Error: Could not save payment.");
+            // Rollback
+            setFullProjectData(prev => ({
+                ...prev,
+                receivedAmount: {
+                    transactions: prev.receivedAmount.transactions.filter(t => t.id !== tempId)
+                }
+            }));
+        }
     };
 
-    const handleUpdateExpense = (updatedExpense) => {
-        setFullProjectData(prev => ({ ...prev, expenses: prev.expenses.map(exp => exp.id === updatedExpense.id ? updatedExpense : exp) }));
+    const handleAddExpense = async (formData) => {
+        if (!currentUser || !projectId) return;
+        // We need to add a date to the form data for the backend
+        const expenseData = { ...formData, date: new Date().toISOString().split('T')[0] };
+        const tempId = `temp_${Date.now()}`;
+        const optimisticExpense = { ...expenseData, id: tempId, expense: parseFloat(expenseData.expense) };
+        
+        setFullProjectData(prev => ({ ...prev, expenses: [...(prev.expenses || []), optimisticExpense] }));
+
+        try {
+            const token = await currentUser.getIdToken();
+            const response = await axios.post(`${API_URL}/api/projects/${projectId}/expenses`, expenseData, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            const savedExpense = response.data;
+            // The backend returns a full object, map it to the frontend's expected structure
+            const finalExpense = { id: savedExpense.id, productName: savedExpense.description, category: savedExpense.category, expense: parseFloat(savedExpense.amount) };
+            setFullProjectData(prev => ({
+                ...prev,
+                expenses: prev.expenses.map(e => e.id === tempId ? finalExpense : e)
+            }));
+        } catch (err) {
+            console.error("Failed to add expense:", err);
+            alert("Error: Could not save expense.");
+            // Rollback
+            setFullProjectData(prev => ({ ...prev, expenses: prev.expenses.filter(e => e.id !== tempId) }));
+        }
     };
 
-    const handleDeleteExpense = (expenseId) => {
-        setFullProjectData(prev => ({ ...prev, expenses: prev.expenses.filter(exp => exp.id !== expenseId) }));
+    const handleUpdateExpense = async (updatedExpense) => {
+        const tempId = `temp_${Date.now()}`;
+        const optimisticExpense = { ...updatedExpense, id: tempId };
+        setFullProjectData(prev => ({ ...prev, expenses: prev.expenses.map(e => e.id === updatedExpense.id ? optimisticExpense : e) }));
+
+        try {
+            const token = await currentUser.getIdToken();
+            const response = await axios.put(`${API_URL}/api/projects/${projectId}/expenses/${updatedExpense.id}`, updatedExpense, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            const savedExpense = response.data;
+            // The backend returns a full object, map it to the frontend's expected structure
+            const finalExpense = { id: savedExpense.id, productName: savedExpense.description, category: savedExpense.category, expense: parseFloat(savedExpense.amount) };
+            setFullProjectData(prev => ({
+                ...prev,
+                expenses: prev.expenses.map(e => e.id === tempId ? finalExpense : e)
+            }));
+        } catch (err) {
+            console.error("Failed to update expense:", err);
+            alert("Error: Could not save expense.");
+            // Rollback
+            setFullProjectData(prev => ({ ...prev, expenses: prev.expenses.filter(e => e.id !== tempId) }));
+        }
+        
+    };
+
+    const handleDeleteExpense = async (expenseId) => {
+        setFullProjectData(prev => ({ ...prev, expenses: prev.expenses.filter(e => e.id !== expenseId) }));
+
+        try {
+            const token = await currentUser.getIdToken();
+            await axios.delete(`${API_URL}/api/projects/${projectId}/expenses/${expenseId}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+        } catch (err) {
+            console.error("Failed to delete expense:", err);
+            alert("Error: Could not delete expense.");
+            // Rollback
+            setFullProjectData(prev => ({ ...prev, expenses: [...prev.expenses, { id: expenseId }] }));
+        }
     };
     
     // --- NEW: Handler for status change ---
@@ -349,6 +692,24 @@ function ProjectReviewPage() {
             projectStatus: newStatus
         }));
     };
+
+         // --- START: CORRECTED useMemo HOOKS ---
+    const eligibleShootTeam = useMemo(() => {
+        if (!fullProjectData?.teamMembers) return [];
+        // RULE: Show members who have at least ONE role with code = 1 (On-Production)
+        return fullProjectData.teamMembers.filter(member => 
+            member.roles.some(role => role.code === 1)
+        );
+    }, [fullProjectData?.teamMembers]);
+
+    const eligibleDeliverableTeam = useMemo(() => {
+        if (!fullProjectData?.teamMembers) return [];
+        // RULE: Show members who have at least ONE role with code = 2 (Post-Production)
+        // We'll also add pre-production (code 3) for future-proofing
+        return fullProjectData.teamMembers.filter(member => 
+            member.roles.some(role => role.code === 2 || role.code === 3)
+        );
+    }, [fullProjectData?.teamMembers]);
 
 
     // --- Page Styles ---
@@ -427,14 +788,20 @@ function ProjectReviewPage() {
                case TABS.SHOOTS:
     return <Shoots 
         shoots={shootsObject.shootList} 
-        teamMembers={fullProjectData.teamMembers || []} // <-- ADD THIS PROP
+        eligibleTeamMembers={eligibleShootTeam || []} // <-- ADD THIS PROP
         sectionTitleStyles={sectionTitleStyles} 
         DetailPairStylishComponent={DetailPairStylish} 
         ContentListItemComponent={ContentListItem} 
         onUpdateShootAssignment={handleUpdateShootAssignment} 
     />;
             case TABS.DELIVERABLES:
-                return <DeliverablesDetails deliverables={deliverables.deliverableItems} sectionTitleStyles={sectionTitleStyles} onUpdateDeliverableAssignment={handleUpdateDeliverableAssignment} />;
+                return <DeliverablesDetails 
+                    deliverables={fullProjectData.deliverables.deliverableItems} 
+                    tasks={fullProjectData.tasks || []}
+                    sectionTitleStyles={sectionTitleStyles}
+                    onManageTasks={handleManageTasks} // <-- Pass the handler down
+                />;
+
             case TABS.EXPENES:
                 return <Expence expenses={fullProjectData.expenses || []} onAddExpense={handleAddExpense} onUpdateExpense={handleUpdateExpense} onDeleteExpense={handleDeleteExpense} sectionTitleStyles={sectionTitleStyles} />;
             case TABS.FINANCIALS:
@@ -477,7 +844,7 @@ function ProjectReviewPage() {
                                                         {`₹ ${Number(tx.amount).toLocaleString('en-IN')}`}
                                                     </td>
                                                     <td className="px-4 py-3">
-                                                        {new Date(tx.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                                        {new Date(tx.date_received).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                                                     </td>
                                                     <td className="px-4 py-3">
                                                         {tx.description || <span className="italic text-slate-400">No note</span>}
@@ -506,7 +873,7 @@ function ProjectReviewPage() {
                                                 <p className="text-md font-semibold text-slate-700 dark:text-slate-200 whitespace-nowrap">{`₹ ${Number(installment.amount).toLocaleString('en-IN')}`}</p>
                                             </div>
                                             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 flex items-center">
-                                                <CalendarClock size={12} className="mr-1.5" /> Due: {installment.dueDate ? new Date(installment.dueDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A'}
+                                                <CalendarClock size={12} className="mr-1.5" /> Due: {installment.due_date ? new Date(installment.due_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A'}
                                             </p>
                                         </ContentListItem>
                                     ))}
@@ -532,6 +899,26 @@ function ProjectReviewPage() {
                 isOpen={isAddPaymentModalOpen}
                 onClose={() => setIsAddPaymentModalOpen(false)}
                 onSave={handleAddPayment}
+            />
+            {currentDeliverable && (
+                <TaskManagementModal
+                    isOpen={isTaskModalOpen}
+                    onClose={() => setIsTaskModalOpen(false)}
+                    deliverable={currentDeliverable}
+                    initialTasks={(fullProjectData.tasks || []).filter(t => t.deliverable_id === currentDeliverable.id)}
+                    teamMembers={eligibleDeliverableTeam}
+                    onTaskCreate={handleTaskCreate}
+                    onTaskUpdate={handleTaskUpdate}
+                    onTaskDelete={handleTaskDelete}
+                    onTaskAssign={handleTaskAssign}
+                    onTaskVoiceNote={handleTaskVoiceNote}
+                />  
+            )}
+              <VoiceNoteRecorder
+                isOpen={isVoiceNoteModalOpen}
+                onClose={() => setIsVoiceNoteModalOpen(false)}
+                task={taskForVoiceNote}
+                onUpload={handleUploadVoiceNote}
             />
             <div className={pageContainerStyles}>
                 <div className={mainContentWrapperStyles}>
