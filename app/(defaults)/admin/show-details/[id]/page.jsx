@@ -39,13 +39,13 @@ import { VoiceNoteRecorder } from '@/components/show-details/VoiceNoteRecorder';
 // --- NEW: Helper Component for Status Badge ---
 const StatusBadge = ({ status }) => {
     const dotStyles = {
-        Pending: 'bg-yellow-500',
-        Ongoing: 'bg-green-500',
-        Completed: 'bg-orange-500',
-        Rejected: 'bg-red-500',
+        pending: 'bg-yellow-500',
+        ongoing: 'bg-blue-500',
+        completed: 'bg-green-500',
+        rejected: 'bg-red-500',
     };
 
-    const currentDotStyle = dotStyles[status] || dotStyles['Pending'];
+    const currentDotStyle = dotStyles[status.toLowerCase()] || dotStyles['Pending'];
 
     return <span className={`w-3.5 h-3.5 rounded-full ${currentDotStyle} shadow-md ring-2 ring-white dark:ring-slate-900`}></span>;
 };
@@ -762,26 +762,43 @@ function ProjectReviewPage() {
     };
 
     // --- NEW: Handler for status change ---
-    const handleStatusChange = () => {
-        const currentStatus = fullProjectData.projectStatus;
-        let newStatus = currentStatus;
+const handleStatusChange = async (newStatus) => {
+    if (!currentUser || !projectId) return;
 
-        if (currentStatus === 'Pending') {
-            newStatus = 'Ongoing';
-            alert('Project has been approved and is now Ongoing.');
-        } else if (currentStatus === 'Ongoing') {
-            newStatus = 'Completed';
-            alert('Project has been marked as Completed.');
-        } else {
-            console.log('No status change action for status:', currentStatus);
-            return;
-        }
+    const originalStatus = fullProjectData.projectStatus;
 
+    // Optimistic UI Update
+    setFullProjectData((prevData) => ({
+        ...prevData,
+        projectStatus: newStatus,
+    }));
+
+    // Guide user to the next step after approval
+    if (newStatus === 'ongoing') {
+        setActiveTab(TABS.SHOOTS); 
+        alert('Project approved and is now Ongoing.');
+    } else if (newStatus === 'completed') {
+        alert('Project has been marked as Completed.');
+    }
+
+    try {
+        const token = await currentUser.getIdToken();
+        await axios.put(
+            `${API_URL}/api/projects/${projectId}/status`,
+            { status: newStatus },
+            { headers: { Authorization: `Bearer ${token}` } }
+        );
+        // If successful, the change is saved.
+    } catch (err) {
+        console.error('Failed to update project status:', err);
+        alert(`Error: Could not update status. Reverting.`);
+        // Rollback on failure
         setFullProjectData((prevData) => ({
             ...prevData,
-            projectStatus: newStatus,
+            projectStatus: originalStatus,
         }));
-    };
+    }
+};
 
     // --- START: CORRECTED useMemo HOOKS ---
     const eligibleShootTeam = useMemo(() => {
@@ -807,6 +824,8 @@ function ProjectReviewPage() {
     const activeTabStyles = 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg focus:ring-purple-500 dark:from-indigo-500 dark:to-purple-500';
     const sectionTitleStyles = 'text-xl font-semibold text-slate-800 dark:text-slate-100 mb-4 flex items-center';
     const subSectionSeparator = 'pt-6 mt-6 border-t border-slate-200 dark:border-slate-700/60';
+    // Add this line
+const disabledTabStyles = 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed transform-none hover:shadow-none';
 
     // --- START: ADDED FOR API INTEGRATION ---
     if (isLoading) {
@@ -839,11 +858,22 @@ function ProjectReviewPage() {
             </div>
         );
     }
+    const isPending = fullProjectData.projectStatus === 'pending';
+    const isInteractionDisabled = fullProjectData.projectStatus !== 'ongoing';
+    const isReadOnly = fullProjectData.projectStatus !== 'ongoing';
 
     const { clients, projectDetails, shoots: shootsObject, deliverables, receivedAmount, paymentSchedule, quotations } = fullProjectData;
     const totalReceived = receivedAmount?.transactions?.reduce((sum, tx) => sum + (tx.amount || 0), 0) || 0;
 
     const fullRenderTabContent = () => {
+         if (isPending && activeTab !== TABS.OVERVIEW) {
+            return (
+                <div className="text-center py-10">
+                    <p className="text-slate-500 dark:text-slate-400">This section is not available for pending projects.</p>
+                    <p className="font-medium text-slate-600 dark:text-slate-300 mt-1">Please approve the project to proceed.</p>
+                </div>
+            );
+        }
         switch (activeTab) {
             case TABS.OVERVIEW:
                 return (
@@ -937,10 +967,10 @@ function ProjectReviewPage() {
                     </div>
                 );
             case TABS.SHOOTS:
-            case TABS.SHOOTS:
                 return (
                     <Shoots
                         shoots={shootsObject.shootList}
+                        isReadOnly={isReadOnly}
                         eligibleTeamMembers={eligibleShootTeam || []} // <-- ADD THIS PROP
                         sectionTitleStyles={sectionTitleStyles}
                         DetailPairStylishComponent={DetailPairStylish}
@@ -951,6 +981,7 @@ function ProjectReviewPage() {
             case TABS.DELIVERABLES:
                 return (
                     <DeliverablesDetails
+                        isReadOnly={isReadOnly}
                         deliverables={fullProjectData.deliverables.deliverableItems}
                         tasks={fullProjectData.tasks || []}
                         sectionTitleStyles={sectionTitleStyles}
@@ -961,6 +992,7 @@ function ProjectReviewPage() {
             case TABS.EXPENES:
                 return (
                     <Expence
+                        isReadOnly={isReadOnly}
                         expenses={fullProjectData.expenses || []}
                         onAddExpense={handleAddExpense}
                         onUpdateExpense={handleUpdateExpense}
@@ -991,6 +1023,7 @@ function ProjectReviewPage() {
                                 </h4>
                                 <button
                                     onClick={() => setIsAddPaymentModalOpen(true)}
+                                    disabled={isReadOnly}
                                     className="flex items-center px-3 py-1.5 text-sm font-medium rounded-md transition-colors bg-indigo-50 hover:bg-indigo-100 text-indigo-600 dark:bg-indigo-500/10 dark:hover:bg-indigo-500/20 dark:text-indigo-400"
                                 >
                                     <PlusCircle size={16} className="mr-1.5" />
@@ -1068,69 +1101,121 @@ function ProjectReviewPage() {
         }
     };
 
-    return (
-        <>
-            <AddPaymentModal isOpen={isAddPaymentModalOpen} onClose={() => setIsAddPaymentModalOpen(false)} onSave={handleAddPayment} />
-            {currentDeliverable && (
-                <TaskManagementModal
-                    isOpen={isTaskModalOpen}
-                    onClose={() => setIsTaskModalOpen(false)}
-                    deliverable={currentDeliverable}
-                    initialTasks={(fullProjectData.tasks || []).filter((t) => t.deliverable_id === currentDeliverable.id)}
-                    teamMembers={eligibleDeliverableTeam}
-                    onTaskCreate={handleTaskCreate}
-                    onTaskUpdate={handleTaskUpdate}
-                    onTaskDelete={handleTaskDelete}
-                    onTaskAssign={handleTaskAssign}
-                    onTaskVoiceNote={handleTaskVoiceNote}
-                />
-            )}
-            <VoiceNoteRecorder isOpen={isVoiceNoteModalOpen} onClose={() => setIsVoiceNoteModalOpen(false)} task={taskForVoiceNote} onUpload={handleUploadVoiceNote} />
-            <div className={pageContainerStyles}>
-                <div className={mainContentWrapperStyles}>
-                    <div className="px-6 py-5 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-slate-200 dark:border-slate-700/60 rounded-t-2xl">
-                        <div className="flex items-center gap-x-2">
-                            {fullProjectData.projectStatus && <StatusBadge status={fullProjectData.projectStatus} />}
-                            <h1 className="text-xl sm:text-2xl font-semibold text-slate-800 dark:text-slate-50">
-                                {fullProjectData.projectDetails?.eventTitle || fullProjectData.projectName || 'Project Review'}
-                            </h1>
-                        </div>
+return (
+    // The single, top-level fragment that wraps everything. This fixes the error.
+    <>
+        {/*
+          MODALS:
+          These are now conditionally mounted. They will only exist in the DOM if the project is NOT read-only.
+          This is a clean way to prevent any interaction when the project is pending, completed, or rejected.
+        */}
+        {!isReadOnly && (
+            <>
+                <AddPaymentModal isOpen={isAddPaymentModalOpen} onClose={() => setIsAddPaymentModalOpen(false)} onSave={handleAddPayment} />
+                {currentDeliverable && (
+                    <TaskManagementModal
+                        isOpen={isTaskModalOpen}
+                        onClose={() => setIsTaskModalOpen(false)}
+                        deliverable={currentDeliverable}
+                        initialTasks={(fullProjectData.tasks || []).filter((t) => t.deliverable_id === currentDeliverable.id)}
+                        teamMembers={eligibleDeliverableTeam}
+                        onTaskCreate={handleTaskCreate}
+                        onTaskUpdate={handleTaskUpdate}
+                        onTaskDelete={handleTaskDelete}
+                        onTaskAssign={handleTaskAssign}
+                        onTaskVoiceNote={handleTaskVoiceNote}
+                    />
+                )}
+                <VoiceNoteRecorder isOpen={isVoiceNoteModalOpen} onClose={() => setIsVoiceNoteModalOpen(false)} task={taskForVoiceNote} onUpload={handleUploadVoiceNote} />
+            </>
+        )}
 
-                        <div className="flex items-center gap-x-2 ml-auto">
-                            {fullProjectData.projectDetails?.eventType && (
-                                <span className="px-3 py-1 text-sm font-semibold rounded-full bg-indigo-100 text-indigo-800 dark:bg-indigo-900/50 dark:text-indigo-300">
-                                    {fullProjectData.projectDetails.eventType}
-                                </span>
-                            )}
-
-                            {fullProjectData.projectStatus === 'Pending' && (
-                                <button onClick={handleStatusChange} className="px-3 py-1 text-sm font-medium bg-blue-500 hover:bg-blue-600 text-white rounded-[5px] transition-colors">
-                                    Approve
-                                </button>
-                            )}
-                            {fullProjectData.projectStatus === 'Ongoing' && (
-                                <button onClick={handleStatusChange} className="px-3 py-1 text-sm font-medium bg-green-500 hover:bg-green-600 text-white rounded-[5px] transition-colors">
-                                    Set Complete
-                                </button>
-                            )}
-                        </div>
+        {/* MAIN PAGE LAYOUT */}
+        <div className={pageContainerStyles}>
+            <div className={mainContentWrapperStyles}>
+                {/* HEADER SECTION */}
+                <div className="px-6 py-5 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-slate-200 dark:border-slate-700/60 rounded-t-2xl">
+                    <div className="flex items-center gap-x-4">
+                        <h1 className="text-xl sm:text-2xl font-semibold text-slate-800 dark:text-slate-50">
+                            {fullProjectData.projectDetails?.eventTitle || fullProjectData.projectName || 'Project Review'}
+                        </h1>
+                        {/* Status badge shows the current status */}
+                        {fullProjectData.projectStatus && <StatusBadge status={fullProjectData.projectStatus} />}
                     </div>
 
-                    <div className="p-4 sm:p-6 md:p-8">
-                        <div className={filterTabsContainerStyles}>
-                            {Object.entries(tabConfig).map(([tabKey, { label, icon: Icon }]) => (
-                                <button key={tabKey} onClick={() => setActiveTab(tabKey)} className={`${tabButtonBaseStyles} ${activeTab === tabKey ? activeTabStyles : inactiveTabStyles}`}>
+                    <div className="flex items-center gap-x-2 ml-auto">
+                        {fullProjectData.projectDetails?.eventType && (
+                            <span className="px-3 py-1 text-xs font-medium rounded-md bg-indigo-100 text-indigo-800 dark:bg-indigo-900/50 dark:text-indigo-300">
+                                {fullProjectData.projectDetails.eventType}
+                            </span>
+                        )}
+
+                        {/* Status Change Buttons: Rendered based on the current project status. */}
+                        {fullProjectData.projectStatus === 'pending' && (
+                            <button onClick={() => handleStatusChange('ongoing')} className="px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors shadow-md">
+                                Approve Project
+                            </button>
+                        )}
+                        {fullProjectData.projectStatus === 'ongoing' && (
+                            <button onClick={() => handleStatusChange('completed')} className="px-4 py-2 text-sm font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors shadow-md">
+                                Mark as Complete
+                            </button>
+                        )}
+                    </div>
+                </div>
+
+                {/* CONTENT SECTION */}
+                <div className="p-4 sm:p-6 md:p-8">
+                    {/* Banners for different states provide clear user feedback. */}
+                    {isPending && (
+                        <div className="mb-6 p-4 flex items-center gap-3 text-sm text-yellow-800 bg-yellow-100 rounded-lg dark:text-yellow-300 dark:bg-yellow-900/50">
+                            <Info size={18} />
+                            <div>
+                                <span className="font-semibold">Action Required:</span> This project is pending approval and is locked.
+                            </div>
+                        </div>
+                    )}
+                    {(fullProjectData.projectStatus === 'completed' || fullProjectData.projectStatus === 'rejected') && (
+                        <div className="mb-6 p-4 flex items-center gap-3 text-sm text-gray-800 bg-gray-100 rounded-lg dark:text-gray-300 dark:bg-gray-900/50">
+                            <Info size={18} />
+                            <div>
+                                <span className="font-semibold">Project Archived:</span> This project is {fullProjectData.projectStatus} and is now read-only.
+                            </div>
+                        </div>
+                    )}
+                    
+                    {/* TABS CONTAINER */}
+                    <div className={filterTabsContainerStyles}>
+                        {Object.entries(tabConfig).map(([tabKey, { label, icon: Icon }]) => {
+                            // Tab buttons are disabled ONLY when the project is pending.
+                            const isDisabled = isPending && tabKey !== TABS.OVERVIEW;
+                            const buttonClasses = `${tabButtonBaseStyles} ${
+                                isDisabled ? disabledTabStyles : (activeTab === tabKey ? activeTabStyles : inactiveTabStyles)
+                            }`;
+
+                            return (
+                                <button
+                                    key={tabKey}
+                                    onClick={() => setActiveTab(tabKey)}
+                                    disabled={isDisabled}
+                                    className={buttonClasses}
+                                >
                                     <Icon size={16} className="mr-2" />
                                     {label}
                                 </button>
-                            ))}
-                        </div>
-                        <div className="mt-8 min-h-[350px]">{fullRenderTabContent()}</div>
+                            );
+                        })}
+                    </div>
+                    
+                    {/* RENDERED TAB CONTENT */}
+                    <div className="mt-8 min-h-[350px]">
+                        {fullRenderTabContent()}
                     </div>
                 </div>
             </div>
-        </>
-    );
+        </div>
+    </>
+);
 }
 
 export default ProjectReviewPage;

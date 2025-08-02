@@ -77,7 +77,7 @@ const ExpenseFormModal = ({ isOpen, onClose, onSubmit, initialData }) => {
 
 
 // --- The Main Reusable Expence Component ---
-export default function Expence({ expenses, onAddExpense, onUpdateExpense, onDeleteExpense, sectionTitleStyles }) {
+export default function Expence({ isReadOnly, expenses, onAddExpense, onUpdateExpense, onDeleteExpense, sectionTitleStyles }) {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState(null);
 
@@ -100,7 +100,7 @@ export default function Expence({ expenses, onAddExpense, onUpdateExpense, onDel
           <TrendingUp className="w-6 h-6 mr-3 text-indigo-500 dark:text-indigo-400" />
           Project Expenses
         </h3>
-        <button onClick={() => setIsFormOpen(true)} className="mt-4 md:mt-0 flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300 hover:opacity-90 hover:shadow-lg hover:shadow-purple-500/20 transform hover:-translate-y-0.5">
+        <button disabled={isReadOnly} onClick={() => setIsFormOpen(true)} className="mt-4 md:mt-0 flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300 hover:opacity-90 hover:shadow-lg hover:shadow-purple-500/20 transform hover:-translate-y-0.5">
           <PlusCircle size={20} /> Add Expense
         </button>
       </div>
