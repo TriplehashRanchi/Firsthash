@@ -45,6 +45,7 @@ import IconAward from '../icon/icon-award';
 import IconAirplay from '../icon/icon-airplay';
 import IconClipboardText from '../icon/icon-clipboard-text';
 import IconCashBanknotes from '../icon/icon-cash-banknotes';
+import IconCamera from '../icon/icon-camera';
 
 const AdminSidebar = () => {
     const dispatch = useDispatch();
@@ -164,6 +165,14 @@ const AdminSidebar = () => {
                                             <div className="flex items-center">
                                                 <IconCalendar className="shrink-0 group-hover:!text-primary" />
                                                 <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('Attendance')}</span>
+                                            </div>
+                                        </Link>
+                                    </li>
+                                    <li className="nav-item">
+                                        <Link href="/admin/project" className="group">
+                                            <div className="flex items-center">
+                                                <IconCamera className="shrink-0 group-hover:!text-primary" />
+                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('Projects')}</span>
                                             </div>
                                         </Link>
                                     </li>

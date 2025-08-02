@@ -126,7 +126,7 @@ const ProjectListPage = () => {
     };
 
     const handleNavigate = (projectId) => {
-        router.push(`/show-details/${projectId}`);
+        router.push(`/admin/show-details/${projectId}`);
     };
 
     // --- NEW: Refactored Render Logic for Table Body ---

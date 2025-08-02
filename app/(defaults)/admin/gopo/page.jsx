@@ -13,7 +13,31 @@ import Deliverables from '../../../../components/onboarding/Deliverables';
 import ReceivedAmount from '../../../../components/onboarding/ReceivedAmount';
 import { useAuth } from '@/context/AuthContext';
 import axios from 'axios';
+import { useRouter } from 'next/navigation';
 
+
+const SuccessToast = ({ quoteUrl, newProjectId, onNavigate }) => {
+    return (
+        <div>
+            <p className="font-semibold">Project Created Successfully!</p>
+            <p className="text-sm mt-1">What would you like to do next?</p>
+            <div className="flex gap-2 mt-3">
+                <button 
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-md text-xs font-semibold"
+                    onClick={() => window.open(quoteUrl, '_blank')}
+                >
+                    View Quotation
+                </button>
+                <button 
+                    className="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-md text-xs font-semibold"
+                    onClick={onNavigate}
+                >
+                    Go to Project
+                </button>
+            </div>
+        </div>
+    );
+};
 
 function Page() {
 
@@ -39,6 +63,9 @@ function Page() {
     const [isDeliverablesValid, setIsDeliverablesValid] = useState(false);
     const [isReceivedValid, setIsReceivedValid] = useState(false);
     // const [isScheduleValid, setIsScheduleValid] = useState(false);
+
+    const router = useRouter();
+    // const [toastId, setToastId] = useState(null);
 
 const handleSave = async () => {
 console.log("🟡 handleSave triggered");
@@ -74,47 +101,75 @@ if (!currentUser) {
   const invalidSections = validationChecks.filter(check => !check.isValid).map(check => check.name);
 
   if (invalidSections.length === 0) {
-    console.log("🟢 All validations passed. Attempting API call...");
-    const numericPackageCostValue = parseFloat(projectPackageCost) || 0;
-    const currentOverallTotalCost = numericPackageCostValue + deliverablesTotalCost;
+        // --- START: MODIFIED LOGIC ---
+        const numericPackageCostValue = parseFloat(projectPackageCost) || 0;
+        const currentOverallTotalCost = numericPackageCostValue + deliverablesTotalCost;
 
-    const fullProjectData = {
-      projectName,
-      projectPackageCost: numericPackageCostValue,
-      deliverablesAdditionalCost: deliverablesTotalCost,
-      overallTotalCost: currentOverallTotalCost,
-      clients: clientsData,
-    //   projectDetails: projectDetailsData,
-      shoots: shootsData,
-      deliverables: deliverablesData,
-      receivedAmount: receivedAmountData,
-      // paymentSchedule: paymentScheduleData,
-    };
+        const fullProjectData = {
+            projectName,
+            projectPackageCost: numericPackageCostValue,
+            deliverablesAdditionalCost: deliverablesTotalCost,
+            overallTotalCost: currentOverallTotalCost,
+            clients: clientsData,
+            shoots: shootsData,
+            deliverables: deliverablesData,
+            receivedAmount: receivedAmountData,
+        };
 
-    try {
-        console.log("🌐 Posting to:", `${API_URL}/api/projects`);
-     const token = await currentUser.getIdToken();
-console.log("🔐 Token fetched:", token);
-        
-      const res = await axios.post(`${API_URL}/api/projects`, fullProjectData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+        const toastId = toast.loading("Saving project..."); // Show a loading indicator
 
-      if (res.data.success) {
-        toast.success("Project saved successfully!");
-        // Optionally redirect or clear form
-      } else {
-        toast.error("Something went wrong.");
-      }
-    } catch (err) {
-      console.error('❌ Save failed:', err?.response?.data || err.message);
-      toast.error("Failed to save project.");
+        try {
+            const token = await currentUser.getIdToken();
+            
+            // --- ACTION 1: Create the Project ---
+            const createProjectResponse = await axios.post(`${API_URL}/api/projects`, fullProjectData, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+
+            if (!createProjectResponse.data.success) {
+                throw new Error("Failed to save the project details.");
+            }
+            
+            const newProjectId = createProjectResponse.data.project_id;
+            toast.update(toastId, { render: "Generating quotation...", type: "info" });
+
+            // --- ACTION 2: Automatically Generate the Quotation ---
+            const createQuoteResponse = await axios.post(
+                `${API_URL}/api/projects/${newProjectId}/quotations`, 
+                {}, // Empty body, as the backend fetches the data
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            
+            const quoteUrl = createQuoteResponse.data.url;
+
+              toast.update(toastId, { 
+                render: () => (
+                    <SuccessToast
+                        quoteUrl={quoteUrl}
+                        newProjectId={newProjectId}
+                        onNavigate={() => {
+                            // Close the toast programmatically before navigating
+                            toast.dismiss(toastId);
+                            router.push(`/admin/show-details/${newProjectId}`); // Your correct path
+                        }}
+                    />
+                ),
+                type: "success", 
+                isLoading: false, 
+                autoClose: false, // It will now stay until the user interacts with it
+                closeOnClick: false,
+                closeButton: true,
+            });
+
+
+        } catch (err) {
+            console.error('❌ Save process failed:', err?.response?.data || err.message);
+            toast.update(toastId, { render: "An error occurred. Please try again.", type: "error", isLoading: false, autoClose: 5000 });
+        }
+        // --- END: MODIFIED LOGIC ---
+    } else {
+        toast.error(`Please fill all required sections: ${invalidSections.join(', ')}`);
     }
-  } else {
-    toast.error(`Please fill all required sections: ${invalidSections.join(', ')}`);
-  }
 };
 
 

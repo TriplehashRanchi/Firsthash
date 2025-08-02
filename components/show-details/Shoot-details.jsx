@@ -139,7 +139,7 @@ const AssignmentModalContent = ({
 };
 
 // --- MAIN COMPONENT (with corrected props and logic) ---
-const ShootsTab = ({ shoots, eligibleTeamMembers, sectionTitleStyles, DetailPairStylishComponent, ContentListItemComponent, onUpdateShootAssignment }) => {
+const ShootsTab = ({isReadOnly, shoots, eligibleTeamMembers, sectionTitleStyles, DetailPairStylishComponent, ContentListItemComponent, onUpdateShootAssignment }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [assignmentContext, setAssignmentContext] = useState(null);
 
@@ -318,6 +318,7 @@ const ShootsTab = ({ shoots, eligibleTeamMembers, sectionTitleStyles, DetailPair
                                                 </p>
                                                 <div className="flex items-center group">
                                                     <button
+                                                        disabled={isReadOnly}
                                                         onClick={() => openAssignmentModal(shoot.id, serviceName, currentAssignments, quantity)}
                                                         className="flex items-center text-left w-full p-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700"
                                                     >
