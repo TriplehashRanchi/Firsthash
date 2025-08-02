@@ -22,7 +22,7 @@ const statusConfig = {
     [ProjectStatus.COMPLETED]: { label: 'Completed', icon: <CheckCircle size={14} className="mr-1.5 text-orange-300" />, base: 'bg-orange-500 dark:bg-orange-500', hover: 'hover:bg-orange-600 dark:hover:bg-orange-600', text: 'text-white', pillBg: 'bg-orange-100 dark:bg-orange-400/20', pillText: 'text-orange-700 dark:text-orange-300', activePillBg: 'bg-white/20 dark:bg-orange-400/30', activePillText: 'text-white dark:text-orange-100', focusRing: 'focus:ring-orange-400' },
 };
 // --- Style constants (Keep these as they are) ---
-const pageWrapperStyles = "min-h-screen p-4 sm:p-6 lg:p-8 bg-slate-100 dark:bg-slate-900";
+const pageWrapperStyles = "min-h-screen p-4 sm:p-6 lg:p-8 ";
 const headerContainerStyles = "mb-8";
 const pageTitleStyles = "text-2xl sm:text-3xl font-bold text-slate-800 dark:text-slate-100 mb-5";
 const filterTabsContainerStyles = "flex flex-wrap gap-2 items-center bg-slate-200 dark:bg-slate-800/70 p-1.5 rounded-xl shadow-sm";
