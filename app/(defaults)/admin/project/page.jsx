@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Package, CalendarDays, CheckCircle, XCircle, AlertTriangle, Clock, Eye, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import Link from 'next/link';
 import axios from 'axios';
 
 // --- Constants (Keep these as they are) ---
@@ -36,6 +37,9 @@ const textDefault = "text-slate-700 dark:text-slate-200";
 const textMuted = "text-slate-500 dark:text-slate-400";
 const rowHoverStyles = "hover:bg-slate-50 dark:hover:bg-slate-700/40";
 const actionButtonStyles = "p-1.5 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 rounded-md hover:bg-blue-100 dark:hover:bg-blue-700/50 transition-colors";
+const breadcrumbLinkStyles = "text-blue-600 hover:underline dark:text-blue-400";
+const breadcrumbSeparatorStyles = "before:content-['/'] ltr:before:mr-2 rtl:before:ml-2 text-gray-500 dark:text-gray-500";
+const breadcrumbCurrentPageStyles = "text-gray-600 dark:text-gray-400";
 
 const ProjectListPage = () => {
     const [projects, setProjects] = useState([]);
@@ -195,7 +199,10 @@ const ProjectListPage = () => {
     return (
         <div className={pageWrapperStyles}>
              <div className={headerContainerStyles}>
-                <h1 className={pageTitleStyles}>Projects Overview</h1>
+                <ul className="flex space-x-2 rtl:space-x-reverse mb-6">
+                <li><Link href="/dashboard" className={breadcrumbLinkStyles}>Dashboard</Link></li>
+                <li className={breadcrumbSeparatorStyles}><span className={breadcrumbCurrentPageStyles}>Project Overview</span></li>
+            </ul>
                 <div className={filterTabsContainerStyles}>
                    {Object.values(ProjectStatus).map(statusValue => {
                         const config = statusConfig[statusValue];

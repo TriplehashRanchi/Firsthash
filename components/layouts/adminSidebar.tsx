@@ -46,6 +46,7 @@ import IconAirplay from '../icon/icon-airplay';
 import IconClipboardText from '../icon/icon-clipboard-text';
 import IconCashBanknotes from '../icon/icon-cash-banknotes';
 import IconCamera from '../icon/icon-camera';
+import IconChartSquare from '../icon/icon-chart-square';
 
 const AdminSidebar = () => {
     const dispatch = useDispatch();
@@ -168,6 +169,16 @@ const AdminSidebar = () => {
                                             </div>
                                         </Link>
                                     </li>
+
+                                      <li className="nav-item">
+                                        <Link href="/admin/gopo" className="group">
+                                            <div className="flex items-center">
+                                                <IconPlus className="shrink-0 group-hover:!text-primary" />
+                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('Create Project')}</span>
+                                            </div>
+                                        </Link>
+                                    </li>
+
                                     <li className="nav-item">
                                         <Link href="/admin/project" className="group">
                                             <div className="flex items-center">
@@ -176,6 +187,8 @@ const AdminSidebar = () => {
                                             </div>
                                         </Link>
                                     </li>
+
+                                   
                                     
                                     {/* <li className="nav-item">
                                         <Link href="/admin/show-details" className="group">
@@ -195,14 +208,7 @@ const AdminSidebar = () => {
                                         </Link>
                                     </li>
 
-                                    <li className="nav-item">
-                                        <Link href="/admin/gopo" className="group">
-                                            <div className="flex items-center">
-                                                <IconAward className="shrink-0 group-hover:!text-primary" />
-                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('Work Assign')}</span>
-                                            </div>
-                                        </Link>
-                                    </li>
+                                   
 
                                     <li className="nav-item">
                                         <Link href="/admin/expence" className="group">
