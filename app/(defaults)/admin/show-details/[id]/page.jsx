@@ -5,7 +5,11 @@ import React, { useState, useEffect, useMemo } from 'react'; // Changed from jus
 import { useParams } from 'next/navigation';
 import axios from 'axios';
 import { useAuth } from '@/context/AuthContext';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 // --- END: ADDED FOR API INTEGRATION ---
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
 import {
     CheckCircle,
@@ -102,30 +106,66 @@ const ContentListItem = ({ children, className = '' }) => (
 );
 
 // --- Add Payment Modal Component ---
-const AddPaymentModal = ({ isOpen, onClose, onSave }) => {
+const AddPaymentModal = ({ isOpen, onClose, currentUser, projectId, fetchProjectData, balanceDue }) => {
     const [amount, setAmount] = useState('');
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
     const [description, setDescription] = useState('');
+    const [loading, setLoading] = useState(false);
 
     if (!isOpen) return null;
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!amount || !date || isNaN(parseFloat(amount))) {
-            alert('Please fill in a valid Amount and Date.');
+
+        const numericAmount = parseFloat(amount);
+
+        if (!amount || !date || isNaN(numericAmount)) {
+            toast.error('Please fill in a valid Amount and Date.');
             return;
         }
-        onSave({ amount: parseFloat(amount), date, description });
-        // Reset form
-        setAmount('');
-        setDate(new Date().toISOString().split('T')[0]);
-        setDescription('');
+
+        if (numericAmount > balanceDue) {
+            toast.error(`Amount exceeds balance due (₹${balanceDue.toLocaleString('en-IN')})`);
+            return;
+        }
+
+        setLoading(true);
+
+        try {
+            const token = await currentUser.getIdToken();
+            const response = await axios.post(
+                `${API_URL}/api/finance/projects/${projectId}/report`,
+                {
+                    amount: numericAmount,
+                    date_received: date,
+                    description,
+                },
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                },
+            );
+
+            const { url } = response.data;
+            toast.success('Bill generated successfully!');
+            window.open(url, '_blank');
+            fetchProjectData();
+            onClose();
+        } catch (err) {
+            console.error('Failed to generate bill:', err);
+            toast.error('Failed to save payment or generate bill.');
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleModalContentClick = (e) => e.stopPropagation();
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4" onClick={onClose}>
+            <ToastContainer />
+
             <div className="bg-white dark:bg-slate-800 rounded-lg shadow-2xl p-6 w-full max-w-md transform transition-all" onClick={handleModalContentClick}>
                 <div className="flex justify-between items-center mb-4">
                     <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Add New Bill / Payment</h3>
@@ -186,9 +226,22 @@ const AddPaymentModal = ({ isOpen, onClose, onSave }) => {
                         </button>
                         <button
                             type="submit"
-                            className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                            disabled={loading}
+                            className={`px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md shadow-sm 
+    ${loading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-indigo-700'} 
+    focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500`}
                         >
-                            Save Payment
+                            {loading ? (
+                                <span className="flex items-center justify-center">
+                                    <svg className="animate-spin h-4 w-4 mr-2 text-white" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                                    </svg>
+                                    Generating...
+                                </span>
+                            ) : (
+                                'Save Payment'
+                            )}
                         </button>
                     </div>
                 </form>
@@ -196,7 +249,6 @@ const AddPaymentModal = ({ isOpen, onClose, onSave }) => {
         </div>
     );
 };
-
 // --- Tab Definitions ---
 const TABS = {
     OVERVIEW: 'overview',
@@ -311,12 +363,33 @@ function ProjectReviewPage() {
     const [isVoiceNoteModalOpen, setIsVoiceNoteModalOpen] = useState(false);
     const [taskForVoiceNote, setTaskForVoiceNote] = useState(null);
     const [isGeneratingQuote, setIsGeneratingQuote] = useState(false); // For loading state on the button
+    const [isGenerating, setIsGenerating] = useState(false);
+    const [isFullPaidToggled, setIsFullPaidToggled] = useState(false); // <-- ADD THIS
+    const [isGeneratingFullPaid, setIsGeneratingFullPaid] = useState(false); // <-- AND ADD THIS
+    const [processingPaymentId, setProcessingPaymentId] = useState(null);
     // const [quotations, setQuotations] = useState([]); // To store a list of generated quotes
 
     const params = useParams();
     const projectId = params.id;
     const { currentUser } = useAuth();
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+
+    const fetchProjectData = async () => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            const token = await currentUser.getIdToken();
+            const response = await axios.get(`${API_URL}/api/projects/${projectId}`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            setFullProjectData(response.data);
+            console.log('Fetched project data:', response.data);
+        } catch (err) {
+            console.error('Failed to fetch project data:', err);
+            setError('Could not load project details. Please try again later.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     useEffect(() => {
         if (!projectId || !currentUser) {
@@ -324,25 +397,9 @@ function ProjectReviewPage() {
             return;
         }
 
-        const fetchProjectData = async () => {
-            setIsLoading(true);
-            setError(null);
-            try {
-                const token = await currentUser.getIdToken();
-                const response = await axios.get(`${API_URL}/api/projects/${projectId}`, {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
-                setFullProjectData(response.data);
-            } catch (err) {
-                console.error('Failed to fetch project data:', err);
-                setError('Could not load project details. Please try again later.');
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
         fetchProjectData();
     }, [projectId, currentUser]);
+
     // --- END: ADDED/MODIFIED FOR API INTEGRATION ---
 
     const handleManageTasks = (deliverable) => {
@@ -691,6 +748,25 @@ function ProjectReviewPage() {
         }
     };
 
+    const handleGenerateFinancePDF = async () => {
+        if (!projectId || !currentUser) return;
+
+        try {
+            const token = await currentUser.getIdToken();
+            const response = await axios.post(`${API_URL}/api/finance/projects/${projectId}/report`, {}, { headers: { Authorization: `Bearer ${token}` } });
+
+            const { url } = response.data;
+            alert('Financial Report generated!');
+            window.open(url, '_blank');
+
+            // Optionally re-fetch project data to reflect the new file_url
+            fetchProjectData(); // or a lightweight refetch of received_payments if split
+        } catch (err) {
+            console.error('Failed to generate financial report:', err);
+            alert('Could not generate the report. Check server logs.');
+        }
+    };
+
     const handleAddExpense = async (formData) => {
         if (!currentUser || !projectId) return;
         // We need to add a date to the form data for the backend
@@ -762,43 +838,112 @@ function ProjectReviewPage() {
     };
 
     // --- NEW: Handler for status change ---
-const handleStatusChange = async (newStatus) => {
-    if (!currentUser || !projectId) return;
+    const handleStatusChange = async (newStatus) => {
+        if (!currentUser || !projectId) return;
 
-    const originalStatus = fullProjectData.projectStatus;
+        const originalStatus = fullProjectData.projectStatus;
 
-    // Optimistic UI Update
-    setFullProjectData((prevData) => ({
-        ...prevData,
-        projectStatus: newStatus,
-    }));
-
-    // Guide user to the next step after approval
-    if (newStatus === 'ongoing') {
-        setActiveTab(TABS.SHOOTS); 
-        alert('Project approved and is now Ongoing.');
-    } else if (newStatus === 'completed') {
-        alert('Project has been marked as Completed.');
-    }
-
-    try {
-        const token = await currentUser.getIdToken();
-        await axios.put(
-            `${API_URL}/api/projects/${projectId}/status`,
-            { status: newStatus },
-            { headers: { Authorization: `Bearer ${token}` } }
-        );
-        // If successful, the change is saved.
-    } catch (err) {
-        console.error('Failed to update project status:', err);
-        alert(`Error: Could not update status. Reverting.`);
-        // Rollback on failure
+        // Optimistic UI Update
         setFullProjectData((prevData) => ({
             ...prevData,
-            projectStatus: originalStatus,
+            projectStatus: newStatus,
         }));
-    }
-};
+
+        // Guide user to the next step after approval
+        if (newStatus === 'ongoing') {
+            setActiveTab(TABS.SHOOTS);
+            alert('Project approved and is now Ongoing.');
+        } else if (newStatus === 'completed') {
+            alert('Project has been marked as Completed.');
+        }
+
+        try {
+            const token = await currentUser.getIdToken();
+            await axios.put(`${API_URL}/api/projects/${projectId}/status`, { status: newStatus }, { headers: { Authorization: `Bearer ${token}` } });
+            // If successful, the change is saved.
+        } catch (err) {
+            console.error('Failed to update project status:', err);
+            alert(`Error: Could not update status. Reverting.`);
+            // Rollback on failure
+            setFullProjectData((prevData) => ({
+                ...prevData,
+                projectStatus: originalStatus,
+            }));
+        }
+    };
+
+    const handleGenerateFullPaidPDF = async () => {
+        if (!projectId || !currentUser) return;
+
+        // Calculate the remaining balance to be paid
+        const balanceDue = fullProjectData.overallTotalCost - totalReceived;
+        if (balanceDue <= 0) {
+            alert('The project is already fully paid. No final bill needed.');
+            return;
+        }
+
+        setIsGeneratingFullPaid(true);
+        try {
+            const token = await currentUser.getIdToken();
+            const response = await axios.post(
+                `${API_URL}/api/finance/projects/${projectId}/full-paid-report`,
+                {
+                    // The body for the final payment
+                    amount: balanceDue,
+                    description: 'Final settlement - Full payment received.',
+                    date_received: new Date().toISOString(),
+                },
+                { headers: { Authorization: `Bearer ${token}` } },
+            );
+
+            const { url } = response.data;
+            alert('Full Paid financial report generated successfully!');
+            window.open(url, '_blank');
+
+            // Refresh all project data to show the new transaction in the table
+            fetchProjectData();
+            // Reset the toggle as the action is complete
+            setIsFullPaidToggled(false);
+        } catch (err) {
+            console.error('Failed to generate full paid financial report:', err);
+            alert('Error: Could not generate the full paid report. Please check server logs.');
+        } finally {
+            setIsGeneratingFullPaid(false);
+        }
+    };
+
+    const handleMarkAsPaid = async (paymentId) => {
+        if (!currentUser) return;
+
+        setProcessingPaymentId(paymentId); // Set loading state for this specific row
+
+        try {
+            const token = await currentUser.getIdToken();
+            const response = await axios.put(
+                `${API_URL}/api/finance/payments/${paymentId}/mark-as-paid`,
+                {}, // No body needed, ID is in URL
+                { headers: { Authorization: `Bearer ${token}` } },
+            );
+
+            const { updatedPayment } = response.data;
+
+            // Update the main state to reflect the change immediately
+            setFullProjectData((prev) => ({
+                ...prev,
+                receivedAmount: {
+                    transactions: prev.receivedAmount.transactions.map((t) => (t.id === paymentId ? updatedPayment : t)),
+                },
+            }));
+
+            // Open the newly generated bill
+            window.open(updatedPayment.file_url, '_blank');
+        } catch (err) {
+            console.error('Failed to mark payment as paid:', err);
+            alert('Error: Could not mark the payment as paid. Please try again.');
+        } finally {
+            setProcessingPaymentId(null); // Clear loading state
+        }
+    };
 
     // --- START: CORRECTED useMemo HOOKS ---
     const eligibleShootTeam = useMemo(() => {
@@ -825,7 +970,7 @@ const handleStatusChange = async (newStatus) => {
     const sectionTitleStyles = 'text-xl font-semibold text-slate-800 dark:text-slate-100 mb-4 flex items-center';
     const subSectionSeparator = 'pt-6 mt-6 border-t border-slate-200 dark:border-slate-700/60';
     // Add this line
-const disabledTabStyles = 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed transform-none hover:shadow-none';
+    const disabledTabStyles = 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed transform-none hover:shadow-none';
 
     // --- START: ADDED FOR API INTEGRATION ---
     if (isLoading) {
@@ -863,10 +1008,14 @@ const disabledTabStyles = 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:te
     const isReadOnly = fullProjectData.projectStatus !== 'ongoing';
 
     const { clients, projectDetails, shoots: shootsObject, deliverables, receivedAmount, paymentSchedule, quotations } = fullProjectData;
-    const totalReceived = receivedAmount?.transactions?.reduce((sum, tx) => sum + (tx.amount || 0), 0) || 0;
+
+    const totalReceived = receivedAmount?.transactions?.reduce((sum, tx) => (tx.type === 'received' ? sum + (tx.amount || 0) : sum), 0) || 0;
+
+    const totalCost = Number(fullProjectData?.overallTotalCost || 0);
+    const balanceDue = totalCost - totalReceived;
 
     const fullRenderTabContent = () => {
-         if (isPending && activeTab !== TABS.OVERVIEW) {
+        if (isPending && activeTab !== TABS.OVERVIEW) {
             return (
                 <div className="text-center py-10">
                     <p className="text-slate-500 dark:text-slate-400">This section is not available for pending projects.</p>
@@ -1043,24 +1192,66 @@ const disabledTabStyles = 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:te
                                             <th scope="col" className="px-4 py-3">
                                                 Payment Note
                                             </th>
+                                            <th scope="col" className="px-4 py-3">
+                                                Invoice
+                                            </th>
+                                            <th scope="col" className="px-4 py-3 text-center">
+                                                Status
+                                            </th>{' '}
+                                            {/* New Column */}
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {(receivedAmount?.transactions || []).length > 0 ? (
-                                            receivedAmount.transactions.map((tx) => (
+                                        {[...(receivedAmount?.transactions || [])].map((tx) => {
+                                            const isProcessing = processingPaymentId === tx.id;
+                                            const isPaid = tx.status === 'paid';
+
+                                            return (
                                                 <tr key={tx.id} className="bg-white dark:bg-slate-800 border-b dark:border-slate-700 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-700/40">
-                                                    <td className="px-4 py-3 font-medium text-slate-900 dark:text-slate-100 whitespace-nowrap">{`₹ ${Number(tx.amount).toLocaleString('en-IN')}`}</td>
-                                                    <td className="px-4 py-3">{new Date(tx.date_received).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
+                                                    <td className="px-4 py-3 font-medium text-slate-900 dark:text-slate-100 whitespace-nowrap">₹ {Number(tx.amount).toLocaleString('en-IN')}</td>
+                                                    <td className="px-4 py-3">
+                                                        {tx.date_received
+                                                            ? new Date(tx.date_received).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+                                                            : 'Not Received'}
+                                                    </td>
                                                     <td className="px-4 py-3">{tx.description || <span className="italic text-slate-400">No note</span>}</td>
+                                                    <td className="px-4 py-3">
+                                                        {tx.file_url ? (
+                                                            <a
+                                                                href={tx.file_url}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="inline-flex items-center gap-1.5 px-3 py-1 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700"
+                                                            >
+                                                                <Download size={14} /> View Bill
+                                                            </a>
+                                                        ) : (
+                                                            <span className="text-slate-400 italic">—</span>
+                                                        )}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-center">
+                                                        {isProcessing ? (
+                                                            <div className="flex justify-center items-center">
+                                                                <Loader2 className="w-5 h-5 text-indigo-500 animate-spin" />
+                                                            </div>
+                                                        ) : isPaid ? (
+                                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-green-800 bg-green-100 dark:bg-green-900 dark:text-green-300 rounded-full">
+                                                                <CheckCircle size={14} /> Paid
+                                                            </span>
+                                                        ) : (
+                                                            <button
+                                                                onClick={() => handleMarkAsPaid(tx.id)}
+                                                                disabled={isReadOnly || !tx.file_url}
+                                                                className="px-3 py-1 text-sm font-medium text-slate-700 bg-slate-200 rounded-md hover:bg-slate-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                                title={!tx.file_url ? 'Generate a bill first' : 'Mark as Paid'}
+                                                            >
+                                                                Mark as Paid
+                                                            </button>
+                                                        )}
+                                                    </td>
                                                 </tr>
-                                            ))
-                                        ) : (
-                                            <tr>
-                                                <td colSpan="3" className="text-center py-4 px-4 text-slate-500 italic">
-                                                    No payments have been recorded yet.
-                                                </td>
-                                            </tr>
-                                        )}
+                                            );
+                                        })}
                                     </tbody>
                                 </table>
                             </div>
@@ -1091,9 +1282,15 @@ const disabledTabStyles = 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:te
                         )}
 
                         {/* Final Balance Section */}
+                        {/* --- START: MODIFIED Final Balance Section --- */}
+
+                        {/* Final Balance Section */}
                         <div className="mt-6 pt-6 border-t-2 border-indigo-500 dark:border-indigo-400">
                             <DetailPairStylish label="Final Balance Due" value={fullProjectData.overallTotalCost - totalReceived} isCurrency highlight icon={ReceiptIndianRupee} />
                         </div>
+                        {/* <button onClick={handleGenerateFinancePDF} className="px-4 py-2 bg-indigo-600 text-white rounded-md">
+                            Generate Financial Report
+                        </button> */}
                     </div>
                 );
             default:
@@ -1101,121 +1298,126 @@ const disabledTabStyles = 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:te
         }
     };
 
-return (
-    // The single, top-level fragment that wraps everything. This fixes the error.
-    <>
-        {/*
+    return (
+        // The single, top-level fragment that wraps everything. This fixes the error.
+        <>
+            {/*
           MODALS:
           These are now conditionally mounted. They will only exist in the DOM if the project is NOT read-only.
           This is a clean way to prevent any interaction when the project is pending, completed, or rejected.
         */}
-        {!isReadOnly && (
-            <>
-                <AddPaymentModal isOpen={isAddPaymentModalOpen} onClose={() => setIsAddPaymentModalOpen(false)} onSave={handleAddPayment} />
-                {currentDeliverable && (
-                    <TaskManagementModal
-                        isOpen={isTaskModalOpen}
-                        onClose={() => setIsTaskModalOpen(false)}
-                        deliverable={currentDeliverable}
-                        initialTasks={(fullProjectData.tasks || []).filter((t) => t.deliverable_id === currentDeliverable.id)}
-                        teamMembers={eligibleDeliverableTeam}
-                        onTaskCreate={handleTaskCreate}
-                        onTaskUpdate={handleTaskUpdate}
-                        onTaskDelete={handleTaskDelete}
-                        onTaskAssign={handleTaskAssign}
-                        onTaskVoiceNote={handleTaskVoiceNote}
+            {!isReadOnly && (
+                <>
+                    <AddPaymentModal
+                        isOpen={isAddPaymentModalOpen}
+                        onClose={() => setIsAddPaymentModalOpen(false)}
+                        currentUser={currentUser}
+                        projectId={projectId}
+                        fetchProjectData={fetchProjectData}
+                        balanceDue={totalCost - totalReceived}
                     />
-                )}
-                <VoiceNoteRecorder isOpen={isVoiceNoteModalOpen} onClose={() => setIsVoiceNoteModalOpen(false)} task={taskForVoiceNote} onUpload={handleUploadVoiceNote} />
-            </>
-        )}
 
-        {/* MAIN PAGE LAYOUT */}
-        <div className={pageContainerStyles}>
-            <div className={mainContentWrapperStyles}>
-                {/* HEADER SECTION */}
-                <div className="px-6 py-5 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-slate-200 dark:border-slate-700/60 rounded-t-2xl">
-                    <div className="flex items-center gap-x-4">
-                        <h1 className="text-xl sm:text-2xl font-semibold text-slate-800 dark:text-slate-50">
-                            {fullProjectData.projectDetails?.eventTitle || fullProjectData.projectName || 'Project Review'}
-                        </h1>
-                        {/* Status badge shows the current status */}
-                        {fullProjectData.projectStatus && <StatusBadge status={fullProjectData.projectStatus} />}
-                    </div>
-
-                    <div className="flex items-center gap-x-2 ml-auto">
-                        {fullProjectData.projectDetails?.eventType && (
-                            <span className="px-3 py-1 text-xs font-medium rounded-md bg-indigo-100 text-indigo-800 dark:bg-indigo-900/50 dark:text-indigo-300">
-                                {fullProjectData.projectDetails.eventType}
-                            </span>
-                        )}
-
-                        {/* Status Change Buttons: Rendered based on the current project status. */}
-                        {fullProjectData.projectStatus === 'pending' && (
-                            <button onClick={() => handleStatusChange('ongoing')} className="px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors shadow-md">
-                                Approve Project
-                            </button>
-                        )}
-                        {fullProjectData.projectStatus === 'ongoing' && (
-                            <button onClick={() => handleStatusChange('completed')} className="px-4 py-2 text-sm font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors shadow-md">
-                                Mark as Complete
-                            </button>
-                        )}
-                    </div>
-                </div>
-
-                {/* CONTENT SECTION */}
-                <div className="p-4 sm:p-6 md:p-8">
-                    {/* Banners for different states provide clear user feedback. */}
-                    {isPending && (
-                        <div className="mb-6 p-4 flex items-center gap-3 text-sm text-yellow-800 bg-yellow-100 rounded-lg dark:text-yellow-300 dark:bg-yellow-900/50">
-                            <Info size={18} />
-                            <div>
-                                <span className="font-semibold">Action Required:</span> This project is pending approval and is locked.
-                            </div>
-                        </div>
+                    {currentDeliverable && (
+                        <TaskManagementModal
+                            isOpen={isTaskModalOpen}
+                            onClose={() => setIsTaskModalOpen(false)}
+                            deliverable={currentDeliverable}
+                            initialTasks={(fullProjectData.tasks || []).filter((t) => t.deliverable_id === currentDeliverable.id)}
+                            teamMembers={eligibleDeliverableTeam}
+                            onTaskCreate={handleTaskCreate}
+                            onTaskUpdate={handleTaskUpdate}
+                            onTaskDelete={handleTaskDelete}
+                            onTaskAssign={handleTaskAssign}
+                            onTaskVoiceNote={handleTaskVoiceNote}
+                        />
                     )}
-                    {(fullProjectData.projectStatus === 'completed' || fullProjectData.projectStatus === 'rejected') && (
-                        <div className="mb-6 p-4 flex items-center gap-3 text-sm text-gray-800 bg-gray-100 rounded-lg dark:text-gray-300 dark:bg-gray-900/50">
-                            <Info size={18} />
-                            <div>
-                                <span className="font-semibold">Project Archived:</span> This project is {fullProjectData.projectStatus} and is now read-only.
-                            </div>
-                        </div>
-                    )}
-                    
-                    {/* TABS CONTAINER */}
-                    <div className={filterTabsContainerStyles}>
-                        {Object.entries(tabConfig).map(([tabKey, { label, icon: Icon }]) => {
-                            // Tab buttons are disabled ONLY when the project is pending.
-                            const isDisabled = isPending && tabKey !== TABS.OVERVIEW;
-                            const buttonClasses = `${tabButtonBaseStyles} ${
-                                isDisabled ? disabledTabStyles : (activeTab === tabKey ? activeTabStyles : inactiveTabStyles)
-                            }`;
+                    <VoiceNoteRecorder isOpen={isVoiceNoteModalOpen} onClose={() => setIsVoiceNoteModalOpen(false)} task={taskForVoiceNote} onUpload={handleUploadVoiceNote} />
+                </>
+            )}
 
-                            return (
+            {/* MAIN PAGE LAYOUT */}
+            <div className={pageContainerStyles}>
+                <div className={mainContentWrapperStyles}>
+                    {/* HEADER SECTION */}
+                    <div className="px-6 py-5 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-slate-200 dark:border-slate-700/60 rounded-t-2xl">
+                        <div className="flex items-center gap-x-4">
+                            <h1 className="text-xl sm:text-2xl font-semibold text-slate-800 dark:text-slate-50">
+                                {fullProjectData.projectDetails?.eventTitle || fullProjectData.projectName || 'Project Review'}
+                            </h1>
+                            {/* Status badge shows the current status */}
+                            {fullProjectData.projectStatus && <StatusBadge status={fullProjectData.projectStatus} />}
+                        </div>
+
+                        <div className="flex items-center gap-x-2 ml-auto">
+                            {fullProjectData.projectDetails?.eventType && (
+                                <span className="px-3 py-1 text-xs font-medium rounded-md bg-indigo-100 text-indigo-800 dark:bg-indigo-900/50 dark:text-indigo-300">
+                                    {fullProjectData.projectDetails.eventType}
+                                </span>
+                            )}
+
+                            {/* Status Change Buttons: Rendered based on the current project status. */}
+                            {fullProjectData.projectStatus === 'pending' && (
                                 <button
-                                    key={tabKey}
-                                    onClick={() => setActiveTab(tabKey)}
-                                    disabled={isDisabled}
-                                    className={buttonClasses}
+                                    onClick={() => handleStatusChange('ongoing')}
+                                    className="px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors shadow-md"
                                 >
-                                    <Icon size={16} className="mr-2" />
-                                    {label}
+                                    Approve Project
                                 </button>
-                            );
-                        })}
+                            )}
+                            {fullProjectData.projectStatus === 'ongoing' && (
+                                <button
+                                    onClick={() => handleStatusChange('completed')}
+                                    className="px-4 py-2 text-sm font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors shadow-md"
+                                >
+                                    Mark as Complete
+                                </button>
+                            )}
+                        </div>
                     </div>
-                    
-                    {/* RENDERED TAB CONTENT */}
-                    <div className="mt-8 min-h-[350px]">
-                        {fullRenderTabContent()}
+
+                    {/* CONTENT SECTION */}
+                    <div className="p-4 sm:p-6 md:p-8">
+                        {/* Banners for different states provide clear user feedback. */}
+                        {isPending && (
+                            <div className="mb-6 p-4 flex items-center gap-3 text-sm text-yellow-800 bg-yellow-100 rounded-lg dark:text-yellow-300 dark:bg-yellow-900/50">
+                                <Info size={18} />
+                                <div>
+                                    <span className="font-semibold">Action Required:</span> This project is pending approval and is locked.
+                                </div>
+                            </div>
+                        )}
+                        {(fullProjectData.projectStatus === 'completed' || fullProjectData.projectStatus === 'rejected') && (
+                            <div className="mb-6 p-4 flex items-center gap-3 text-sm text-gray-800 bg-gray-100 rounded-lg dark:text-gray-300 dark:bg-gray-900/50">
+                                <Info size={18} />
+                                <div>
+                                    <span className="font-semibold">Project Archived:</span> This project is {fullProjectData.projectStatus} and is now read-only.
+                                </div>
+                            </div>
+                        )}
+
+                        {/* TABS CONTAINER */}
+                        <div className={filterTabsContainerStyles}>
+                            {Object.entries(tabConfig).map(([tabKey, { label, icon: Icon }]) => {
+                                // Tab buttons are disabled ONLY when the project is pending.
+                                const isDisabled = isPending && tabKey !== TABS.OVERVIEW;
+                                const buttonClasses = `${tabButtonBaseStyles} ${isDisabled ? disabledTabStyles : activeTab === tabKey ? activeTabStyles : inactiveTabStyles}`;
+
+                                return (
+                                    <button key={tabKey} onClick={() => setActiveTab(tabKey)} disabled={isDisabled} className={buttonClasses}>
+                                        <Icon size={16} className="mr-2" />
+                                        {label}
+                                    </button>
+                                );
+                            })}
+                        </div>
+
+                        {/* RENDERED TAB CONTENT */}
+                        <div className="mt-8 min-h-[350px]">{fullRenderTabContent()}</div>
                     </div>
                 </div>
             </div>
-        </div>
-    </>
-);
+        </>
+    );
 }
 
 export default ProjectReviewPage;
