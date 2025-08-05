@@ -14,6 +14,8 @@ export default function MemberForm() {
     const GLOBAL_ID = '00000000-0000-0000-0000-000000000000';
     const companyId = company.id; // adjust if dynamic
 
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+
     const [types, setTypes] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -49,7 +51,7 @@ export default function MemberForm() {
                 if (!user) throw new Error('Not logged in');
                 const token = await user.getIdToken();
 
-                const res = await fetch(`http://localhost:8080/api/roles?company_id=${companyId}`, { headers: { Authorization: `Bearer ${token}` } });
+                const res = await fetch(`${API_URL}/api/roles?company_id=${companyId}`, { headers: { Authorization: `Bearer ${token}` } });
 
                 if (!res.ok) throw new Error(`Fetch error: ${res.statusText}`);
                 const data = await res.json();
@@ -125,7 +127,7 @@ export default function MemberForm() {
         };
 
         try {
-            const response = await fetch('http://localhost:8080/api/members', {
+            const response = await fetch(`${API_URL}/api/members`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                 body: JSON.stringify(payload),
