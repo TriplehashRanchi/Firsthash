@@ -371,14 +371,18 @@ export default function ProjectTaskDashboardPage() {
     useEffect(() => {
         const auth = getAuth();
         const unsubscribe = auth.onAuthStateChanged(async (user) => {
-            if (user) {
-                const idTokenResult = await user.getIdTokenResult();
-                if (idTokenResult.claims.role === 'admin') {
-                    setIsAdmin(true);
-                } else {
-                    setIsAdmin(true);
-                }
-            } else {
+            if (!user) {
+                setIsAdmin(false);
+                return;
+            }
+
+            try {
+                // force refresh once so new claims propagate
+                const { claims } = await user.getIdTokenResult(true);
+                const role = claims?.role; // 'admin' | 'leader' | etc.
+                setIsAdmin(role === 'admin');
+            } catch (e) {
+                console.error('Failed to read claims', e);
                 setIsAdmin(false);
             }
         });
