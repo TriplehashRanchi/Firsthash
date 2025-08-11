@@ -190,27 +190,19 @@ const AdminSidebar = () => {
 
                                    
                                     
-                                    {/* <li className="nav-item">
-                                        <Link href="/admin/show-details" className="group">
+                                    <li className="nav-item">
+                                        <Link href="/admin/task-management" className="group">
                                             <div className="flex items-center">
                                                 <IconMessage2 className="shrink-0 group-hover:!text-primary" />
-                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('Client Details')}</span>
-                                            </div>
-                                        </Link>
-                                    </li> */}
-
-                                    {/* <li className="nav-item">
-                                        <Link href="/admin/project" className="group">
-                                            <div className="flex items-center">
-                                                <IconMenuDragAndDrop className="shrink-0 group-hover:!text-primary" />
-                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('Review Work')}</span>
+                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('To-do')}</span>
                                             </div>
                                         </Link>
                                     </li>
 
+
                                    
 
-                                    <li className="nav-item">
+                                    {/* <li className="nav-item">
                                         <Link href="/admin/expence" className="group">
                                             <div className="flex items-center">
                                                 <IconCashBanknotes className="shrink-0 group-hover:!text-primary" />
@@ -244,8 +236,8 @@ const AdminSidebar = () => {
                                                 <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('Task Management')}</span>
                                             </div>
                                         </Link>
-                                    </li> */}
-
+                                    </li> 
+ */}
 
 
                                    

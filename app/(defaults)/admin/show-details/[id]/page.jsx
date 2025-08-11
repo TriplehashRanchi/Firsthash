@@ -748,24 +748,6 @@ function ProjectReviewPage() {
         }
     };
 
-    const handleGenerateFinancePDF = async () => {
-        if (!projectId || !currentUser) return;
-
-        try {
-            const token = await currentUser.getIdToken();
-            const response = await axios.post(`${API_URL}/api/finance/projects/${projectId}/report`, {}, { headers: { Authorization: `Bearer ${token}` } });
-
-            const { url } = response.data;
-            alert('Financial Report generated!');
-            window.open(url, '_blank');
-
-            // Optionally re-fetch project data to reflect the new file_url
-            fetchProjectData(); // or a lightweight refetch of received_payments if split
-        } catch (err) {
-            console.error('Failed to generate financial report:', err);
-            alert('Could not generate the report. Check server logs.');
-        }
-    };
 
     const handleAddExpense = async (formData) => {
         if (!currentUser || !projectId) return;
@@ -869,46 +851,6 @@ function ProjectReviewPage() {
                 ...prevData,
                 projectStatus: originalStatus,
             }));
-        }
-    };
-
-    const handleGenerateFullPaidPDF = async () => {
-        if (!projectId || !currentUser) return;
-
-        // Calculate the remaining balance to be paid
-        const balanceDue = fullProjectData.overallTotalCost - totalReceived;
-        if (balanceDue <= 0) {
-            alert('The project is already fully paid. No final bill needed.');
-            return;
-        }
-
-        setIsGeneratingFullPaid(true);
-        try {
-            const token = await currentUser.getIdToken();
-            const response = await axios.post(
-                `${API_URL}/api/finance/projects/${projectId}/full-paid-report`,
-                {
-                    // The body for the final payment
-                    amount: balanceDue,
-                    description: 'Final settlement - Full payment received.',
-                    date_received: new Date().toISOString(),
-                },
-                { headers: { Authorization: `Bearer ${token}` } },
-            );
-
-            const { url } = response.data;
-            alert('Full Paid financial report generated successfully!');
-            window.open(url, '_blank');
-
-            // Refresh all project data to show the new transaction in the table
-            fetchProjectData();
-            // Reset the toggle as the action is complete
-            setIsFullPaidToggled(false);
-        } catch (err) {
-            console.error('Failed to generate full paid financial report:', err);
-            alert('Error: Could not generate the full paid report. Please check server logs.');
-        } finally {
-            setIsGeneratingFullPaid(false);
         }
     };
 
