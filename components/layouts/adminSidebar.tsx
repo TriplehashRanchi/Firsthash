@@ -199,10 +199,7 @@ const AdminSidebar = () => {
                                         </Link>
                                     </li>
 
-
-                                   
-
-                                    {/* <li className="nav-item">
+                                    <li className="nav-item">
                                         <Link href="/admin/expence" className="group">
                                             <div className="flex items-center">
                                                 <IconCashBanknotes className="shrink-0 group-hover:!text-primary" />
@@ -211,7 +208,7 @@ const AdminSidebar = () => {
                                         </Link>
                                     </li>
 
-                                    <li className="nav-item">
+                                   {/*  <li className="nav-item">
                                         <Link href="/admin/clients-details" className="group">
                                             <div className="flex items-center">
                                                 <IconClipboardText className="shrink-0 group-hover:!text-primary" />

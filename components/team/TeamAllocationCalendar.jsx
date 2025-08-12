@@ -17,9 +17,9 @@ const AssignmentModal = ({
     teamMembers,
     role,
     currentAssignedMemberIds,
-    requiredCount = 1, // --- NEW: Default required count to 1
+    requiredCount = 1,
     onSaveChanges,
-}) => {
+})  => {
     const [selectedIds, setSelectedIds] = useState([]);
     const [toAdd, setToAdd] = useState([]);
     const [toRemove, setToRemove] = useState([]);
@@ -110,7 +110,9 @@ const AssignmentModal = ({
                                         <img src={getAvatarUrl(member.name)} alt={member.name} className="h-10 w-10 rounded-full mr-4 border-2 border-white dark:border-slate-700"/>
                                         <div className="flex-grow">
                                             <span className="block font-semibold text-slate-800 dark:text-slate-100">{member.name}</span>
-                                            <span className="block text-xs text-slate-500 dark:text-slate-400">{member.title || 'Team Member'}</span>
+                                             <span className="block text-xs text-indigo-500 dark:text-indigo-400 font-medium">
+                                                {(member.roles && member.roles.length > 0) ? member.roles.join(', ') : 'No role specified'}
+                                            </span>
                                         </div>
                                         {isSelected && <div className="absolute top-3 right-3 text-indigo-500"><CheckCircle size={20} strokeWidth={2.5}/></div>}
                                     </label>
@@ -222,42 +224,31 @@ const ShootCard = ({ shoot, roles, teamMembers, onOpenModal }) => {
 
 
 // --- (MODIFIED) Main Component with updated state management for new data structure ---
-const TeamAllocationCalendar = ({ initialShoots, teamMembers, roles }) => {
+const TeamAllocationCalendar = ({ initialShoots, teamMembers, roles, onSaveAllocation }) => {
     const [currentDate, setCurrentDate] = useState(new Date());
-    
-    // --- MODIFIED: Ensure data has the correct allocation structure on initialization ---
-    const [shootsData, setShootsData] = useState(() => {
-        return initialShoots.map(shoot => {
+    const [shootsData, setShootsData] = useState([]);
+
+    // This effect ensures the internal state is updated when the props change
+    useEffect(() => {
+       const transformedShoots = (initialShoots || []).map(shoot => {
             const newAllocations = {};
             roles.forEach(role => {
-                const existing = shoot.allocations?.[role];
-                // If it's the old format (just an array), convert it
-                if (Array.isArray(existing)) {
-                    newAllocations[role] = { required: 1, assigned: existing };
-                } 
-                // If it's the new format, keep it
-                else if (existing && typeof existing === 'object' && 'assigned' in existing) {
-                    newAllocations[role] = existing;
-                }
-                // If it doesn't exist, create it with a default
-                else {
-                    newAllocations[role] = { required: role === 'Photographer' ? 2 : 1, assigned: [] }; // Example: Default Photographers to 2
-                }
+                newAllocations[role] = shoot.allocations?.[role] || { required: 1, assigned: [] };
             });
             return { ...shoot, allocations: newAllocations };
         });
-    });
+        setShootsData(transformedShoots);
+    }, [initialShoots, roles]);
 
     const [modalContext, setModalContext] = useState(null);
 
     const openModal = (shootId, role) => setModalContext({ shootId, role });
     const closeModal = () => setModalContext(null);
-
     const handleMonthChange = (inc) => setCurrentDate(d => { const n = new Date(d); n.setMonth(n.getMonth() + inc); return n; });
     const handleYearChange = (inc) => setCurrentDate(d => { const n = new Date(d); n.setFullYear(n.getFullYear() + inc); return n; });
 
     const filteredShoots = useMemo(() => {
-        return shootsData
+        return (shootsData || [])
             .filter(shoot => {
                 const shootDate = new Date(shoot.eventDate);
                 return shootDate.getMonth() === currentDate.getMonth() && shootDate.getFullYear() === currentDate.getFullYear();
@@ -265,31 +256,36 @@ const TeamAllocationCalendar = ({ initialShoots, teamMembers, roles }) => {
             .sort((a, b) => new Date(a.eventDate) - new Date(b.eventDate));
     }, [shootsData, currentDate]);
 
-    // --- MODIFIED: Update handler for the new allocation structure ---
     const handleUpdateAllocation = (shootId, role, teamMemberIds) => {
+        // 1. Optimistic UI Update for a snappy user experience
         setShootsData(prevShoots =>
             prevShoots.map(shoot => {
                 if (shoot.id === shootId) {
                     const newAllocations = { ...shoot.allocations };
-                    // Update only the 'assigned' array, keeping 'required'
-                    newAllocations[role] = {
-                        ...newAllocations[role],
-                        assigned: teamMemberIds || [],
-                    };
+                    if (!newAllocations[role]) newAllocations[role] = { required: 1, assigned: [] };
+                    newAllocations[role].assigned = teamMemberIds || [];
                     return { ...shoot, allocations: newAllocations };
                 }
                 return shoot;
             })
         );
+        
+        // 2. Call the save function from the parent page to trigger the API call
+        if (typeof onSaveAllocation === 'function') {
+            onSaveAllocation(shootId, role, teamMemberIds);
+        }
+
         closeModal();
     };
 
     const formattedDate = currentDate.toLocaleString('default', { month: 'long', year: 'numeric' });
+    const currentShootForModal = modalContext ? shootsData.find(s => s.id === modalContext.shootId) : null;
+    const currentAllocation = currentShootForModal?.allocations[modalContext?.role];
+    
     const navButtonStyles = "p-2 rounded-md text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-800 dark:hover:text-white transition-colors";
     
     // --- MODIFIED: Get data for modal from the new structure ---
-    const currentShootForModal = modalContext ? shootsData.find(s => s.id === modalContext.shootId) : null;
-    const currentAllocation = currentShootForModal?.allocations[modalContext?.role];
+   
     const currentAllocationIds = currentAllocation?.assigned || [];
     const currentRequiredCount = currentAllocation?.required || 1;
     
@@ -326,8 +322,8 @@ const TeamAllocationCalendar = ({ initialShoots, teamMembers, roles }) => {
                 onClose={closeModal}
                 teamMembers={teamMembers}
                 role={modalContext?.role || ''}
-                currentAssignedMemberIds={currentAllocationIds}
-                requiredCount={currentRequiredCount} // --- NEW: Pass required count to modal
+                 currentAssignedMemberIds={currentAllocation?.assigned || []}
+                requiredCount={currentAllocation?.required || 1}
                 onSaveChanges={(teamMemberIds) => {
                     if (modalContext) {
                         handleUpdateAllocation(modalContext.shootId, modalContext.role, teamMemberIds);
