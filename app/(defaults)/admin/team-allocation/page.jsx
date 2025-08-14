@@ -63,7 +63,7 @@ function AllocationsPage() {
         }
     };
     
-    const pageContainerStyles = "min-h-screen p-4 sm:p-6 bg-gray-100 dark:bg-gray-900";
+    const pageContainerStyles = "min-h-screen p-4 sm:p-6  dark:bg-gray-900";
     const breadcrumbLinkStyles = "text-blue-600 dark:text-blue-500 hover:underline";
 
     return (
@@ -73,7 +73,7 @@ function AllocationsPage() {
                 <li className="before:content-['/'] ltr:before:mr-2 text-gray-500"><span>Production Calendar</span></li>
             </ul>
             
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">Team Allocation</h1>
+            {/* <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">Team Allocation</h1> */}
 
             {isLoading && <div className="text-center p-8"><p>Loading Allocation Calendar...</p></div>}
             {error && <div className="text-center p-8 bg-red-100 text-red-700 rounded-lg"><p>{error}</p></div>}
