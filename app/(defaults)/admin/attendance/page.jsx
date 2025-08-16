@@ -272,7 +272,7 @@ const fetchData = async () => {
                             <tr key={member.id} className="hover:bg-gray-50">
                                 <td className="px-6 py-4 whitespace-nowrap">
                                     <div className="flex items-center">
-                                        <div className="flex-shrink-0 h-10 w-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold">
+                                        <div className="flex-shrink-0 h-10 w-10 bg-black rounded-full flex items-center justify-center text-white font-bold">
                                             {member.name.charAt(0)}
                                         </div>
                                         <div className="ml-4">

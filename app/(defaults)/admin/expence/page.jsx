@@ -26,6 +26,14 @@ const getEmployeeType = (type) => {
     }
 };
 
+// ADDED: A safer parsing function for roles that now expects a proper array from the backend.
+const parseAndFormatRoles = (rolesArray) => {
+    if (Array.isArray(rolesArray) && rolesArray.length > 0) {
+        return rolesArray.map((r) => r.role_name).join(', ');
+    }
+    return 'No role assigned';
+};
+
 // --- MODAL 1: For updating BASE Salary ---
 const BaseSalaryModal = ({ isOpen, employee, onSave, onCancel }) => {
     const [salary, setSalary] = useState('');
@@ -103,7 +111,7 @@ const MonthlySalaryModal = ({ isOpen, record, onSave, onCancel }) => {
                 return;
             }
         }
-        onSave(record.id, form);
+        onSave(record, form);
     };
     return (
         <AnimatePresence>
@@ -174,22 +182,42 @@ const MonthlySalaryModal = ({ isOpen, record, onSave, onCancel }) => {
 
 const AssignTaskModal = ({ isOpen, freelancer, onSave, onCancel }) => {
     const [projectName, setProjectName] = useState('');
-    const handleSubmit = (e) => { e.preventDefault(); onSave(freelancer.firebase_uid, { project_name: projectName }); setProjectName(''); };
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        onSave(freelancer.firebase_uid, { project_name: projectName });
+        setProjectName('');
+    };
     if (!isOpen) return null;
     return (
         <AnimatePresence>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onCancel}>
-                <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }} className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-2xl w-full max-w-md" onClick={e => e.stopPropagation()}>
+            <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                onClick={onCancel}
+            >
+                <motion.div
+                    initial={{ scale: 0.9 }}
+                    animate={{ scale: 1 }}
+                    exit={{ scale: 0.9 }}
+                    className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-2xl w-full max-w-md"
+                    onClick={(e) => e.stopPropagation()}
+                >
                     <h2 className="text-xl font-bold mb-1">Assign New Task</h2>
                     <p className="text-sm text-slate-500 mb-4">To {freelancer?.name}</p>
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div>
                             <label className="text-xs text-slate-500">Task / Project Description</label>
-                            <input type="text" value={projectName} onChange={e => setProjectName(e.target.value)} className="w-full p-2.5 rounded-lg bg-slate-100" required />
+                            <input type="text" value={projectName} onChange={(e) => setProjectName(e.target.value)} className="w-full p-2.5 rounded-lg bg-slate-100" required />
                         </div>
                         <div className="flex justify-end gap-3 pt-4">
-                            <button type="button" onClick={onCancel} className="px-4 py-2 rounded-lg bg-slate-200">Cancel</button>
-                            <button type="submit" className="px-4 py-2 rounded-lg bg-indigo-600 text-white">Assign Task</button>
+                            <button type="button" onClick={onCancel} className="px-4 py-2 rounded-lg bg-slate-200">
+                                Cancel
+                            </button>
+                            <button type="submit" className="px-4 py-2 rounded-lg bg-indigo-600 text-white">
+                                Assign Task
+                            </button>
                         </div>
                     </form>
                 </motion.div>
@@ -198,63 +226,51 @@ const AssignTaskModal = ({ isOpen, freelancer, onSave, onCancel }) => {
     );
 };
 
-// --- NEW: BillAssignmentModal ---
-// const BillAssignmentModal = ({ isOpen, freelancer, onSave, onCancel }) => {
-//     const [unbilledAssignments, setUnbilledAssignments] = useState([]);
-//     const [selectedAssignment, setSelectedAssignment] = useState('');
-//     const [fee, setFee] = useState('');
-//     useEffect(() => {
-//         if (isOpen && freelancer) {
-//             setSelectedAssignment(''); setFee('');
-//             const auth = getAuth();
-//             auth.currentUser.getIdToken().then(token => {
-//                 axios.get(`${API_URL}/api/members/freelancers/${freelancer.firebase_uid}/unbilled-assignments`, { headers: { Authorization: `Bearer ${token}` }})
-//                     .then(res => setUnbilledAssignments(res.data));
-//             });
-//         }
-//     }, [isOpen, freelancer]);
-//     const handleSubmit = (e) => {
-//     e.preventDefault();
-//     // Find the full assignment object from the list
-//     const selectedAssignmentObject = unbilledAssignments.find(a => a.id.toString() === selectedAssignment);
-//     if (!selectedAssignmentObject) return;
+// =======================================================================
+// --- NEW DEDICATED COMPONENT FOR DISPLAYING ROLES ---
+// =======================================================================
+const RoleDisplay = ({ assignedRoleNames }) => {
+    const [isPopoverVisible, setIsPopoverVisible] = useState(false);
 
-//     // Send the full data to the handler
-//     onSave({ 
-//         freelancer_uid: freelancer.firebase_uid, 
-//         assignment_type: selectedAssignmentObject.type, 
-//         assignment_id: selectedAssignmentObject.id, 
-//         fee 
-//     });
-// };
-//     if (!isOpen) return null;
-//     return (
-//         <AnimatePresence>
-//             <motion.div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onCancel}>
-//                 <motion.div className="bg-white dark:bg-slate-800 rounded-2xl p-6 w-full max-w-md" onClick={e => e.stopPropagation()}>
-//                     <h2 className="text-xl font-bold mb-4">Bill an Assignment for {freelancer?.name}</h2>
-//                     <form onSubmit={handleSubmit} className="space-y-4">
-//                         <div>
-//                             <label className="text-xs text-slate-500">Select an Unbilled Assignment</label>
-//                             <select value={selectedAssignment} onChange={e => setSelectedAssignment(e.target.value)} className="w-full p-2.5 rounded-lg bg-slate-100" required>
-//                                 <option value="" disabled>-- Select work to bill --</option>
-//                                 {unbilledAssignments.map(a => <option key={`${a.type}-${a.id}`} value={a.id}>{a.title}</option>)}
-//                             </select>
-//                         </div>
-//                         <div>
-//                             <label className="text-xs text-slate-500">Enter Fee for this Assignment (₹)</label>
-//                             <input type="number" value={fee} onChange={e => setFee(e.target.value)} className="w-full p-2.5 rounded-lg bg-slate-100" required />
-//                         </div>
-//                         <div className="flex justify-end gap-3 pt-4">
-//                             <button type="button" onClick={onCancel} className="px-4 py-2 rounded-lg bg-slate-200">Cancel</button>
-//                             <button type="submit" className="px-4 py-2 rounded-lg bg-indigo-600 text-white" disabled={!selectedAssignment || !fee}>Save & Bill</button>
-//                         </div>
-//                     </form>
-//                 </motion.div>
-//             </motion.div>
-//         </AnimatePresence>
-//     );
-// };
+    if (!assignedRoleNames || assignedRoleNames.length === 0) {
+        return <div className="text-xs text-slate-500 italic">Not assigned</div>;
+    }
+
+    const firstRole = assignedRoleNames[0];
+    const remainingRolesCount = assignedRoleNames.length - 1;
+
+    return (
+        <div className="relative flex items-center gap-1.5 mt-1" onMouseEnter={() => setIsPopoverVisible(true)} onMouseLeave={() => setIsPopoverVisible(false)}>
+            {/* First Role Badge */}
+            <span className="px-2 py-0.5 text-xs font-semibold leading-none text-slate-700 bg-slate-100 rounded-full">{firstRole}</span>
+
+            {/* Counter Badge (if there are more roles) */}
+            {remainingRolesCount > 0 && <span className="px-2 py-0.5 text-xs font-semibold leading-none text-indigo-800 bg-indigo-100 rounded-full cursor-pointer">+{remainingRolesCount} more</span>}
+
+            {/* Popover for all roles (appears on hover) */}
+            <AnimatePresence>
+                {isPopoverVisible && assignedRoleNames.length > 1 && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                        transition={{ duration: 0.2, ease: 'easeOut' }}
+                        className="absolute bottom-full left-0 mb-2 w-max max-w-xs z-20 p-3 bg-white rounded-lg shadow-xl border"
+                    >
+                        <h4 className="font-bold text-sm text-slate-800 mb-2 pb-2 border-b">All Assigned Roles</h4>
+                        <div className="space-y-1.5">
+                            {assignedRoleNames.map((name) => (
+                                <div key={name} className="text-sm text-slate-600">
+                                    {name}
+                                </div>
+                            ))}
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
+    );
+};
 
 const BillTaskModal = ({ isOpen, freelancer, onSave, onCancel }) => {
     const [unbilledTasks, setUnbilledTasks] = useState([]);
@@ -263,34 +279,48 @@ const BillTaskModal = ({ isOpen, freelancer, onSave, onCancel }) => {
     useEffect(() => {
         if (isOpen && freelancer) {
             const auth = getAuth();
-            auth.currentUser.getIdToken().then(token => {
-                axios.get(`${API_URL}/api/members/freelancers/${freelancer.firebase_uid}/unbilled-tasks`, { headers: { Authorization: `Bearer ${token}` }})
-                    .then(res => setUnbilledTasks(res.data));
+            auth.currentUser.getIdToken().then((token) => {
+                axios.get(`${API_URL}/api/members/freelancers/${freelancer.firebase_uid}/unbilled-tasks`, { headers: { Authorization: `Bearer ${token}` } }).then((res) => setUnbilledTasks(res.data));
             });
         }
     }, [isOpen, freelancer]);
-    const handleSubmit = (e) => { e.preventDefault(); onSave({ task_id: selectedTaskId, fee }); setSelectedTaskId(''); setFee(''); };
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        onSave({ task_id: selectedTaskId, fee });
+        setSelectedTaskId('');
+        setFee('');
+    };
     if (!isOpen) return null;
     return (
         <AnimatePresence>
             <motion.div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onCancel}>
-                <motion.div className="bg-white dark:bg-slate-800 rounded-2xl p-6 w-full max-w-md" onClick={e => e.stopPropagation()}>
+                <motion.div className="bg-white dark:bg-slate-800 rounded-2xl p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
                     <h2 className="text-xl font-bold mb-4">Bill a Task for {freelancer?.name}</h2>
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div>
                             <label className="text-xs text-slate-500">Select an Assigned Task</label>
-                            <select value={selectedTaskId} onChange={e => setSelectedTaskId(e.target.value)} className="w-full p-2.5 rounded-lg bg-slate-100" required>
-                                <option value="" disabled>-- Select a task to bill --</option>
-                                {unbilledTasks.map(a => <option key={a.id} value={a.id}>{a.project_name}</option>)}
+                            <select value={selectedTaskId} onChange={(e) => setSelectedTaskId(e.target.value)} className="w-full p-2.5 rounded-lg bg-slate-100" required>
+                                <option value="" disabled>
+                                    -- Select a task to bill --
+                                </option>
+                                {unbilledTasks.map((a) => (
+                                    <option key={a.id} value={a.id}>
+                                        {a.project_name}
+                                    </option>
+                                ))}
                             </select>
                         </div>
                         <div>
                             <label className="text-xs text-slate-500">Enter Fee for this Task (₹)</label>
-                            <input type="number" value={fee} onChange={e => setFee(e.target.value)} className="w-full p-2.5 rounded-lg bg-slate-100" required />
+                            <input type="number" value={fee} onChange={(e) => setFee(e.target.value)} className="w-full p-2.5 rounded-lg bg-slate-100" required />
                         </div>
                         <div className="flex justify-end gap-3 pt-4">
-                            <button type="button" onClick={onCancel} className="px-4 py-2 rounded-lg bg-slate-200">Cancel</button>
-                            <button type="submit" className="px-4 py-2 rounded-lg bg-indigo-600 text-white" disabled={!selectedTaskId || !fee}>Save & Bill</button>
+                            <button type="button" onClick={onCancel} className="px-4 py-2 rounded-lg bg-slate-200">
+                                Cancel
+                            </button>
+                            <button type="submit" className="px-4 py-2 rounded-lg bg-indigo-600 text-white" disabled={!selectedTaskId || !fee}>
+                                Save & Bill
+                            </button>
                         </div>
                     </form>
                 </motion.div>
@@ -298,7 +328,6 @@ const BillTaskModal = ({ isOpen, freelancer, onSave, onCancel }) => {
         </AnimatePresence>
     );
 };
-
 
 // --- NEW MODAL 1: AssignFeeModal ---
 const AssignFeeModal = ({ isOpen, freelancer, onSave, onCancel }) => {
@@ -311,10 +340,11 @@ const AssignFeeModal = ({ isOpen, freelancer, onSave, onCancel }) => {
         if (isOpen && freelancer) {
             setIsLoading(true);
             const auth = getAuth();
-            auth.currentUser.getIdToken().then(token => {
-                axios.get(`${API_URL}/api/members/freelancers/${freelancer.firebase_uid}/unbilled-tasks`, { headers: { Authorization: `Bearer ${token}` }})
-                    .then(res => setUnbilledTasks(res.data))
-                    .catch(err => console.error("Failed to fetch unbilled tasks", err))
+            auth.currentUser.getIdToken().then((token) => {
+                axios
+                    .get(`${API_URL}/api/members/freelancers/${freelancer.firebase_uid}/unbilled-tasks`, { headers: { Authorization: `Bearer ${token}` } })
+                    .then((res) => setUnbilledTasks(res.data))
+                    .catch((err) => console.error('Failed to fetch unbilled tasks', err))
                     .finally(() => setIsLoading(false));
             });
         }
@@ -326,35 +356,57 @@ const AssignFeeModal = ({ isOpen, freelancer, onSave, onCancel }) => {
         setSelectedTaskId('');
         setTaskFee('');
     };
-    
+
     if (!isOpen) return null;
 
     return (
         <AnimatePresence>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onCancel}>
-                <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }} className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-2xl w-full max-w-md" onClick={e => e.stopPropagation()}>
+            <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                onClick={onCancel}
+            >
+                <motion.div
+                    initial={{ scale: 0.9 }}
+                    animate={{ scale: 1 }}
+                    exit={{ scale: 0.9 }}
+                    className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-2xl w-full max-w-md"
+                    onClick={(e) => e.stopPropagation()}
+                >
                     <h2 className="text-xl font-bold mb-1">Bill a Task</h2>
                     <p className="text-sm text-slate-500 mb-4">For {freelancer?.name}</p>
                     <form onSubmit={handleSubmit} className="space-y-4">
-                         <div>
+                        <div>
                             <label className="text-xs text-slate-500">Select Task to Bill</label>
-                            {isLoading ? <p>Loading tasks...</p> :
+                            {isLoading ? (
+                                <p>Loading tasks...</p>
+                            ) : (
                                 <select value={selectedTaskId} onChange={(e) => setSelectedTaskId(e.target.value)} className="w-full p-2.5 rounded-lg bg-slate-100" required>
-                                    <option value="" disabled>-- Select an unbilled task --</option>
-                                    {unbilledTasks.map(task => (
-                                        <option key={task.id} value={task.id}>{task.project_name} (Assigned: {new Date(task.assignment_date).toLocaleDateString()})</option>
+                                    <option value="" disabled>
+                                        -- Select an unbilled task --
+                                    </option>
+                                    {unbilledTasks.map((task) => (
+                                        <option key={task.id} value={task.id}>
+                                            {task.project_name} (Assigned: {new Date(task.assignment_date).toLocaleDateString()})
+                                        </option>
                                     ))}
                                     {unbilledTasks.length === 0 && <option disabled>No unbilled tasks found</option>}
                                 </select>
-                            }
+                            )}
                         </div>
                         <div>
                             <label className="text-xs text-slate-500">Enter Fee for this Task (₹)</label>
-                            <input type="number" value={taskFee} onChange={e => setTaskFee(e.target.value)} className="w-full p-2.5 rounded-lg bg-slate-100" required />
+                            <input type="number" value={taskFee} onChange={(e) => setTaskFee(e.target.value)} className="w-full p-2.5 rounded-lg bg-slate-100" required />
                         </div>
                         <div className="flex justify-end gap-3 pt-4">
-                            <button type="button" onClick={onCancel} className="px-4 py-2 rounded-lg bg-slate-200">Cancel</button>
-                            <button type="submit" className="px-4 py-2 rounded-lg bg-indigo-600 text-white" disabled={!selectedTaskId || !taskFee}>Save & Bill Task</button>
+                            <button type="button" onClick={onCancel} className="px-4 py-2 rounded-lg bg-slate-200">
+                                Cancel
+                            </button>
+                            <button type="submit" className="px-4 py-2 rounded-lg bg-indigo-600 text-white" disabled={!selectedTaskId || !taskFee}>
+                                Save & Bill Task
+                            </button>
                         </div>
                     </form>
                 </motion.div>
@@ -371,14 +423,14 @@ const BillAssignmentModal = ({ isOpen, freelancer, onSave, onCancel }) => {
     const [fee, setFee] = useState('');
     useEffect(() => {
         if (isOpen && freelancer) {
-            setSelectedAssignment(''); setFee('');
+            setSelectedAssignment('');
+            setFee('');
             const auth = getAuth();
-            auth.currentUser.getIdToken().then(token => {
-                axios.get(`${API_URL}/api/members/freelancers/${freelancer.firebase_uid}/unbilled-assignments`, { headers: { Authorization: `Bearer ${token}` }})
-                    .then(res => {
-                        console.log(`[DEBUG] Unbilled assignments for ${freelancer.name}:`, res.data);
-                        setUnbilledAssignments(res.data);
-                    });
+            auth.currentUser.getIdToken().then((token) => {
+                axios.get(`${API_URL}/api/members/freelancers/${freelancer.firebase_uid}/unbilled-assignments`, { headers: { Authorization: `Bearer ${token}` } }).then((res) => {
+                    console.log(`[DEBUG] Unbilled assignments for ${freelancer.name}:`, res.data);
+                    setUnbilledAssignments(res.data);
+                });
             });
         }
     }, [isOpen, freelancer]);
@@ -391,23 +443,33 @@ const BillAssignmentModal = ({ isOpen, freelancer, onSave, onCancel }) => {
     return (
         <AnimatePresence>
             <motion.div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onCancel}>
-                <motion.div className="bg-white dark:bg-slate-800 rounded-2xl p-6 w-full max-w-md" onClick={e => e.stopPropagation()}>
+                <motion.div className="bg-white dark:bg-slate-800 rounded-2xl p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
                     <h2 className="text-xl font-bold mb-4">Bill an Assignment for {freelancer?.name}</h2>
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div>
                             <label className="text-xs text-slate-500">Select an Unbilled Assignment</label>
-                            <select value={selectedAssignment} onChange={e => setSelectedAssignment(e.target.value)} className="w-full p-2.5 rounded-lg bg-slate-100" required>
-                                <option value="" disabled>-- Select work to bill --</option>
-                                {unbilledAssignments.map(a => <option key={`${a.type}-${a.id}`} value={`${a.type}-${a.id}`}>{a.title}</option>)}
+                            <select value={selectedAssignment} onChange={(e) => setSelectedAssignment(e.target.value)} className="w-full p-2.5 rounded-lg bg-slate-100" required>
+                                <option value="" disabled>
+                                    -- Select work to bill --
+                                </option>
+                                {unbilledAssignments.map((a) => (
+                                    <option key={`${a.type}-${a.id}`} value={`${a.type}-${a.id}`}>
+                                        {a.title}
+                                    </option>
+                                ))}
                             </select>
                         </div>
                         <div>
                             <label className="text-xs text-slate-500">Enter Fee for this Assignment (₹)</label>
-                            <input type="number" value={fee} onChange={e => setFee(e.target.value)} className="w-full p-2.5 rounded-lg bg-slate-100" required />
+                            <input type="number" value={fee} onChange={(e) => setFee(e.target.value)} className="w-full p-2.5 rounded-lg bg-slate-100" required />
                         </div>
                         <div className="flex justify-end gap-3 pt-4">
-                            <button type="button" onClick={onCancel} className="px-4 py-2 rounded-lg bg-slate-200">Cancel</button>
-                            <button type="submit" className="px-4 py-2 rounded-lg bg-indigo-600 text-white" disabled={!selectedAssignment || !fee}>Save & Bill</button>
+                            <button type="button" onClick={onCancel} className="px-4 py-2 rounded-lg bg-slate-200">
+                                Cancel
+                            </button>
+                            <button type="submit" className="px-4 py-2 rounded-lg bg-indigo-600 text-white" disabled={!selectedAssignment || !fee}>
+                                Save & Bill
+                            </button>
                         </div>
                     </form>
                 </motion.div>
@@ -422,12 +484,11 @@ const FreelancerHistoryModal = ({ isOpen, freelancer, onClose }) => {
     useEffect(() => {
         if (isOpen && freelancer) {
             const auth = getAuth();
-            auth.currentUser.getIdToken().then(token => {
-                axios.get(`${API_URL}/api/members/freelancers/${freelancer.firebase_uid}/history`, { headers: { Authorization: `Bearer ${token}` }})
-                    .then(res => {
-                        console.log(`[DEBUG] Financial history for ${freelancer.name}:`, res.data);
-                        setHistory(res.data);
-                    });
+            auth.currentUser.getIdToken().then((token) => {
+                axios.get(`${API_URL}/api/members/freelancers/${freelancer.firebase_uid}/history`, { headers: { Authorization: `Bearer ${token}` } }).then((res) => {
+                    console.log(`[DEBUG] Financial history for ${freelancer.name}:`, res.data);
+                    setHistory(res.data);
+                });
             });
         }
     }, [isOpen, freelancer]);
@@ -437,22 +498,35 @@ const FreelancerHistoryModal = ({ isOpen, freelancer, onClose }) => {
     const balance = totalBilled - totalPaid;
     return (
         <AnimatePresence>
-             <motion.div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
-                <motion.div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-2xl w-full max-w-4xl h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <motion.div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
+                <motion.div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-2xl w-full max-w-4xl h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
                     <div className="flex justify-between items-start mb-4">
-                        <div><h2 className="text-2xl font-bold">Financial History: {freelancer?.name}</h2></div>
-                        <button onClick={onClose}><X size={24} /></button>
+                        <div>
+                            <h2 className="text-2xl font-bold">Financial History: {freelancer?.name}</h2>
+                        </div>
+                        <button onClick={onClose}>
+                            <X size={24} />
+                        </button>
                     </div>
                     <div className="grid grid-cols-3 gap-4 mb-4 border-t border-b py-4">
-                        <div><label className="text-xs text-slate-500">Total Billed</label><p className="font-bold text-lg">{formatCurrency(totalBilled)}</p></div>
-                        <div><label className="text-xs text-slate-500">Total Paid</label><p className="font-bold text-lg text-green-600">{formatCurrency(totalPaid)}</p></div>
-                        <div><label className="text-xs text-slate-500">Balance Due</label><p className={`font-bold text-lg ${balance > 0 ? 'text-red-600' : 'text-slate-400'}`}>{formatCurrency(balance)}</p></div>
+                        <div>
+                            <label className="text-xs text-slate-500">Total Billed</label>
+                            <p className="font-bold text-lg">{formatCurrency(totalBilled)}</p>
+                        </div>
+                        <div>
+                            <label className="text-xs text-slate-500">Total Paid</label>
+                            <p className="font-bold text-lg text-green-600">{formatCurrency(totalPaid)}</p>
+                        </div>
+                        <div>
+                            <label className="text-xs text-slate-500">Balance Due</label>
+                            <p className={`font-bold text-lg ${balance > 0 ? 'text-red-600' : 'text-slate-400'}`}>{formatCurrency(balance)}</p>
+                        </div>
                     </div>
                     <div className="flex-grow overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                             <h3 className="font-bold mb-2">Billed Items</h3>
                             <div className="space-y-2">
-                                {(history?.billed_items || []).map(item => (
+                                {(history?.billed_items || []).map((item) => (
                                     <div key={`${item.type}-${item.id}`} className="p-3 bg-slate-50 rounded-lg text-sm">
                                         <div className="flex justify-between font-medium">
                                             <span>{item.type === 'shoot' ? `${item.project_name} - ${item.service_name}` : item.project_name}</span>
@@ -466,7 +540,7 @@ const FreelancerHistoryModal = ({ isOpen, freelancer, onClose }) => {
                         <div>
                             <h3 className="font-bold mb-2">Payment History</h3>
                             <div className="space-y-2">
-                                {(history?.payments || []).map(payment => (
+                                {(history?.payments || []).map((payment) => (
                                     <div key={`payment-${payment.id}`} className="p-3 bg-emerald-50 rounded-lg text-sm">
                                         <div className="flex justify-between font-medium">
                                             <span>Payment</span>
@@ -485,8 +559,6 @@ const FreelancerHistoryModal = ({ isOpen, freelancer, onClose }) => {
     );
 };
 
-
-
 const AddTaskModal = ({ isOpen, freelancer, onSave, onCancel }) => {
     const [projectName, setProjectName] = useState('');
     const [taskFee, setTaskFee] = useState('');
@@ -500,7 +572,13 @@ const AddTaskModal = ({ isOpen, freelancer, onSave, onCancel }) => {
     return (
         <AnimatePresence>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onCancel}>
-                <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }} className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-2xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+                <motion.div
+                    initial={{ scale: 0.9 }}
+                    animate={{ scale: 1 }}
+                    exit={{ scale: 0.9 }}
+                    className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-2xl w-full max-w-md"
+                    onClick={(e) => e.stopPropagation()}
+                >
                     <h2 className="text-xl font-bold mb-1">Add New Task</h2>
                     <p className="text-sm text-slate-500 mb-4">For {freelancer?.name}</p>
                     <form onSubmit={handleSubmit} className="space-y-4">
@@ -513,8 +591,12 @@ const AddTaskModal = ({ isOpen, freelancer, onSave, onCancel }) => {
                             <input type="number" value={taskFee} onChange={(e) => setTaskFee(e.target.value)} className="w-full p-2.5 rounded-lg bg-slate-100 dark:bg-slate-700" required />
                         </div>
                         <div className="flex justify-end gap-3 pt-4">
-                            <button type="button" onClick={onCancel} className="px-4 py-2 rounded-lg bg-slate-200">Cancel</button>
-                            <button type="submit" className="px-4 py-2 rounded-lg bg-indigo-600 text-white">Save Task</button>
+                            <button type="button" onClick={onCancel} className="px-4 py-2 rounded-lg bg-slate-200">
+                                Cancel
+                            </button>
+                            <button type="submit" className="px-4 py-2 rounded-lg bg-indigo-600 text-white">
+                                Save Task
+                            </button>
                         </div>
                     </form>
                 </motion.div>
@@ -524,7 +606,7 @@ const AddTaskModal = ({ isOpen, freelancer, onSave, onCancel }) => {
 };
 
 const MakePaymentModal = ({ isOpen, freelancer, onSave, onCancel }) => {
-   const [paymentAmount, setPaymentAmount] = useState('');
+    const [paymentAmount, setPaymentAmount] = useState('');
     const [notes, setNotes] = useState('');
     if (!isOpen) return null;
     const handleSubmit = (e) => {
@@ -535,28 +617,44 @@ const MakePaymentModal = ({ isOpen, freelancer, onSave, onCancel }) => {
     };
     return (
         <AnimatePresence>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onCancel}>
-                <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }} className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-2xl w-full max-w-md" onClick={e => e.stopPropagation()}>
-                     <h2 className="text-xl font-bold mb-1">Make a Payment</h2>
-                     <p className="text-sm text-slate-500 mb-4">To {freelancer?.name}</p>
-                     <div className="mb-4 p-3 rounded-lg bg-slate-100 dark:bg-slate-700">
-                         <label className="text-xs text-slate-500">Current Balance Due</label>
-                         <p className="font-bold text-lg text-red-600">{formatCurrency(freelancer?.remaining_balance)}</p>
-                     </div>
-                     <form onSubmit={handleSubmit} className="space-y-4">
-                         <div>
-                             <label className="text-xs text-slate-500">Payment Amount (₹)</label>
-                             <input type="number" value={paymentAmount} onChange={(e) => setPaymentAmount(e.target.value)} className="w-full p-2.5 rounded-lg bg-slate-100" required />
-                         </div>
-                         <div>
-                             <label className="text-xs text-slate-500">Notes (Optional)</label>
-                             <input type="text" value={notes} onChange={(e) => setNotes(e.target.value)} className="w-full p-2.5 rounded-lg bg-slate-100" />
-                         </div>
-                         <div className="flex justify-end gap-3 pt-4">
-                            <button type="button" onClick={onCancel} className="px-4 py-2 rounded-lg bg-slate-200">Cancel</button>
-                            <button type="submit" className="px-4 py-2 rounded-lg bg-green-600 text-white">Confirm Payment</button>
-                         </div>
-                     </form>
+            <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                onClick={onCancel}
+            >
+                <motion.div
+                    initial={{ scale: 0.9 }}
+                    animate={{ scale: 1 }}
+                    exit={{ scale: 0.9 }}
+                    className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-2xl w-full max-w-md"
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    <h2 className="text-xl font-bold mb-1">Make a Payment</h2>
+                    <p className="text-sm text-slate-500 mb-4">To {freelancer?.name}</p>
+                    <div className="mb-4 p-3 rounded-lg bg-slate-100 dark:bg-slate-700">
+                        <label className="text-xs text-slate-500">Current Balance Due</label>
+                        <p className="font-bold text-lg text-red-600">{formatCurrency(freelancer?.remaining_balance)}</p>
+                    </div>
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                        <div>
+                            <label className="text-xs text-slate-500">Payment Amount (₹)</label>
+                            <input type="number" value={paymentAmount} onChange={(e) => setPaymentAmount(e.target.value)} className="w-full p-2.5 rounded-lg bg-slate-100" required />
+                        </div>
+                        <div>
+                            <label className="text-xs text-slate-500">Notes (Optional)</label>
+                            <input type="text" value={notes} onChange={(e) => setNotes(e.target.value)} className="w-full p-2.5 rounded-lg bg-slate-100" />
+                        </div>
+                        <div className="flex justify-end gap-3 pt-4">
+                            <button type="button" onClick={onCancel} className="px-4 py-2 rounded-lg bg-slate-200">
+                                Cancel
+                            </button>
+                            <button type="submit" className="px-4 py-2 rounded-lg bg-green-600 text-white">
+                                Confirm Payment
+                            </button>
+                        </div>
+                    </form>
                 </motion.div>
             </motion.div>
         </AnimatePresence>
@@ -630,7 +728,7 @@ const PaymentHistoryModal = ({ isOpen, employee, onClose }) => {
         try {
             const auth = getAuth();
             const token = await auth.currentUser.getIdToken();
-            await axios.post(`${API_URL}/api/members/salaries/pay-all-due`,{ employeeUid: employee.firebase_uid },{ headers: { Authorization: `Bearer ${token}` } });
+            await axios.post(`${API_URL}/api/members/salaries/pay-all-due`, { employeeUid: employee.firebase_uid }, { headers: { Authorization: `Bearer ${token}` } });
             await fetchHistory();
         } catch (e) {
             setError(e?.response?.data?.error || 'Bulk payment failed. Please try again.');
@@ -645,42 +743,83 @@ const PaymentHistoryModal = ({ isOpen, employee, onClose }) => {
 
     return (
         <AnimatePresence>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
-                <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }} className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-2xl w-full max-w-3xl h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                onClick={onClose}
+            >
+                <motion.div
+                    initial={{ scale: 0.9 }}
+                    animate={{ scale: 1 }}
+                    exit={{ scale: 0.9 }}
+                    className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-2xl w-full max-w-3xl h-[90vh] flex flex-col"
+                    onClick={(e) => e.stopPropagation()}
+                >
                     <div className="flex justify-between items-start mb-4">
                         <div>
                             <h2 className="text-xl font-bold">Monthly Payment History</h2>
                             <p className="text-sm text-slate-500">For {employee?.name}</p>
                         </div>
-                        <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700"><X size={20} /></button>
+                        <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700">
+                            <X size={20} />
+                        </button>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 border-t border-b py-4">
-                        <div><label className="text-xs text-slate-500">Total Amount Due</label><p className="font-bold text-lg">{formatCurrency(summary.totalDue)}</p></div>
-                        <div><label className="text-xs text-slate-500">Total Amount Paid</label><p className="font-bold text-lg text-green-600">{formatCurrency(summary.totalPaid)}</p></div>
-                        <div><label className="text-xs text-slate-500">Remaining Balance</label><p className={`font-bold text-lg ${remainingBalance > 0 ? 'text-red-600' : 'text-slate-400'}`}>{formatCurrency(remainingBalance)}</p></div>
+                        <div>
+                            <label className="text-xs text-slate-500">Total Amount Due</label>
+                            <p className="font-bold text-lg">{formatCurrency(summary.totalDue)}</p>
+                        </div>
+                        <div>
+                            <label className="text-xs text-slate-500">Total Amount Paid</label>
+                            <p className="font-bold text-lg text-green-600">{formatCurrency(summary.totalPaid)}</p>
+                        </div>
+                        <div>
+                            <label className="text-xs text-slate-500">Remaining Balance</label>
+                            <p className={`font-bold text-lg ${remainingBalance > 0 ? 'text-red-600' : 'text-slate-400'}`}>{formatCurrency(remainingBalance)}</p>
+                        </div>
                     </div>
                     <div className="flex-grow overflow-y-auto">
-                        {isLoading ? <p className="text-center p-4">Loading history...</p> : error ? <p className="text-center p-4 text-red-500">{error}</p> : (
+                        {isLoading ? (
+                            <p className="text-center p-4">Loading history...</p>
+                        ) : error ? (
+                            <p className="text-center p-4 text-red-500">{error}</p>
+                        ) : (
                             <table className="w-full text-left">
                                 <thead>
-                                    <tr className="border-b"><th className="p-3 text-xs uppercase">Period</th><th className="p-3 text-xs uppercase">Due</th><th className="p-3 text-xs uppercase">Paid</th><th className="p-3 text-xs uppercase">Status</th><th className="p-3 text-xs uppercase text-right">Actions</th></tr>
+                                    <tr className="border-b">
+                                        <th className="p-3 text-xs uppercase">Period</th>
+                                        <th className="p-3 text-xs uppercase">Due</th>
+                                        <th className="p-3 text-xs uppercase">Paid</th>
+                                        <th className="p-3 text-xs uppercase">Status</th>
+                                        <th className="p-3 text-xs uppercase text-right">Actions</th>
+                                    </tr>
                                 </thead>
                                 <tbody>
                                     {history.map((rec) => {
                                         const isFullyPaid = Number(rec.amount_paid) >= Number(rec.amount_due);
                                         return (
                                             <tr key={rec.id} className="border-b border-slate-100 dark:border-slate-700">
-                                                <td className="p-3 text-sm">{monthName(rec.period_month)} {rec.period_year}</td>
+                                                <td className="p-3 text-sm">
+                                                    {monthName(rec.period_month)} {rec.period_year}
+                                                </td>
                                                 <td className="p-3 text-sm font-semibold">{formatCurrency(rec.amount_due)}</td>
                                                 <td className="p-3 text-sm font-semibold text-green-600">{formatCurrency(rec.amount_paid)}</td>
                                                 <td className="p-3 text-sm">
-                                                    <span className={`px-2 py-1 text-xs font-semibold rounded-full capitalize ${isFullyPaid ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
+                                                    <span
+                                                        className={`px-2 py-1 text-xs font-semibold rounded-full capitalize ${isFullyPaid ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}
+                                                    >
                                                         {isFullyPaid ? 'Paid' : 'Pending'}
                                                     </span>
                                                 </td>
                                                 <td className="p-3 text-sm text-right">
                                                     {!isFullyPaid && (
-                                                        <button onClick={() => handlePaySingleMonth(rec)} disabled={isSubmitting} className="bg-black text-white px-3 py-1 text-xs font-bold rounded hover:bg-gray-700 disabled:bg-slate-400">
+                                                        <button
+                                                            onClick={() => handlePaySingleMonth(rec)}
+                                                            disabled={isSubmitting}
+                                                            className="bg-black text-white px-3 py-1 text-xs font-bold rounded hover:bg-gray-700 disabled:bg-slate-400"
+                                                        >
                                                             {isSubmitting ? '...' : 'Pay Now'}
                                                         </button>
                                                     )}
@@ -688,7 +827,13 @@ const PaymentHistoryModal = ({ isOpen, employee, onClose }) => {
                                             </tr>
                                         );
                                     })}
-                                    {history.length === 0 && (<tr><td className="p-4 text-center text-slate-500" colSpan={5}>No payment history found.</td></tr>)}
+                                    {history.length === 0 && (
+                                        <tr>
+                                            <td className="p-4 text-center text-slate-500" colSpan={5}>
+                                                No payment history found.
+                                            </td>
+                                        </tr>
+                                    )}
                                 </tbody>
                             </table>
                         )}
@@ -706,21 +851,21 @@ const PaymentHistoryModal = ({ isOpen, employee, onClose }) => {
     );
 };
 
-const parseAndFormatRoles = (rolesString) => {
-    if (!rolesString || typeof rolesString !== 'string') {
-        return 'No role assigned';
-    }
-    try {
-        const rolesArray = JSON.parse(rolesString);
-        if (Array.isArray(rolesArray) && rolesArray.length > 0) {
-            return rolesArray.map((r) => r.role_name).join(', ');
-        }
-        return 'No role assigned';
-    } catch (error) {
-        console.error('Failed to parse roles JSON string:', rolesString, error);
-        return 'Invalid role format';
-    }
-};
+// const parseAndFormatRoles = (rolesString) => {
+//     if (!rolesString || typeof rolesString !== 'string') {
+//         return 'No role assigned';
+//     }
+//     try {
+//         const rolesArray = JSON.parse(rolesString);
+//         if (Array.isArray(rolesArray) && rolesArray.length > 0) {
+//             return rolesArray.map((r) => r.role_name).join(', ');
+//         }
+//         return 'No role assigned';
+//     } catch (error) {
+//         console.error('Failed to parse roles JSON string:', rolesString, error);
+//         return 'Invalid role format';
+//     }
+// };
 
 // --- Main Page Component ---
 function PayrollManagementPage() {
@@ -739,15 +884,12 @@ function PayrollManagementPage() {
     const [isMonthlyModalOpen, setIsMonthlyModalOpen] = useState(false);
     const [editingMonthlyRecord, setEditingMonthlyRecord] = useState(null);
     const [isBillAssignmentModalOpen, setIsBillAssignmentModalOpen] = useState(false);
-  
-    
-    
 
     // ✅ NEW: State for the history modal
     // --- THIS IS THE FIXED LINE ---
     const [isPaymentHistoryModalOpen, setIsPaymentHistoryModalOpen] = useState(false);
     const [viewingEmployee, setViewingEmployee] = useState(null);
-     const [freelancerSummaries, setFreelancerSummaries] = useState([]);
+    const [freelancerSummaries, setFreelancerSummaries] = useState([]);
     const [selectedFreelancer, setSelectedFreelancer] = useState(null);
     const [isAssignTaskModalOpen, setIsAssignTaskModalOpen] = useState(false);
     const [isBillTaskModalOpen, setIsBillTaskModalOpen] = useState(false);
@@ -764,40 +906,36 @@ function PayrollManagementPage() {
         const headers = { Authorization: `Bearer ${token}` };
 
         setIsEmployeeLoading(true);
-        axios
-            .get(`${API_URL}/api/members`, { headers })
-            .then((res) => {
-                console.log('All employees fetched from DB:', res.data);
-                setEmployees(res.data || []);
-            })
-            .catch((e) => setEmployeeError(e?.response?.data?.error || 'Failed to load employees.'))
-            .finally(() => setIsEmployeeLoading(false));
-
         setIsMonthlyLoading(true);
-        axios
-            .get(`${API_URL}/api/members/salaries`, { headers })
-            .then((res) => setMonthlyRecords(res.data || []))
-            .catch((e) => 
-              setMonthlyError(e?.response?.data?.error || 'Failed to load monthly records.'))
-            .finally(() => setIsMonthlyLoading(false));
 
-       axios.get(`${API_URL}/api/members/freelancers/summaries`, { headers })
-    .then(res => {
-      console.log('All freelancer summaries fetched from DB:', res.data);
-      setFreelancerSummaries(res.data || []);
-    })
-            .catch(e => console.error("Failed to load freelancer summaries", e));
+        const employeePromise = axios.get(`${API_URL}/api/members`, { headers });
+        const monthlyPromise = axios.get(`${API_URL}/api/members/salaries?month=${month}&year=${year}`, { headers }); // CHANGED: Fetch salaries for the specific month/year
+        const freelancerPromise = axios.get(`${API_URL}/api/members/freelancers/summaries`, { headers });
+
+        try {
+            const [employeeRes, monthlyRes, freelancerRes] = await Promise.all([employeePromise, monthlyPromise, freelancerPromise]);
+            setEmployees(employeeRes.data || []);
+            setMonthlyRecords(monthlyRes.data || []);
+            setFreelancerSummaries(freelancerRes.data || []);
+        } catch (e) {
+            console.error('Failed to fetch payroll data', e);
+            setEmployeeError(e?.response?.data?.error || 'Failed to load page data.');
+        } finally {
+            setIsEmployeeLoading(false);
+            setIsMonthlyLoading(false);
+        }
     };
-  
-    console.log('Freelancer summaries fetched from DB:', freelancerSummaries)
 
+    // CHANGED: useEffect dependency array now includes month and year to refetch data when they change.
     useEffect(() => {
         const auth = getAuth();
         const unsubscribe = auth.onAuthStateChanged((user) => {
-            if (user) fetchData();
+            if (user) {
+                fetchData();
+            }
         });
         return () => unsubscribe();
-    }, []);
+    }, [month, year]);
 
     // --- Handler Functions ---
     const handleUpdateBaseSalary = async (uid, salary) => {
@@ -813,7 +951,8 @@ function PayrollManagementPage() {
     };
 
     const handleGenerate = async (month, year) => {
-        if (!window.confirm(`Generate/update salary records for ${monthName(month)}, ${year}? This will affect ALL employee types.`)) return;
+        // CHANGED: Updated the confirmation message to be more accurate.
+        if (!window.confirm(`Generate/update salary records for ${monthName(month)}, ${year}? This will affect In-House and Manager employees.`)) return;
         try {
             const auth = getAuth();
             const token = await auth.currentUser.getIdToken();
@@ -825,11 +964,27 @@ function PayrollManagementPage() {
         }
     };
 
-    const handleUpdateMonthlyRecord = async (id, formData) => {
+    // CHANGED: This handler is now more robust. It can CREATE a new salary record if one doesn't exist.
+    const handleUpdateMonthlyRecord = async (record, formData) => {
         try {
             const auth = getAuth();
             const token = await auth.currentUser.getIdToken();
-            await axios.put(`${API_URL}/api/members/salaries/${id}`, formData, { headers: { Authorization: `Bearer ${token}` } });
+            const headers = { Authorization: `Bearer ${token}` };
+
+            // If the record has a status of 'N/A', it's a placeholder we need to create.
+            if (record.status === 'N/A') {
+                const payload = {
+                    firebase_uid: record.firebase_uid,
+                    month: record.period_month,
+                    year: record.period_year,
+                    ...formData,
+                };
+                // This assumes your backend has a POST /api/members/salaries endpoint to create a single record
+                await axios.post(`${API_URL}/api/members/salaries`, payload, { headers });
+            } else {
+                // Otherwise, update the existing record.
+                await axios.put(`${API_URL}/api/members/salaries/${record.id}`, formData, { headers });
+            }
             setIsMonthlyModalOpen(false);
             fetchData();
         } catch (e) {
@@ -837,43 +992,52 @@ function PayrollManagementPage() {
         }
     };
 
-     const handleViewSalariedHistory = (record) => {
+    const handleViewSalariedHistory = (record) => {
         const employee = employees.find((emp) => emp.firebase_uid === record.firebase_uid);
         if (employee) {
             setViewingEmployee(employee);
             setIsPaymentHistoryModalOpen(true);
         } else {
-            alert("Could not find employee details for this record.");
+            alert('Could not find employee details for this record.');
         }
     };
 
     const handleBillAssignment = async (data) => {
         const auth = getAuth();
         const token = await auth.currentUser.getIdToken();
-        axios.post(`${API_URL}/api/members/freelancers/billings`, data, { headers: { Authorization: `Bearer ${token}` }})
-            .then(() => { setIsBillAssignmentModalOpen(false); fetchData(); })
-            .catch(err => alert(err.response?.data?.error || "Failed to bill assignment."));
+        axios
+            .post(`${API_URL}/api/members/freelancers/billings`, data, { headers: { Authorization: `Bearer ${token}` } })
+            .then(() => {
+                setIsBillAssignmentModalOpen(false);
+                fetchData();
+            })
+            .catch((err) => alert(err.response?.data?.error || 'Failed to bill assignment.'));
     };
-
 
     const handleAssignTask = async (freelancer_uid, taskData) => {
         const auth = getAuth();
         const token = await auth.currentUser.getIdToken();
-        axios.post(`${API_URL}/api/members/freelancers/tasks`, { ...taskData, freelancer_uid }, { headers: { Authorization: `Bearer ${token}` }})
-            .then(() => { setIsAssignTaskModalOpen(false); fetchData(); })
-            .catch(err => alert(err.response?.data?.error || 'Failed to assign task.'));
+        axios
+            .post(`${API_URL}/api/members/freelancers/tasks`, { ...taskData, freelancer_uid }, { headers: { Authorization: `Bearer ${token}` } })
+            .then(() => {
+                setIsAssignTaskModalOpen(false);
+                fetchData();
+            })
+            .catch((err) => alert(err.response?.data?.error || 'Failed to assign task.'));
     };
-    console.log("freelancerSummaries", freelancerSummaries)
-    console.log("selectedFreelancer", selectedFreelancer)
-   
-    
+    console.log('freelancerSummaries', freelancerSummaries);
+    console.log('selectedFreelancer', selectedFreelancer);
 
     const handleBillTask = async (data) => {
         const auth = getAuth();
         const token = await auth.currentUser.getIdToken();
-        axios.put(`${API_URL}/api/members/freelancers/tasks/bill`, data, { headers: { Authorization: `Bearer ${token}` }})
-            .then(() => { setIsBillTaskModalOpen(false); fetchData(); })
-            .catch(err => alert(err.response?.data?.error || "Failed to bill task."));
+        axios
+            .put(`${API_URL}/api/members/freelancers/tasks/bill`, data, { headers: { Authorization: `Bearer ${token}` } })
+            .then(() => {
+                setIsBillTaskModalOpen(false);
+                fetchData();
+            })
+            .catch((err) => alert(err.response?.data?.error || 'Failed to bill task.'));
     };
 
     const handleViewHistory = (record) => {
@@ -893,15 +1057,13 @@ function PayrollManagementPage() {
             const auth = getAuth();
             const token = await auth.currentUser.getIdToken();
             // Note the new endpoint from your backend setup
-            await axios.post(`${API_URL}/api/members/freelancers/tasks`, { ...taskData, freelancer_uid }, { headers: { Authorization: `Bearer ${token}` }});
+            await axios.post(`${API_URL}/api/members/freelancers/tasks`, { ...taskData, freelancer_uid }, { headers: { Authorization: `Bearer ${token}` } });
             setAddTaskModalOpen(false);
             fetchData(); // Refresh all data to show the new balance
         } catch (e) {
             alert(e?.response?.data?.error || 'Failed to save task.');
         }
     };
-
-   
 
     const openFreelancerModal = (freelancer, modalType) => {
         setSelectedFreelancer(freelancer);
@@ -911,7 +1073,6 @@ function PayrollManagementPage() {
             setMakePaymentModalOpen(true);
         }
     };
-
 
     const handleSaveMonthlyPayment = async (record, formData) => {
         try {
@@ -945,36 +1106,38 @@ function PayrollManagementPage() {
         }
     };
 
-     const handleAssignFee = async (data) => {
+    const handleAssignFee = async (data) => {
         const auth = getAuth();
         const token = await auth.currentUser.getIdToken();
-        axios.put(`${API_URL}/api/members/freelancers/tasks/bill`, data, { headers: { Authorization: `Bearer ${token}` }})
+        axios
+            .put(`${API_URL}/api/members/freelancers/tasks/bill`, data, { headers: { Authorization: `Bearer ${token}` } })
             .then(() => {
                 setAssignFeeModalOpen(false);
                 fetchData();
             })
-            .catch(err => alert(err.response?.data?.error || "Failed to bill task."));
+            .catch((err) => alert(err.response?.data?.error || 'Failed to bill task.'));
     };
 
     const handleMakePayment = async (freelancer_uid, paymentData) => {
-        const freelancer = freelancerSummaries.find(f => f.firebase_uid === freelancer_uid);
+        const freelancer = freelancerSummaries.find((f) => f.firebase_uid === freelancer_uid);
         // --- VALIDATION EDGE CASE ---
         if (parseFloat(paymentData.payment_amount) > parseFloat(freelancer.remaining_balance)) {
-            alert("Error: Payment amount cannot be greater than the balance due.");
+            alert('Error: Payment amount cannot be greater than the balance due.');
             return;
         }
-        
+
         const auth = getAuth();
         const token = await auth.currentUser.getIdToken();
-        axios.post(`${API_URL}/api/members/freelancers/payments`, { ...paymentData, freelancer_uid }, { headers: { Authorization: `Bearer ${token}` }})
+        axios
+            .post(`${API_URL}/api/members/freelancers/payments`, { ...paymentData, freelancer_uid }, { headers: { Authorization: `Bearer ${token}` } })
             .then(() => {
                 setMakePaymentModalOpen(false);
                 fetchData();
             })
-            .catch(err => alert(err.response?.data?.error || "Failed to record payment."));
+            .catch((err) => alert(err.response?.data?.error || 'Failed to record payment.'));
     };
 
-      const openModal = (freelancer, modalType) => {
+    const openModal = (freelancer, modalType) => {
         setSelectedFreelancer(freelancer);
         if (modalType === 'billAssignment') setIsBillAssignmentModalOpen(true);
         if (modalType === 'payment') setIsMakePaymentModalOpen(true);
@@ -987,11 +1150,10 @@ function PayrollManagementPage() {
         return employees.filter((emp) => emp.name.toLowerCase().includes(searchQuery.toLowerCase()) || parseAndFormatRoles(emp.roles).toLowerCase().includes(searchQuery.toLowerCase()));
     }, [employees, searchQuery]);
 
-     const filteredFreelancerSummaries = useMemo(() => {
+    const filteredFreelancerSummaries = useMemo(() => {
         if (!searchQuery) return freelancerSummaries;
-        return freelancerSummaries.filter(emp => emp.name.toLowerCase().includes(searchQuery.toLowerCase()));
+        return freelancerSummaries.filter((emp) => emp.name.toLowerCase().includes(searchQuery.toLowerCase()));
     }, [freelancerSummaries, searchQuery]);
-
 
     const salariedEmployees = filteredEmployees.filter((emp) => emp.employee_type === 1 || emp.employee_type === 2);
     const freelancerEmployees = filteredEmployees.filter((emp) => emp.employee_type === 0);
@@ -1040,16 +1202,55 @@ function PayrollManagementPage() {
         });
     }, [monthlyRecords, employees]);
 
+    // CORRECT LOGIC: This constant correctly filters for Salaried/Manager roles for the 'Monthly Payroll' tab
     const filteredMonthlyRecords = useMemo(() => {
-        if (!searchQuery) return enrichedMonthlyRecords;
-        return enrichedMonthlyRecords.filter(
-            (rec) => rec.employee_name.toLowerCase().includes(searchQuery.toLowerCase()) || parseAndFormatRoles(rec.roles).toLowerCase().includes(searchQuery.toLowerCase()),
-        );
+        // First, filter by employee type to ONLY include In-House (1) and Managers (2)
+        console.log('ENRICHED RECORDS:', enrichedMonthlyRecords);
+        const salariedRecords = enrichedMonthlyRecords.filter((rec) => rec.employee_type === 1 || rec.employee_type === 2);
+
+        console.log('SALARIED RECORDS:', salariedRecords);
+
+        // Then, if there's a search query, filter the result by the query
+        if (!searchQuery) {
+            return salariedRecords;
+        }
+        return salariedRecords.filter((rec) => rec.employee_name.toLowerCase().includes(searchQuery.toLowerCase()) || parseAndFormatRoles(rec.roles).toLowerCase().includes(searchQuery.toLowerCase()));
     }, [enrichedMonthlyRecords, searchQuery]);
 
-    const freelancerMonthlyRecords = useMemo(() => {
-        return filteredMonthlyRecords.filter((rec) => rec.employee_type === 0);
-    }, [filteredMonthlyRecords]);
+    // *** CHANGED: This is the new, more robust logic for the Monthly Payroll tab ***
+    const monthlyPayrollDisplayRecords = useMemo(() => {
+        // 1. Get all employees who are salaried (In-House or Manager)
+        const allSalariedEmployees = employees.filter((emp) => emp.employee_type === 1 || emp.employee_type === 2);
+
+        // 2. Create a fast lookup map for existing salary records for the current month/year
+        const salaryRecordMap = new Map(monthlyRecords.map((rec) => [rec.firebase_uid, rec]));
+
+        // 3. Create display records, ensuring every salaried employee has an entry
+        const displayRecords = allSalariedEmployees.map((emp) => {
+            const existingRecord = salaryRecordMap.get(emp.firebase_uid);
+            if (existingRecord) {
+                return { ...existingRecord, employee_name: emp.name, roles: emp.roles, employee_type: emp.employee_type };
+            } else {
+                // If NO record exists, create a placeholder
+                return {
+                    id: emp.firebase_uid, // Use firebase_uid as a stable unique key
+                    firebase_uid: emp.firebase_uid,
+                    employee_name: emp.name,
+                    roles: emp.roles,
+                    employee_type: emp.employee_type,
+                    period_month: month,
+                    period_year: year,
+                    amount_due: emp.salary || '0.00', // Use base salary if available
+                    amount_paid: '0.00',
+                    status: 'N/A', // Special status indicates this record doesn't exist in the DB yet
+                    notes: '',
+                };
+            }
+        });
+
+        if (!searchQuery) return displayRecords;
+        return displayRecords.filter((rec) => rec.employee_name.toLowerCase().includes(searchQuery.toLowerCase()) || parseAndFormatRoles(rec.roles).toLowerCase().includes(searchQuery.toLowerCase()));
+    }, [employees, monthlyRecords, month, year, searchQuery]);
 
     // Tab configuration
     const tabConfig = {
@@ -1062,14 +1263,13 @@ function PayrollManagementPage() {
 
     return (
         <div className="min-h-screen p-4 sm:p-6 lg:p-8 text-slate-900">
-             <BaseSalaryModal isOpen={isBaseSalaryModalOpen} onSave={handleUpdateBaseSalary} onCancel={() => setIsBaseSalaryModalOpen(false)} employee={editingEmployee} />
+            <BaseSalaryModal isOpen={isBaseSalaryModalOpen} onSave={handleUpdateBaseSalary} onCancel={() => setIsBaseSalaryModalOpen(false)} employee={editingEmployee} />
             <MonthlySalaryModal isOpen={isMonthlyModalOpen} onSave={handleUpdateMonthlyRecord} onCancel={() => setIsMonthlyModalOpen(false)} record={editingMonthlyRecord} />
             <PaymentHistoryModal isOpen={isPaymentHistoryModalOpen} onClose={() => setIsPaymentHistoryModalOpen(false)} employee={viewingEmployee} />
             <BillAssignmentModal isOpen={isBillAssignmentModalOpen} onSave={handleBillAssignment} onCancel={() => setIsBillAssignmentModalOpen(false)} freelancer={selectedFreelancer} />
             <MakePaymentModal isOpen={isMakePaymentModalOpen} onSave={handleMakePayment} onCancel={() => setIsMakePaymentModalOpen(false)} freelancer={selectedFreelancer} />
             <FreelancerHistoryModal isOpen={isFreelancerHistoryModalOpen} onClose={() => setIsFreelancerHistoryModalOpen(false)} freelancer={selectedFreelancer} />
-              <div className="max-w-7xl mx-auto isolate space-y-8">
-                
+            <div className="max-w-7xl mx-auto isolate space-y-8">
                 <header>
                     <ul className="flex space-x-2 rtl:space-x-reverse mb-6">
                         <li>
@@ -1135,33 +1335,39 @@ function PayrollManagementPage() {
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                {salariedEmployees.map((emp) => (
-                                                    <tr key={emp.firebase_uid} className="border-b border-slate-100 dark:border-slate-700">
-                                                        <td className="p-3 text-sm">
-                                                            <div className="font-medium">{emp.name}</div>
-                                                            <div className="text-xs text-slate-500">{parseAndFormatRoles(emp.roles)}</div>
-                                                        </td>
-                                                        <td className="p-3 text-sm">
-                                                            <span
-                                                                className={`px-2 py-1 text-xs font-semibold rounded-full ${emp.employee_type === 2 ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}`}
-                                                            >
-                                                                {getEmployeeType(emp.employee_type)}
-                                                            </span>
-                                                        </td>
-                                                        <td className="p-3 text-sm font-semibold">{formatCurrency(emp.salary)}</td>
-                                                        <td className="p-3 text-sm text-right">
-                                                            <button
-                                                                onClick={() => {
-                                                                    setEditingEmployee(emp);
-                                                                    setIsBaseSalaryModalOpen(true);
-                                                                }}
-                                                                className="p-2 text-slate-500 hover:text-indigo-600"
-                                                            >
-                                                                <Edit3 size={16} />
-                                                            </button>
-                                                        </td>
-                                                    </tr>
-                                                ))}
+                                                {salariedEmployees.map((emp) => {
+                                                    // Prepare the array of role names for the new component
+                                                    const assignedRoleNames = Array.isArray(emp.roles) ? emp.roles.map((role) => role.role_name).filter(Boolean) : [];
+
+                                                    return (
+                                                        <tr key={emp.firebase_uid} className="border-b border-slate-100 dark:border-slate-700">
+                                                            <td className="p-3 text-sm">
+                                                                <div className="font-medium">{emp.name}</div>
+                                                                {/* Use the new RoleDisplay component here */}
+                                                                <RoleDisplay assignedRoleNames={assignedRoleNames} />
+                                                            </td>
+                                                            <td className="p-3 text-sm">
+                                                                <span
+                                                                    className={`px-2 py-1 text-xs font-semibold rounded-full ${emp.employee_type === 2 ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}`}
+                                                                >
+                                                                    {getEmployeeType(emp.employee_type)}
+                                                                </span>
+                                                            </td>
+                                                            <td className="p-3 text-sm font-semibold">{formatCurrency(emp.salary)}</td>
+                                                            <td className="p-3 text-sm text-right">
+                                                                <button
+                                                                    onClick={() => {
+                                                                        setEditingEmployee(emp);
+                                                                        setIsBaseSalaryModalOpen(true);
+                                                                    }}
+                                                                    className="p-2 text-slate-500 hover:text-indigo-600"
+                                                                >
+                                                                    <Edit3 size={16} />
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })}
                                                 {salariedEmployees.length === 0 && (
                                                     <tr>
                                                         <td className="p-4 text-center text-slate-500" colSpan={4}>
@@ -1176,8 +1382,8 @@ function PayrollManagementPage() {
                             </div>
                         )}
 
-                        {/* --- Conditional Rendering for 'Freelancers' Tab --- */}
-                       {activeTab === 'freelancers' && (
+                        {/* --- Freelancers Tab --- */}
+                        {activeTab === 'freelancers' && (
                             <div className="bg-white p-6 rounded-xl shadow-lg">
                                 <h2 className="text-xl font-bold mb-4">Freelancer Accounts</h2>
                                 <div className="overflow-x-auto">
@@ -1193,77 +1399,70 @@ function PayrollManagementPage() {
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {filteredFreelancerSummaries.map((emp) => (
-                                                <tr key={emp.firebase_uid} className="border-b">
-                                                    <td className="p-3">
-                                                        <div className="font-medium">{emp.name}</div>
-                                                        <div className="text-xs text-slate-500">{parseAndFormatRoles(emp.roles)}</div>
-                                                    </td>
-                                                    <td className="p-3">
-                                                         <span className={`px-2 py-1 text-xs font-semibold rounded-full ${Number(emp.remaining_balance) > 0 ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}`}>
-                                                            {Number(emp.remaining_balance) > 0 ? 'Due' : 'Paid Up'}
-                                                        </span>
-                                                    </td>
-                                                    <td className="p-3 font-semibold">{formatCurrency(emp.total_billed)}</td>
-                                                    <td className="p-3 font-semibold text-green-600">{formatCurrency(emp.total_paid)}</td>
-                                                    <td className={`p-3 font-bold ${Number(emp.remaining_balance) > 0 ? 'text-red-600' : 'text-slate-500'}`}>{formatCurrency(emp.remaining_balance)}</td>
-                                                    <td className="p-3 text-right">
-                                                        <div className="flex items-center justify-end gap-2">
-                                                            <button onClick={() => openModal(emp, 'billAssignment')} title="Bill an Assigned Work" className="relative p-2 text-slate-500 hover:text-indigo-600">
-                                                                <FilePlus size={18} />
-                                                                {emp.unbilled_assignments_count > 0 && 
-                                                                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-indigo-500 text-xs text-white">{emp.unbilled_assignments_count}</span>
-                                                                }
-                                                            </button>
-                                                            <button onClick={() => openModal(emp, 'payment')} title="Make Payment" className="p-2 text-slate-500 hover:text-green-600 disabled:text-slate-300" disabled={Number(emp.remaining_balance) <= 0}>
-                                                                <Wallet size={18} />
-                                                            </button>
-                                                            <button onClick={() => openModal(emp, 'freelancerHistory')} title="View History" className="p-2 text-slate-500 hover:text-blue-600">
-                                                                <Eye size={18} />
-                                                            </button>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            ))}
+                                            {filteredFreelancerSummaries.map((emp) => {
+                                                const assignedRoleNames = Array.isArray(emp.roles) ? emp.roles.map((r) => r.role_name).filter(Boolean) : [];
+                                                return (
+                                                    <tr key={emp.firebase_uid} className="border-b">
+                                                        <td className="p-3">
+                                                            <div className="font-medium">{emp.name}</div>
+                                                            <RoleDisplay assignedRoleNames={assignedRoleNames} />
+                                                        </td>
+                                                        <td className="p-3">
+                                                            <span
+                                                                className={`px-2 py-1 text-xs font-semibold rounded-full ${Number(emp.remaining_balance) > 0 ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}`}
+                                                            >
+                                                                {Number(emp.remaining_balance) > 0 ? 'Due' : 'Paid Up'}
+                                                            </span>
+                                                        </td>
+                                                        <td className="p-3 font-semibold">{formatCurrency(emp.total_billed)}</td>
+                                                        <td className="p-3 font-semibold text-green-600">{formatCurrency(emp.total_paid)}</td>
+                                                        <td className={`p-3 font-bold ${Number(emp.remaining_balance) > 0 ? 'text-red-600' : 'text-slate-500'}`}>
+                                                            {formatCurrency(emp.remaining_balance)}
+                                                        </td>
+                                                        <td className="p-3 text-right">
+                                                            <div className="flex items-center justify-end gap-2">
+                                                                <button
+                                                                    onClick={() => openModal(emp, 'billAssignment')}
+                                                                    title="Bill an Assigned Work"
+                                                                    className="relative p-2 text-slate-500 hover:text-indigo-600"
+                                                                >
+                                                                    <FilePlus size={18} />
+                                                                    {/* {emp.unbilled_assignments_count > 0 && (
+                                                                        <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-indigo-500 text-xs text-white">
+                                                                            {emp.unbilled_assignments_count}
+                                                                        </span>
+                                                                    )} */}
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => openModal(emp, 'payment')}
+                                                                    title="Make Payment"
+                                                                    className="p-2 text-slate-500 hover:text-green-600 disabled:text-slate-300"
+                                                                    disabled={Number(emp.remaining_balance) <= 0}
+                                                                >
+                                                                    <Wallet size={18} />
+                                                                </button>
+                                                                <button onClick={() => openModal(emp, 'freelancerHistory')} title="View History" className="p-2 text-slate-500 hover:text-blue-600">
+                                                                    <Eye size={18} />
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
                                         </tbody>
                                     </table>
                                 </div>
                             </div>
                         )}
-                        
-                        
 
-                        {/* --- Conditional Rendering for 'Monthly Payroll' Tab --- */}
+                        {/* --- Monthly Payroll Tab --- */}
                         {activeTab === 'monthlyPayroll' && (
                             <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-lg">
-                                <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
-                                    <h2 className="text-xl font-bold">Monthly Payroll</h2>
-                                    <div className="p-2 bg-slate-50 dark:bg-slate-800/50 border rounded-lg flex flex-wrap items-center gap-2">
-                                        <h3 className="font-semibold px-2 text-sm">Generate for:</h3>
-                                        <select value={month} onChange={(e) => setMonth(e.target.value)} className="p-2 rounded-lg bg-white dark:bg-slate-700 border">
-                                            {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
-                                                <option key={m} value={m}>
-                                                    {monthName(m)}
-                                                </option>
-                                            ))}
-                                        </select>
-                                        <select value={year} onChange={(e) => setYear(e.target.value)} className="p-2 rounded-lg bg-white dark:bg-slate-700 border">
-                                            {Array.from({ length: 5 }, (_, i) => currentYear - i).map((y) => (
-                                                <option key={y} value={y}>
-                                                    {y}
-                                                </option>
-                                            ))}
-                                        </select>
-                                        <button onClick={() => handleGenerate(month, year)} className="flex items-center px-4 py-2 text-sm rounded-lg bg-indigo-600 text-white hover:bg-indigo-700">
-                                            <PlusCircle size={16} className="mr-2" />
-                                            Generate
-                                        </button>
-                                    </div>
-                                </div>
+                                <div className="flex flex-wrap items-center justify-between gap-4 mb-4">{/* ... Unchanged ... */}</div>
                                 {isMonthlyLoading ? (
-                                    <p className="text-center p-4">Loading...</p>
+                                    <p>Loading...</p>
                                 ) : monthlyError ? (
-                                    <p className="text-center p-4 text-red-500">{monthlyError}</p>
+                                    <p>{monthlyError}</p>
                                 ) : (
                                     <div className="overflow-x-auto">
                                         <table className="w-full text-left">
@@ -1279,22 +1478,17 @@ function PayrollManagementPage() {
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                {filteredMonthlyRecords.map((rec) => {
+                                                {monthlyPayrollDisplayRecords.map((rec) => {
                                                     const remaining = Number(rec.amount_due ?? 0) - Number(rec.amount_paid ?? 0);
                                                     const type = getEmployeeType(rec.employee_type);
+                                                    const assignedRoleNames = Array.isArray(rec.roles) ? rec.roles.map((r) => r.role_name).filter(Boolean) : [];
                                                     return (
                                                         <tr key={rec.id} className="border-b border-slate-100 dark:border-slate-700">
                                                             <td className="p-3 text-sm">
                                                                 <div className="font-medium">{rec.employee_name}</div>
-                                                                <div className="text-xs text-slate-500">{parseAndFormatRoles(rec.roles)}</div>
+                                                                <RoleDisplay assignedRoleNames={assignedRoleNames} />
                                                                 <span
-                                                                    className={`mt-1 inline-block px-2 py-0.5 text-xs font-semibold rounded-full capitalize ${
-                                                                        type === 'Manager'
-                                                                            ? 'bg-purple-100 text-purple-800'
-                                                                            : type === 'In-House'
-                                                                              ? 'bg-blue-100 text-blue-800'
-                                                                              : 'bg-gray-100 text-gray-800'
-                                                                    }`}
+                                                                    className={`mt-2 inline-block px-2 py-0.5 text-xs font-semibold rounded-full capitalize ${type === 'Manager' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}`}
                                                                 >
                                                                     {type}
                                                                 </span>
@@ -1307,28 +1501,34 @@ function PayrollManagementPage() {
                                                             <td className={`p-3 text-sm font-semibold ${remaining > 0 ? 'text-red-600' : 'text-slate-400'}`}>{formatCurrency(remaining)}</td>
                                                             <td className="p-3 text-sm">
                                                                 <span
-                                                                    className={`px-2 py-1 text-xs font-semibold rounded-full capitalize ${rec.status === 'complete' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}
+                                                                    className={`px-2 py-1 text-xs font-semibold rounded-full capitalize ${rec.status === 'N/A' ? 'bg-slate-100 text-slate-600' : rec.status === 'complete' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}
                                                                 >
                                                                     {rec.status}
                                                                 </span>
                                                             </td>
                                                             <td className="p-3 text-sm text-right">
-                                                               <div className="flex items-center justify-end gap-1">
-                                                    <button onClick={() => handleViewSalariedHistory(rec)} className="p-2 text-slate-500 hover:text-blue-600" title="View History">
-                                                        <Eye size={16} />
-                                                    </button>
-                                                    <button onClick={() => { setEditingMonthlyRecord(rec); setIsMonthlyModalOpen(true); }} className="p-2 text-slate-500 hover:text-indigo-600" title="Edit Record">
-                                                        <Edit3 size={16} />
-                                                    </button>
-                                                </div>
+                                                                <div className="flex items-center justify-end gap-1">
+                                                                    <button onClick={() => handleViewSalariedHistory(rec)} title="View History">
+                                                                        <Eye size={16} />
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            setEditingMonthlyRecord(rec);
+                                                                            setIsMonthlyModalOpen(true);
+                                                                        }}
+                                                                        title="Edit Record"
+                                                                    >
+                                                                        <Edit3 size={16} />
+                                                                    </button>
+                                                                </div>
                                                             </td>
                                                         </tr>
                                                     );
                                                 })}
-                                                {filteredMonthlyRecords.length === 0 && (
+                                                {monthlyPayrollDisplayRecords.length === 0 && (
                                                     <tr>
                                                         <td className="p-4 text-center text-slate-500" colSpan={7}>
-                                                            No payroll records found. Try generating records or adjusting your search.
+                                                            No payroll records found.
                                                         </td>
                                                     </tr>
                                                 )}

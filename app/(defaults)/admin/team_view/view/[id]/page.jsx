@@ -59,6 +59,9 @@ export default function MemberViewPage() {
           axios.get(`${API_URL}/api/members/${id}/payment-details`, { headers }),
         ]);
 
+        console.log(" MEMBER", memberRes.data);
+        console.log(" BANK", paymentRes.data);
+
         setMember(memberRes.data);
         setPaymentDetails(paymentRes.data);
       } catch (err) {

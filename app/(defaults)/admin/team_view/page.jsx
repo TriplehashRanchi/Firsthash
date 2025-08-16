@@ -3,16 +3,19 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import axios from 'axios';
 import { getAuth } from 'firebase/auth';
+import { motion, AnimatePresence } from 'framer-motion'; 
 
-// Icon Components
-import IconEye from '@/components/icon/icon-eye';
-import IconEdit from '@/components/icon/icon-edit';
-import IconCalendar from '@/components/icon/icon-calendar';
+// --- Icon Components (assuming they exist in your project) ---
+const IconEye = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-gray-500 hover:text-blue-600"><path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>;
+const IconEdit = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-gray-500 hover:text-green-600"><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" /></svg>;
+const IconCalendar = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-gray-500 hover:text-indigo-600"><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0h18M-4.5 12h27" /></svg>;
+const IconTrash = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-gray-500 hover:text-red-600"><path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.134-2.033-2.134h-3.868c-1.123 0-2.033.954-2.033 2.134v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>;
+
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-const TYPE_LABELS = { 0: 'Freelancer', 1: 'In-house' };
+const TYPE_LABELS = { 0: 'Freelancer', 1: 'In-house', 2: 'Manager' };
 
-// --- Reusable UI Components (Unchanged) ---
+// --- Reusable UI Components ---
 
 const Toast = ({ message, type, onClose }) => {
     if (!message) return null;
@@ -112,6 +115,58 @@ const AttendanceModal = ({ isOpen, onClose, record, onRecordChange, onSave, isSa
 };
 
 
+const RoleDisplay = ({ assignedRoleNames }) => {
+    const [isPopoverVisible, setIsPopoverVisible] = useState(false);
+
+    if (!assignedRoleNames || assignedRoleNames.length === 0) {
+        return <span className="text-sm text-gray-400 italic">Not assigned</span>;
+    }
+
+    const firstRole = assignedRoleNames[0];
+    const remainingRolesCount = assignedRoleNames.length - 1;
+
+    return (
+        <div 
+            className="relative flex flex-wrap items-center gap-2"
+            onMouseEnter={() => setIsPopoverVisible(true)}
+            onMouseLeave={() => setIsPopoverVisible(false)}
+        >
+            {/* First Role Badge */}
+            <span className="px-2.5 py-1 text-xs font-semibold leading-none text-gray-800 bg-gray-200 rounded-full">
+                {firstRole}
+            </span>
+
+            {/* Counter Badge (if there are more roles) */}
+            {remainingRolesCount > 0 && (
+                <span className="px-2.5 py-1 text-xs font-semibold leading-none text-blue-800 bg-blue-100 rounded-full cursor-pointer">
+                    +{remainingRolesCount}
+                </span>
+            )}
+            
+            {/* Popover for all roles (appears on hover) */}
+            <AnimatePresence>
+                {isPopoverVisible && assignedRoleNames.length > 1 && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 10 }}
+                        transition={{ duration: 0.2 }}
+                        className="absolute bottom-full left-0 mb-2 w-max max-w-xs z-10 p-3 bg-white rounded-lg shadow-xl border"
+                    >
+                        <h4 className="font-bold text-sm mb-2 pb-2 border-b">All Assigned Roles</h4>
+                        <div className="space-y-1">
+                            {assignedRoleNames.map(name => (
+                                <div key={name} className="text-sm text-gray-700">{name}</div>
+                            ))}
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
+    );
+};
+
+
 // --- Main Page Component ---
 
 export default function TeamViewPage() {
@@ -125,218 +180,178 @@ export default function TeamViewPage() {
     const [confirmDelete, setConfirmDelete] = useState({ isOpen: false, uid: null });
 
     useEffect(() => {
-        fetchMembers();
-        fetchRoles();
+        const user = getAuth().currentUser;
+        if (user) {
+            Promise.all([fetchMembers(user), fetchRoles(user)]);
+        }
     }, []);
 
-    async function fetchMembers() {
-    const user = getAuth().currentUser;
-    if (!user) {
-      setToast({ message: 'Admin not logged in', type: 'error' });
-      return;
+    async function fetchMembers(user) {
+        try {
+            const token = await user.getIdToken();
+            const { data } = await axios.get(`${API_URL}/api/members`, { headers: { Authorization: `Bearer ${token}` } });
+            setMembers(data || []);
+        } catch (err) {
+            const msg = err.response?.data?.error || err.message;
+            setToast({ message: `Error fetching members: ${msg}`, type: 'error' });
+        }
     }
-    try {
-      const token = await user.getIdToken();
-      const { data } = await axios.get(`${API_URL}/api/members`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setMembers(data);
-    } catch (err) {
-      console.error('Error fetching members:', err);
-      const msg = err.response?.data?.error || err.message;
-      setToast({ message: msg, type: 'error' });
-    }
-  }
 
-    async function fetchRoles() {
-    const user = getAuth().currentUser;
-    if (!user) {
-      setToast({ message: 'Admin not logged in', type: 'error' });
-      return;
+    async function fetchRoles(user) {
+        try {
+            const token = await user.getIdToken();
+            const { data } = await axios.get(`${API_URL}/api/roles`, { headers: { Authorization: `Bearer ${token}` } });
+            setRolesList(data || []);
+        } catch (err) {
+            const msg = err.response?.data?.error || err.message;
+            setToast({ message: `Error fetching roles: ${msg}`, type: 'error' });
+        }
     }
-    try {
-      const token = await user.getIdToken();
-      const { data } = await axios.get(`${API_URL}/api/roles`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setRolesList(data);
-    } catch (err) {
-      console.error('Error fetching roles:', err);
-      const msg = err.response?.data?.error || err.message;
-      setToast({ message: msg, type: 'error' });
-    }
-  }
 
     async function toggleAuth(uid, checked) {
-    const user = getAuth().currentUser;
-    if (!user) {
-      setToast({ message: 'Admin not logged in', type: 'error' });
-      return;
+        const user = getAuth().currentUser;
+        if (!user) return setToast({ message: 'Admin not logged in', type: 'error' });
+        try {
+            const token = await user.getIdToken();
+            const status = checked ? 'active' : 'inactive';
+            await axios.patch(`${API_URL}/api/members/${uid}/status`, { status }, { headers: { Authorization: `Bearer ${token}` } });
+            setMembers(prev => prev.map(m => (m.firebase_uid === uid ? { ...m, status } : m)));
+            setToast({ message: 'Member status updated.', type: 'success' });
+        } catch (err) {
+            const msg = err.response?.data?.error || err.message;
+            setToast({ message: msg, type: 'error' });
+        }
     }
-    try {
-      const token = await user.getIdToken();
-      const status = checked ? 'active' : 'inactive';
-      await axios.patch(
-        `${API_URL}/api/members/${uid}/status`,
-        { status },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setMembers(prev =>
-        prev.map(m => (m.firebase_uid === uid ? { ...m, status } : m))
-      );
-      setToast({ message: 'Member status updated.', type: 'success' });
-    } catch (err) {
-      console.error('Error toggling auth:', err);
-      const msg = err.response?.data?.error || err.message;
-      setToast({ message: msg, type: 'error' });
-    }
-  }
 
     const handleDeleteRequest = (uid) => setConfirmDelete({ isOpen: true, uid });
 
     async function deleteMember() {
-    const { uid } = confirmDelete;
-    setConfirmDelete({ isOpen: false, uid: null });
-    if (!uid) return;
-    const user = getAuth().currentUser;
-    if (!user) {
-      setToast({ message: 'Admin not logged in', type: 'error' });
-      return;
+        const { uid } = confirmDelete;
+        setConfirmDelete({ isOpen: false, uid: null });
+        if (!uid) return;
+        const user = getAuth().currentUser;
+        if (!user) return setToast({ message: 'Admin not logged in', type: 'error' });
+        try {
+            const token = await user.getIdToken();
+            await axios.delete(`${API_URL}/api/members/${uid}`, { headers: { Authorization: `Bearer ${token}` } });
+            setMembers(prev => prev.filter(m => m.firebase_uid !== uid));
+            setToast({ message: 'Member deleted successfully.', type: 'success' });
+        } catch (err) {
+            const msg = err.response?.data?.error || err.message;
+            setToast({ message: msg, type: 'error' });
+        }
     }
-    try {
-      const token = await user.getIdToken();
-      await axios.delete(`${API_URL}/api/members/${uid}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setMembers(prev => prev.filter(m => m.firebase_uid !== uid));
-      setToast({ message: 'Member deleted successfully.', type: 'success' });
-    } catch (err) {
-      console.error('Error deleting member:', err);
-      const msg = err.response?.data?.error || err.message;
-      setToast({ message: msg, type: 'error' });
-    }
-  }
 
     async function showAttendance(uid, name) {
-    const user = getAuth().currentUser;
-    if (!user) {
-      setToast({ message: 'Admin not logged in', type: 'error' });
-      return;
+        const user = getAuth().currentUser;
+        if (!user) return setToast({ message: 'Admin not logged in', type: 'error' });
+        const today = new Date().toISOString().slice(0, 10);
+        try {
+            const token = await user.getIdToken();
+            const { data } = await axios.get(`${API_URL}/api/attendance`, { headers: { Authorization: `Bearer ${token}` } });
+            const userAttendanceToday = data.find(r => r.firebase_uid === uid && r.a_date.startsWith(today));
+            const rec = userAttendanceToday || { firebase_uid: uid, a_date: today, in_time: '', out_time: '', a_status: 0 };
+            setTodayRecord({ ...rec, in_time: rec.in_time || '', out_time: rec.out_time || '' });
+            setSelectedMember({ firebase_uid: uid, name });
+            setShowAttendanceModal(true);
+        } catch (err) {
+            const msg = err.response?.data?.error || err.message;
+            setToast({ message: `Error fetching attendance: ${msg}`, type: 'error' });
+        }
     }
-    const today = new Date().toISOString().slice(0, 10);
-    try {
-      const token = await user.getIdToken();
-      const { data } = await axios.get(`${API_URL}/api/attendance?date=${today}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      let rec =
-        data.find(r => r.firebase_uid === uid) ||
-        { firebase_uid: uid, a_date: today, in_time: '', out_time: '', a_status: 0 };
-      setTodayRecord({ ...rec, in_time: rec.in_time || '', out_time: rec.out_time || '' });
-      setSelectedMember({ firebase_uid: uid, name });
-      setShowAttendanceModal(true);
-    } catch (err) {
-      console.error('Error fetching attendance:', err);
-      const msg = err.response?.data?.error || err.message;
-      setToast({ message: msg, type: 'error' });
-    }
-  }
-
     
     const handleTodayChange = (field, value) => setTodayRecord(prev => ({ ...prev, [field]: value }));
     
     async function saveAttendance() {
-    if (!todayRecord) return;
-    const user = getAuth().currentUser;
-    if (!user) {
-      setToast({ message: 'Admin not logged in', type: 'error' });
-      return;
-    }
-    setSavingAttendance(true);
-    try {
-      const token = await user.getIdToken();
-      const payload = [
-        {
-          ...todayRecord,
-          in_time: todayRecord.in_time || null,
-          out_time: todayRecord.out_time || null
+        if (!todayRecord) return;
+        const user = getAuth().currentUser;
+        if (!user) return setToast({ message: 'Admin not logged in', type: 'error' });
+        setSavingAttendance(true);
+        try {
+            const token = await user.getIdToken();
+            const payload = [{ ...todayRecord, in_time: todayRecord.in_time || null, out_time: todayRecord.out_time || null }];
+            await axios.post(`${API_URL}/api/attendance`, payload, { headers: { Authorization: `Bearer ${token}` } });
+            setToast({ message: 'Attendance saved', type: 'success' });
+            setShowAttendanceModal(false);
+        } catch (err) {
+            const msg = err.response?.data?.error || err.message;
+            setToast({ message: msg, type: 'error' });
+        } finally {
+            setSavingAttendance(false);
         }
-      ];
-      await axios.post(`${API_URL}/api/attendance`, payload, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setToast({ message: 'Attendance saved', type: 'success' });
-      setShowAttendanceModal(false);
-      fetchMembers(); // refresh list if needed
-    } catch (err) {
-      console.error('Error saving attendance:', err);
-      const msg = err.response?.data?.error || err.message;
-      setToast({ message: msg, type: 'error' });
-    } finally {
-      setSavingAttendance(false);
     }
-  }
 
-    
     return (
-        <div className="p-8 bg-white min-h-screen">
+        <div className="p-8  min-h-screen">
             <Toast message={toast.message} type={toast.type} onClose={() => setToast({ message: '', type: '' })} />
-            {confirmDelete.isOpen && (
-                <ConfirmationModal onConfirm={deleteMember} onCancel={() => setConfirmDelete({ isOpen: false, uid: null })} />
-            )}
-            <AttendanceModal isOpen={showAttendanceModal} onClose={() => setShowAttendanceModal(false)} record={todayRecord} onRecordChange={handleTodayChange} onSave={saveAttendance} isSaving={savingAttendance} memberName={selectedMember?.name}/>
+            {confirmDelete.isOpen && <ConfirmationModal onConfirm={deleteMember} onCancel={() => setConfirmDelete({ isOpen: false, uid: null })} />}
+            {showAttendanceModal && <AttendanceModal isOpen={showAttendanceModal} onClose={() => setShowAttendanceModal(false)} record={todayRecord} onRecordChange={handleTodayChange} onSave={saveAttendance} isSaving={savingAttendance} memberName={selectedMember?.name}/>}
 
-           <ul class="flex space-x-2 rtl:space-x-reverse mb-6"><li><a class="text-blue-600 hover:underline dark:text-blue-400" href="/dashboard">Dashboard</a></li><li class="before:content-['/'] ltr:before:mr-2 rtl:before:ml-2 text-gray-500 dark:text-gray-500"><span class="text-gray-600 dark:text-gray-400">View Team</span></li></ul>
+           <ul className="flex space-x-2 rtl:space-x-reverse mb-6">
+                <li><Link href="/dashboard" className="text-blue-600 hover:underline">Dashboard</Link></li>
+                <li className="before:content-['/'] ltr:before:mr-2 text-gray-500"><span>View Team</span></li>
+            </ul>
 
-            <div className="bg-white overflow-hidden">
+            <div className="bg-white rounded-lg shadow-md overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="min-w-full">
-                        <thead className="bg-black border-b border-gray-200">
-                            <tr className='bg-black'>
-                                <th className="px-6 py-3 bg-gray-100 text-left text-xs font-medium text-black uppercase tracking-wider">Name</th>
-                                <th className="px-6 py-3  bg-gray-100 text-left text-xs font-medium text-black uppercase tracking-wider">Type</th>
-                                <th className="px-6 py-3 bg-gray-100 text-left text-xs font-medium text-black uppercase tracking-wider">Roles</th>
-                                <th className="px-6 py-3  bg-gray-100 text-left text-xs font-medium text-black uppercase tracking-wider">Auth</th>
-                                <th className="px-6 py-3 bg-gray-100 text-center text-xs font-medium text-black uppercase tracking-wider">Actions</th>
+                        <thead className="bg-gray-100 border-b border-gray-200">
+                            <tr>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Name</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Type</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Roles</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Auth</th>
+                                <th className="px-6 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
                             {members.map(m => {
-                                // ===== ERROR FIX STARTS HERE =====
-                                // Safely parse role_ids, ensuring it's always an array.
-                                let roleIdsArray = [];
-                                if (Array.isArray(m.role_ids)) {
-                                    roleIdsArray = m.role_ids;
-                                } else if (typeof m.role_ids === 'string' && m.role_ids.trim().startsWith('[')) {
-                                    // Handle JSON string case, e.g., '[1,5]'
-                                    try {
-                                        roleIdsArray = JSON.parse(m.role_ids);
-                                    } catch (e) {
-                                        console.error("Failed to parse role_ids:", m.role_ids, e);
-                                    }
-                                } else if (m.role_ids === null || m.role_ids === undefined) {
-                                     // This handles cases where the user has no roles and the value is null.
-                                     roleIdsArray = [];
-                                } else {
-                                     // Fallback for unexpected formats, though less likely.
-                                     console.warn("Unexpected format for role_ids:", m.role_ids);
-                                }
+                                // ===== CORRECTED CODE: This block safely handles the 'roles' property =====
+                                let assignedRoleNames = [];
+                                let rolesArray = [];
                                 
-                                // Now, we can safely map over roleIdsArray.
-                                const assignedRoleNames = roleIdsArray
-                                    .map(id => rolesList.find(role => role.id === id)?.type_name)
-                                    .filter(Boolean); // Filter out any undefined names if a role is not found
-                                // ===== ERROR FIX ENDS HERE =====
+                                try {
+                                    // Step 1: Ensure `rolesArray` is always an array.
+                                    if (Array.isArray(m.roles)) {
+                                        rolesArray = m.roles;
+                                    } else if (typeof m.roles === 'string' && m.roles.startsWith('[')) {
+                                        // This handles the case where roles is a JSON string like '[{"role_id": ...}]'
+                                        const parsed = JSON.parse(m.roles);
+                                        if (Array.isArray(parsed) && parsed[0] !== null) {
+                                            rolesArray = parsed;
+                                        }
+                                    }
+                                    
+                                    // Step 2: Map over the guaranteed array to find the role names.
+                                    if (rolesArray.length > 0 && rolesList.length > 0) {
+                                        assignedRoleNames = rolesArray
+                                            .map(role => {
+                                                const fullRole = rolesList.find(r => r.id === role.role_id);
+                                                return fullRole ? fullRole.type_name : null;
+                                            })
+                                            .filter(Boolean); // This removes any nulls if a role wasn't found
+                                    }
+                                } catch (e) {
+                                    console.error("Could not parse roles for member:", m.name, m.roles, e);
+                                    // Leave assignedRoleNames as an empty array on error
+                                }
+                                // =======================================================================
                                 
                                 return (
-                                <tr key={m.firebase_uid} className="hover:bg-gray-100 bg-white transition-colors">
+                                <tr key={m.firebase_uid} className="hover:bg-gray-50 transition-colors">
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{m.name}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{TYPE_LABELS[m.employee_type]}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{TYPE_LABELS[m.employee_type] || 'Unknown'}</td>
                                     <td className="px-6 py-4 whitespace-nowrap">
+                                        {/* ======================================================================= */}
+                                        {/* --- REPLACED: The old list of badges is replaced with the new component --- */}
+                                        {/* ======================================================================= */}
+                                        <RoleDisplay assignedRoleNames={assignedRoleNames} />
+                                    </td>
+                                    {/* <td className="px-6 py-4 whitespace-nowrap">
                                         <div className="flex flex-wrap gap-2">
                                             {assignedRoleNames.length > 0 ? (
                                                 assignedRoleNames.map((roleName) => (
-                                                    <span key={roleName} className="px-2.5 py-1 text-xs font-semibold leading-none text-gray-100 bg-gray-700 rounded-full">
+                                                    <span key={roleName} className="px-2.5 py-1 text-xs font-semibold leading-none text-gray-800 bg-gray-200 rounded-full">
                                                         {roleName}
                                                     </span>
                                                 ))
@@ -344,11 +359,11 @@ export default function TeamViewPage() {
                                                 <span className="text-sm text-gray-400 italic">Not assigned</span>
                                             )}
                                         </div>
-                                    </td>
+                                    </td> */}
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <label className="relative inline-flex items-center cursor-pointer">
                                             <input type="checkbox" checked={m.status === 'active'} onChange={e => toggleAuth(m.firebase_uid, e.target.checked)} className="sr-only peer" />
-                                            <div className="w-11 h-6 bg-gray-200 rounded-full peer  peer-focus:ring-black peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-black"></div>
+                                            <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-2 peer-focus:ring-blue-400 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                                         </label>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
@@ -357,7 +372,7 @@ export default function TeamViewPage() {
                                             <IconButton as={Link} href={`/admin/team_view/edit/${m.firebase_uid}`} text="Edit"><IconEdit/></IconButton>
                                             <IconButton onClick={() => showAttendance(m.firebase_uid, m.name)} text="Attendance"><IconCalendar/></IconButton>
                                             <IconButton onClick={() => handleDeleteRequest(m.firebase_uid)} text="Delete">
-                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-red-600 hover:text-red-800"><path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.134-2.033-2.134h-3.868c-1.123 0-2.033.954-2.033 2.134v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>
+                                                <IconTrash/>
                                             </IconButton>
                                         </div>
                                     </td>

@@ -369,7 +369,7 @@ const TeamAllocationCalendar = ({ initialShoots, teamMembers, roles, onSaveAlloc
     const currentRequiredCount = currentAllocation?.required || 1;
 
     return (
-        <div className="bg-slate-50 dark:bg-slate-900 p-4 sm:p-6 rounded w-full min-h-screen">
+        <div className=" p-4 sm:p-6 rounded w-full min-h-screen">
             <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center mb-8 gap-4">
                 {/* LEFT: Year controls */}
                 <div className="flex items-center bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg p-1 space-x-1 shadow-sm">
