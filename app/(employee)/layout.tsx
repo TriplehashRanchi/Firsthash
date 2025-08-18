@@ -19,6 +19,8 @@ export default function EmployeeLayout({ children }: { children: React.ReactNode
   const { currentUser, isEmployee, isSubscribedUser, loading } = useAuth();
   const router = useRouter();
 
+  console.log("Employee", isEmployee)
+
   useEffect(() => {
     if (!loading) {
       if (!currentUser) {
