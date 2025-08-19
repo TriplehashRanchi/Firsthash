@@ -34,7 +34,7 @@ const CoverLockScreen = () => {
                     <div className="relative flex w-full flex-col items-center justify-center gap-6 px-4 pb-16 pt-6 sm:px-6 lg:max-w-[667px]">
                         <div className="flex w-full max-w-[440px] items-center gap-2 lg:absolute lg:end-6 lg:top-6 lg:max-w-full">
                             <Link href="/" className="block w-8 lg:hidden">
-                                <img src="/assets/images/logo.svg" alt="Logo" className="mx-auto w-10" />
+                                <img src="/assets/images/logo.png" alt="Logo" className="mx-auto w-10" />
                             </Link>
                             <LanguageDropdown className="ms-auto w-max" />
                         </div>
@@ -50,7 +50,7 @@ const CoverLockScreen = () => {
                             </div>
                             <ComponentsAuthUnlockForm />
                         </div>
-                        <p className="absolute bottom-6 w-full text-center dark:text-white">© {new Date().getFullYear()}.VRISTO All Rights Reserved.</p>
+                        <p className="absolute bottom-6 w-full text-center dark:text-white">© {new Date().getFullYear()}.FIRSTHASH All Rights Reserved.</p>
                     </div>
                 </div>
             </div>

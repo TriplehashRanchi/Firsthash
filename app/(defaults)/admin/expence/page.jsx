@@ -180,51 +180,6 @@ const MonthlySalaryModal = ({ isOpen, record, onSave, onCancel }) => {
     );
 };
 
-const AssignTaskModal = ({ isOpen, freelancer, onSave, onCancel }) => {
-    const [projectName, setProjectName] = useState('');
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        onSave(freelancer.firebase_uid, { project_name: projectName });
-        setProjectName('');
-    };
-    if (!isOpen) return null;
-    return (
-        <AnimatePresence>
-            <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-                onClick={onCancel}
-            >
-                <motion.div
-                    initial={{ scale: 0.9 }}
-                    animate={{ scale: 1 }}
-                    exit={{ scale: 0.9 }}
-                    className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-2xl w-full max-w-md"
-                    onClick={(e) => e.stopPropagation()}
-                >
-                    <h2 className="text-xl font-bold mb-1">Assign New Task</h2>
-                    <p className="text-sm text-slate-500 mb-4">To {freelancer?.name}</p>
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                        <div>
-                            <label className="text-xs text-slate-500">Task / Project Description</label>
-                            <input type="text" value={projectName} onChange={(e) => setProjectName(e.target.value)} className="w-full p-2.5 rounded-lg bg-slate-100" required />
-                        </div>
-                        <div className="flex justify-end gap-3 pt-4">
-                            <button type="button" onClick={onCancel} className="px-4 py-2 rounded-lg bg-slate-200">
-                                Cancel
-                            </button>
-                            <button type="submit" className="px-4 py-2 rounded-lg bg-indigo-600 text-white">
-                                Assign Task
-                            </button>
-                        </div>
-                    </form>
-                </motion.div>
-            </motion.div>
-        </AnimatePresence>
-    );
-};
 
 // =======================================================================
 // --- NEW DEDICATED COMPONENT FOR DISPLAYING ROLES ---
@@ -272,148 +227,6 @@ const RoleDisplay = ({ assignedRoleNames }) => {
     );
 };
 
-const BillTaskModal = ({ isOpen, freelancer, onSave, onCancel }) => {
-    const [unbilledTasks, setUnbilledTasks] = useState([]);
-    const [selectedTaskId, setSelectedTaskId] = useState('');
-    const [fee, setFee] = useState('');
-    useEffect(() => {
-        if (isOpen && freelancer) {
-            const auth = getAuth();
-            auth.currentUser.getIdToken().then((token) => {
-                axios.get(`${API_URL}/api/members/freelancers/${freelancer.firebase_uid}/unbilled-tasks`, { headers: { Authorization: `Bearer ${token}` } }).then((res) => setUnbilledTasks(res.data));
-            });
-        }
-    }, [isOpen, freelancer]);
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        onSave({ task_id: selectedTaskId, fee });
-        setSelectedTaskId('');
-        setFee('');
-    };
-    if (!isOpen) return null;
-    return (
-        <AnimatePresence>
-            <motion.div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onCancel}>
-                <motion.div className="bg-white dark:bg-slate-800 rounded-2xl p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-                    <h2 className="text-xl font-bold mb-4">Bill a Task for {freelancer?.name}</h2>
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                        <div>
-                            <label className="text-xs text-slate-500">Select an Assigned Task</label>
-                            <select value={selectedTaskId} onChange={(e) => setSelectedTaskId(e.target.value)} className="w-full p-2.5 rounded-lg bg-slate-100" required>
-                                <option value="" disabled>
-                                    -- Select a task to bill --
-                                </option>
-                                {unbilledTasks.map((a) => (
-                                    <option key={a.id} value={a.id}>
-                                        {a.project_name}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                        <div>
-                            <label className="text-xs text-slate-500">Enter Fee for this Task (₹)</label>
-                            <input type="number" value={fee} onChange={(e) => setFee(e.target.value)} className="w-full p-2.5 rounded-lg bg-slate-100" required />
-                        </div>
-                        <div className="flex justify-end gap-3 pt-4">
-                            <button type="button" onClick={onCancel} className="px-4 py-2 rounded-lg bg-slate-200">
-                                Cancel
-                            </button>
-                            <button type="submit" className="px-4 py-2 rounded-lg bg-indigo-600 text-white" disabled={!selectedTaskId || !fee}>
-                                Save & Bill
-                            </button>
-                        </div>
-                    </form>
-                </motion.div>
-            </motion.div>
-        </AnimatePresence>
-    );
-};
-
-// --- NEW MODAL 1: AssignFeeModal ---
-const AssignFeeModal = ({ isOpen, freelancer, onSave, onCancel }) => {
-    const [unbilledTasks, setUnbilledTasks] = useState([]);
-    const [selectedTaskId, setSelectedTaskId] = useState('');
-    const [taskFee, setTaskFee] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
-
-    useEffect(() => {
-        if (isOpen && freelancer) {
-            setIsLoading(true);
-            const auth = getAuth();
-            auth.currentUser.getIdToken().then((token) => {
-                axios
-                    .get(`${API_URL}/api/members/freelancers/${freelancer.firebase_uid}/unbilled-tasks`, { headers: { Authorization: `Bearer ${token}` } })
-                    .then((res) => setUnbilledTasks(res.data))
-                    .catch((err) => console.error('Failed to fetch unbilled tasks', err))
-                    .finally(() => setIsLoading(false));
-            });
-        }
-    }, [isOpen, freelancer]);
-
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        onSave({ task_id: selectedTaskId, task_fee: taskFee });
-        setSelectedTaskId('');
-        setTaskFee('');
-    };
-
-    if (!isOpen) return null;
-
-    return (
-        <AnimatePresence>
-            <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-                onClick={onCancel}
-            >
-                <motion.div
-                    initial={{ scale: 0.9 }}
-                    animate={{ scale: 1 }}
-                    exit={{ scale: 0.9 }}
-                    className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-2xl w-full max-w-md"
-                    onClick={(e) => e.stopPropagation()}
-                >
-                    <h2 className="text-xl font-bold mb-1">Bill a Task</h2>
-                    <p className="text-sm text-slate-500 mb-4">For {freelancer?.name}</p>
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                        <div>
-                            <label className="text-xs text-slate-500">Select Task to Bill</label>
-                            {isLoading ? (
-                                <p>Loading tasks...</p>
-                            ) : (
-                                <select value={selectedTaskId} onChange={(e) => setSelectedTaskId(e.target.value)} className="w-full p-2.5 rounded-lg bg-slate-100" required>
-                                    <option value="" disabled>
-                                        -- Select an unbilled task --
-                                    </option>
-                                    {unbilledTasks.map((task) => (
-                                        <option key={task.id} value={task.id}>
-                                            {task.project_name} (Assigned: {new Date(task.assignment_date).toLocaleDateString()})
-                                        </option>
-                                    ))}
-                                    {unbilledTasks.length === 0 && <option disabled>No unbilled tasks found</option>}
-                                </select>
-                            )}
-                        </div>
-                        <div>
-                            <label className="text-xs text-slate-500">Enter Fee for this Task (₹)</label>
-                            <input type="number" value={taskFee} onChange={(e) => setTaskFee(e.target.value)} className="w-full p-2.5 rounded-lg bg-slate-100" required />
-                        </div>
-                        <div className="flex justify-end gap-3 pt-4">
-                            <button type="button" onClick={onCancel} className="px-4 py-2 rounded-lg bg-slate-200">
-                                Cancel
-                            </button>
-                            <button type="submit" className="px-4 py-2 rounded-lg bg-indigo-600 text-white" disabled={!selectedTaskId || !taskFee}>
-                                Save & Bill Task
-                            </button>
-                        </div>
-                    </form>
-                </motion.div>
-            </motion.div>
-        </AnimatePresence>
-    );
-};
 
 // --- NEW: FreelancerHistoryModal ---
 // --- NEW MODAL 1: BillAssignmentModal ---
@@ -559,51 +372,6 @@ const FreelancerHistoryModal = ({ isOpen, freelancer, onClose }) => {
     );
 };
 
-const AddTaskModal = ({ isOpen, freelancer, onSave, onCancel }) => {
-    const [projectName, setProjectName] = useState('');
-    const [taskFee, setTaskFee] = useState('');
-    if (!isOpen) return null;
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        onSave(freelancer.firebase_uid, { project_name: projectName, task_fee: taskFee });
-        setProjectName('');
-        setTaskFee('');
-    };
-    return (
-        <AnimatePresence>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onCancel}>
-                <motion.div
-                    initial={{ scale: 0.9 }}
-                    animate={{ scale: 1 }}
-                    exit={{ scale: 0.9 }}
-                    className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-2xl w-full max-w-md"
-                    onClick={(e) => e.stopPropagation()}
-                >
-                    <h2 className="text-xl font-bold mb-1">Add New Task</h2>
-                    <p className="text-sm text-slate-500 mb-4">For {freelancer?.name}</p>
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                        <div>
-                            <label className="text-xs text-slate-500">Project / Task Description</label>
-                            <input type="text" value={projectName} onChange={(e) => setProjectName(e.target.value)} className="w-full p-2.5 rounded-lg bg-slate-100 dark:bg-slate-700" required />
-                        </div>
-                        <div>
-                            <label className="text-xs text-slate-500">Task Fee (₹)</label>
-                            <input type="number" value={taskFee} onChange={(e) => setTaskFee(e.target.value)} className="w-full p-2.5 rounded-lg bg-slate-100 dark:bg-slate-700" required />
-                        </div>
-                        <div className="flex justify-end gap-3 pt-4">
-                            <button type="button" onClick={onCancel} className="px-4 py-2 rounded-lg bg-slate-200">
-                                Cancel
-                            </button>
-                            <button type="submit" className="px-4 py-2 rounded-lg bg-indigo-600 text-white">
-                                Save Task
-                            </button>
-                        </div>
-                    </form>
-                </motion.div>
-            </motion.div>
-        </AnimatePresence>
-    );
-};
 
 const MakePaymentModal = ({ isOpen, freelancer, onSave, onCancel }) => {
     const [paymentAmount, setPaymentAmount] = useState('');
@@ -887,6 +655,7 @@ function PayrollManagementPage() {
 
     // ✅ NEW: State for the history modal
     // --- THIS IS THE FIXED LINE ---
+    const [isGenerating, setIsGenerating] = useState(false);
     const [isPaymentHistoryModalOpen, setIsPaymentHistoryModalOpen] = useState(false);
     const [viewingEmployee, setViewingEmployee] = useState(null);
     const [freelancerSummaries, setFreelancerSummaries] = useState([]);
@@ -950,7 +719,8 @@ function PayrollManagementPage() {
         }
     };
 
-    const handleGenerate = async (month, year) => {
+
+      const handleGenerate = async (month, year) => {
         // CHANGED: Updated the confirmation message to be more accurate.
         if (!window.confirm(`Generate/update salary records for ${monthName(month)}, ${year}? This will affect In-House and Manager employees.`)) return;
         try {
@@ -1014,109 +784,7 @@ function PayrollManagementPage() {
             .catch((err) => alert(err.response?.data?.error || 'Failed to bill assignment.'));
     };
 
-    const handleAssignTask = async (freelancer_uid, taskData) => {
-        const auth = getAuth();
-        const token = await auth.currentUser.getIdToken();
-        axios
-            .post(`${API_URL}/api/members/freelancers/tasks`, { ...taskData, freelancer_uid }, { headers: { Authorization: `Bearer ${token}` } })
-            .then(() => {
-                setIsAssignTaskModalOpen(false);
-                fetchData();
-            })
-            .catch((err) => alert(err.response?.data?.error || 'Failed to assign task.'));
-    };
-    console.log('freelancerSummaries', freelancerSummaries);
-    console.log('selectedFreelancer', selectedFreelancer);
 
-    const handleBillTask = async (data) => {
-        const auth = getAuth();
-        const token = await auth.currentUser.getIdToken();
-        axios
-            .put(`${API_URL}/api/members/freelancers/tasks/bill`, data, { headers: { Authorization: `Bearer ${token}` } })
-            .then(() => {
-                setIsBillTaskModalOpen(false);
-                fetchData();
-            })
-            .catch((err) => alert(err.response?.data?.error || 'Failed to bill task.'));
-    };
-
-    const handleViewHistory = (record) => {
-        console.log('Attempting to view history for record:', record);
-        // The monthly salary record object has `firebase_uid` which is the employee's ID.
-        const employee = employees.find((emp) => emp.firebase_uid === record.firebase_uid);
-        if (employee) {
-            setViewingEmployee(employee);
-            setIsHistoryModalOpen(true);
-        } else {
-            alert("Could not find employee details for this record. Mismatch between salary record's firebase_uid and employee list.");
-        }
-    };
-
-    const handleSaveTask = async (freelancer_uid, taskData) => {
-        try {
-            const auth = getAuth();
-            const token = await auth.currentUser.getIdToken();
-            // Note the new endpoint from your backend setup
-            await axios.post(`${API_URL}/api/members/freelancers/tasks`, { ...taskData, freelancer_uid }, { headers: { Authorization: `Bearer ${token}` } });
-            setAddTaskModalOpen(false);
-            fetchData(); // Refresh all data to show the new balance
-        } catch (e) {
-            alert(e?.response?.data?.error || 'Failed to save task.');
-        }
-    };
-
-    const openFreelancerModal = (freelancer, modalType) => {
-        setSelectedFreelancer(freelancer);
-        if (modalType === 'task') {
-            setAddTaskModalOpen(true);
-        } else if (modalType === 'payment') {
-            setMakePaymentModalOpen(true);
-        }
-    };
-
-    const handleSaveMonthlyPayment = async (record, formData) => {
-        try {
-            const auth = getAuth();
-            const token = await auth.currentUser.getIdToken();
-            const headers = { Authorization: `Bearer ${token}` };
-
-            // Check if this is a NEW record (a placeholder we created on the frontend)
-            if (record.status === 'N/A') {
-                console.log('CREATING new salary record...');
-                // API endpoint for CREATION. Assumes a POST request.
-                // This is the most critical part. Your backend needs an endpoint to handle this.
-                const payload = {
-                    firebase_uid: record.firebase_uid, // The employee's ID
-                    month: record.period_month, // The current period
-                    year: record.period_year, // The current period
-                    ...formData, // The data from the modal (amount_paid, status, notes)
-                };
-                await axios.post(`${API_URL}/api/members/salaries`, payload, { headers });
-            } else {
-                console.log('UPDATING existing salary record...');
-                // API endpoint for UPDATING. Uses PUT with the record's specific ID.
-                await axios.put(`${API_URL}/api/members/salaries/${record.id}`, formData, { headers });
-            }
-
-            setIsMonthlyModalOpen(false); // Close the modal on success
-            fetchData(); // Refresh all data to show the change
-        } catch (e) {
-            alert(e?.response?.data?.error || 'Failed to save payment record. Please check the console.');
-            console.error('Error saving payment record:', e);
-        }
-    };
-
-    const handleAssignFee = async (data) => {
-        const auth = getAuth();
-        const token = await auth.currentUser.getIdToken();
-        axios
-            .put(`${API_URL}/api/members/freelancers/tasks/bill`, data, { headers: { Authorization: `Bearer ${token}` } })
-            .then(() => {
-                setAssignFeeModalOpen(false);
-                fetchData();
-            })
-            .catch((err) => alert(err.response?.data?.error || 'Failed to bill task.'));
-    };
 
     const handleMakePayment = async (freelancer_uid, paymentData) => {
         const freelancer = freelancerSummaries.find((f) => f.firebase_uid === freelancer_uid);
@@ -1458,7 +1126,31 @@ function PayrollManagementPage() {
                         {/* --- Monthly Payroll Tab --- */}
                         {activeTab === 'monthlyPayroll' && (
                             <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-lg">
-                                <div className="flex flex-wrap items-center justify-between gap-4 mb-4">{/* ... Unchanged ... */}</div>
+                                <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+                                    <h2 className="text-xl font-bold">Monthly Payroll</h2>
+                                    <div className="p-2 bg-slate-50 dark:bg-slate-800/50 border rounded-lg flex flex-wrap items-center gap-2">
+                                        <h3 className="font-semibold px-2 text-sm">Generate for:</h3>
+                                        <select value={month} onChange={(e) => setMonth(e.target.value)} className="p-2 rounded-lg bg-white dark:bg-slate-700 border">
+                                            {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                                                <option key={m} value={m}>
+                                                    {monthName(m)}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <select value={year} onChange={(e) => setYear(e.target.value)} className="p-2 rounded-lg bg-white dark:bg-slate-700 border">
+                                            {Array.from({ length: 5 }, (_, i) => currentYear - i).map((y) => (
+                                                <option key={y} value={y}>
+                                                    {y}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <button onClick={() => handleGenerate(month, year)} className="flex items-center px-4 py-2 text-sm rounded-lg bg-indigo-600 text-white hover:bg-indigo-700">
+                                            <PlusCircle size={16} className="mr-2" />
+                                            Generate
+                                        </button>
+                                    </div>
+                                </div>
+                                
                                 {isMonthlyLoading ? (
                                     <p>Loading...</p>
                                 ) : monthlyError ? (

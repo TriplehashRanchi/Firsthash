@@ -100,7 +100,7 @@ const ComponentsAppsInvoicePreview = () => {
                 <div className="flex flex-wrap justify-between gap-4 px-4">
                     <div className="text-2xl font-semibold uppercase">Invoice</div>
                     <div className="shrink-0">
-                        <img src="/assets/images/logo.svg" alt="img" className="w-14 ltr:ml-auto rtl:mr-auto" />
+                        <img src="/assets/images/logo.png" alt="img" className="w-14 ltr:ml-auto rtl:mr-auto" />
                     </div>
                 </div>
                 <div className="px-4 ltr:text-right rtl:text-left">
