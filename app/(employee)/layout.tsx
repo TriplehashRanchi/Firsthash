@@ -14,6 +14,7 @@ import ScrollToTop from '@/components/layouts/scroll-to-top';
 import Setting from '@/components/layouts/setting';
 import Sidebar from '@/components/layouts/sidebar';
 import Portals from '@/components/portals';
+import EmployeeHeader from '@/components/layouts/employeeHeader';
 
 export default function EmployeeLayout({ children }: { children: React.ReactNode }) {
   const { currentUser, isEmployee, isSubscribedUser, loading } = useAuth();
@@ -46,7 +47,7 @@ export default function EmployeeLayout({ children }: { children: React.ReactNode
         <MainContainer>
           <Sidebar />
           <div className="main-content flex min-h-screen flex-col">
-            <Header />
+            <EmployeeHeader />
             <ContentAnimation>{children}</ContentAnimation>
             <Footer />
             <Portals />

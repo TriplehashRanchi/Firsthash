@@ -245,7 +245,7 @@ export default function EmployeeDashboardPage() {
                         </div>
 
                         {/* Card 4: My Recent Expenses */}
-                        <div className="panel">
+                        {/* <div className="panel">
                             <div className="flex items-center justify-between mb-4">
                                 <h2 className="text-lg font-semibold flex items-center gap-2"><Receipt className="w-5 h-5" /> My Recent Expenses</h2>
                                 <Link href="/employee/expense" className="btn btn-sm btn-outline-primary">View All</Link>
@@ -260,7 +260,7 @@ export default function EmployeeDashboardPage() {
                                     </div>
                                 ))}
                             </div>
-                        </div>
+                        </div> */}
 
                     </div>
                 </>
