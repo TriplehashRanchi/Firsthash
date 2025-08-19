@@ -77,7 +77,7 @@ const api = {
   },
 };
 
-const ComponentsDashboardSales = () => {
+const AdminDashboard = () => {
   const isDark = useSelector(
     (state) => state.themeConfig.theme === 'dark' || state.themeConfig.isDarkMode
   );
@@ -590,4 +590,4 @@ const ComponentsDashboardSales = () => {
   );
 };
 
-export default ComponentsDashboardSales;
+export default AdminDashboard;

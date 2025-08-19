@@ -138,8 +138,6 @@ export default function TaskPage() {
         axios.get(`${API_URL}/api/employee/projects/assigned`, { headers, validateStatus: () => true }),
       ]);
 
-      console.log(" TASKS", tRes.data);
-      console.log(" PROJECTS", pRes.data);
       if (tRes.status === 200 && Array.isArray(tRes.data)) {
         setTasks(tRes.data);
       } else if (tRes.status === 403) {
