@@ -77,7 +77,7 @@ const StatCard = ({ title, value, icon: Icon, color }) => (
 
 
 // --- Main Dashboard Page Component ---
-export default function EmployeeDashboardPage() {
+const  EmployeeDashboardPage = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [summaryData, setSummaryData] = useState({
@@ -268,3 +268,5 @@ export default function EmployeeDashboardPage() {
         </div>
     );
 };
+
+export default EmployeeDashboardPage;
