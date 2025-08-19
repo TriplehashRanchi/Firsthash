@@ -11,7 +11,6 @@ import { getAuth } from "firebase/auth";
 
 
 const auth = getAuth();
-console.log("Firebase auth:", auth);
 import { IRootState } from '@/store';
 import { toggleSidebar } from '@/store/themeConfigSlice';
 import Dropdown from '@/components/dropdown';
@@ -26,7 +25,6 @@ interface AvatarProps {
   photoURL?: string | null;
   className?: string;
 }
-console.log("Firebase currentUser:", auth.currentUser);
 
 /**
  * Avatar component:
@@ -77,10 +75,6 @@ const EmployeeHeader: React.FC = () => {
   const email = currentUser?.email || null;
   const photoURL = currentUser?.photoURL || null;
 
-
-  console.log("Name", displayName);
-  console.log("Email", email);
-  console.log("PhotoURL", photoURL);
 
   useEffect(() => {
     // highlight active link in horizontal menu (client-only)
