@@ -1,11 +1,29 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import { set } from 'lodash';
+import React, { useState, useEffect, useRef } from 'react';
 
 // Accept onDataChange prop from Page.js
-const ReceivedAmount = ({ onValidChange, onDataChange }) => { 
+const ReceivedAmount = ({ onValidChange, onDataChange, initialData }) => { 
     const [amount, setAmount] = useState('');
     const [description, setDescription] = useState('');
     const [date, setDate] = useState('');
+     const isInitialized = useRef(false);
+
+
+  useEffect(() => {
+        if (initialData && initialData.transactions && !isInitialized.current) {
+            if (initialData.transactions.length > 0) {
+                const firstTx = initialData.transactions[0];
+                const receivedDate = firstTx.date || firstTx.date_received;
+
+                setAmount(firstTx.amount?.toString() || '');
+                setDescription(firstTx.description || '');
+                setDate(receivedDate ? new Date(receivedDate).toISOString().split('T')[0] : '');
+            }
+            // Set the flag to true so this block never runs again.
+            isInitialized.current = true;
+        }
+    }, [initialData]);
 
     // --- useEffect for Validation ---
     useEffect(() => {
@@ -49,7 +67,9 @@ const ReceivedAmount = ({ onValidChange, onDataChange }) => {
                 transaction: transactionData,
             };
             // console.log('[ReceivedAmount.js] Reporting data:', componentData); // UNCOMMENT FOR DEBUGGING
-            onDataChange(componentData);
+            onDataChange({
+                transactions: transactionData ? [transactionData] : [],
+            });
         }
     // Dependencies: All state variables that form the componentData + onDataChange prop
     }, [amount, description, date, onDataChange]);

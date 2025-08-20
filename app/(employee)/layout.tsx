@@ -14,6 +14,8 @@ import ScrollToTop from '@/components/layouts/scroll-to-top';
 import Setting from '@/components/layouts/setting';
 import Sidebar from '@/components/layouts/sidebar';
 import Portals from '@/components/portals';
+import EmployeeHeader from '@/components/layouts/employeeHeader';
+import EmployeeSidebar from '@/components/layouts/employeeSidebar';
 
 export default function EmployeeLayout({ children }: { children: React.ReactNode }) {
   const { currentUser, isEmployee, isSubscribedUser, loading } = useAuth();
@@ -24,7 +26,7 @@ export default function EmployeeLayout({ children }: { children: React.ReactNode
       if (!currentUser) {
         router.push('/register');
       } else if (!isEmployee) {
-        router.push('/unauthorized');
+        router.push('/login');
       } else if (!isSubscribedUser) {
         router.push('/subscribe');
       }
@@ -42,9 +44,9 @@ export default function EmployeeLayout({ children }: { children: React.ReactNode
         <ScrollToTop />
         <Setting />
         <MainContainer>
-          <Sidebar />
+          <EmployeeSidebar />
           <div className="main-content flex min-h-screen flex-col">
-            <Header />
+            <EmployeeHeader />
             <ContentAnimation>{children}</ContentAnimation>
             <Footer />
             <Portals />

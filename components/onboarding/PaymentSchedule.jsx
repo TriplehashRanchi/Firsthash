@@ -1,9 +1,9 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Plus, Trash2 } from 'lucide-react'; // Example icons if you add multiple rows
 
 // Accept onDataChange prop from Page.js
-const PaymentSchedule = ({ onValidChange, onDataChange }) => {
+const PaymentSchedule = ({ onValidChange, onDataChange, initialData }) => {
     // For multiple installments, you'd use an array of objects here.
     // For simplicity, starting with one installment's fields, but structured for easy expansion.
     const createNewInstallment = (id = Date.now()) => ({ 
@@ -14,6 +14,27 @@ const PaymentSchedule = ({ onValidChange, onDataChange }) => {
     });
 
     const [installments, setInstallments] = useState(() => [createNewInstallment()]);
+     const isInitialized = useRef(false);
+
+
+
+    useEffect(() => {
+        if (initialData && initialData.paymentInstallments && !isInitialized.current) {
+            const formattedInstallments = initialData.paymentInstallments.map(inst => ({
+                ...inst,
+                // The API might use due_date, ensure consistency
+                dueDate: inst.dueDate || inst.due_date ? new Date(inst.dueDate || inst.due_date).toISOString().split('T')[0] : ''
+            }));
+
+            if (formattedInstallments.length > 0) {
+                setInstallments(formattedInstallments);
+            }
+
+            // Set the flag to true so this block never runs again.
+            isInitialized.current = true;
+        }
+    }, [initialData]);
+
 
     // --- useEffect for Validation ---
     useEffect(() => {

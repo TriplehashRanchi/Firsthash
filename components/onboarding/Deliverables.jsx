@@ -1,7 +1,8 @@
     'use client';
-    import React, { useState, useEffect, useCallback } from 'react';
+    import React, { useState, useEffect, useCallback, useRef } from 'react';
     import { Plus, Trash2, X, Save, Settings2 } from 'lucide-react';
     import { getAuth } from "firebase/auth"; // Make sure firebase is configured in your project
+import { date } from 'yup';
 
     // --- Helper Functions ---
     const generateId = () => typeof self !== 'undefined' && self.crypto ? self.crypto.randomUUID() : Math.random().toString(36).substring(2);
@@ -41,7 +42,9 @@
     };
 
 
-    const Deliverables = ({ company, onValidChange, onDeliverablesCostChange, onDataChange }) => {
+    const Deliverables = ({ company, onValidChange, onDeliverablesCostChange, onDataChange, initialData }) => {
+
+        console.log('Initial Data:', initialData);
 
         const createNewDeliverableItem = (title = '', isAdditional = false, additionalAmount = 0, dateVal = '') => ({
             id: generateId(), title, isAdditionalCharge: isAdditional, additionalChargeAmount: Number(additionalAmount) || 0, date: dateVal,
@@ -60,6 +63,7 @@
         const [editingBundleKey, setEditingBundleKey] = useState(null);
         const [newBundleName, setNewBundleName] = useState('');
         const [newBundleItems, setNewBundleItems] = useState(() => [{ id: generateId(), title: '' }]);
+        const isInitialized = useRef(false);
 
         // --- Dark Mode Detection ---
         useEffect(() => {
@@ -68,6 +72,44 @@
             setIsDarkMode(document.documentElement.classList.contains('dark'));
             return () => observer.disconnect();
         }, []);
+
+
+
+       useEffect(() => {
+        // The console.log was misleading because state updates are async.
+        // It was logging the *old* state before the new state was set.
+        
+        if (initialData && initialData.deliverableItems && !isInitialized.current) {
+            
+            const formattedItems = initialData.deliverableItems.map(itemFromApi => {
+                // The date source from the API is 'estimated_date'.
+                const dateSource = itemFromApi.estimated_date || itemFromApi.date;
+
+                // --- DATA TRANSFORMATION HAPPENS HERE ---
+                return {
+                    // Keep existing component properties like id and title
+                    id: itemFromApi.id,
+                    title: itemFromApi.title,
+
+                    // Map the API's snake_case to the component's camelCase
+                    isAdditionalCharge: !!itemFromApi.is_additional_charge, // '!!' converts 0/1 to false/true
+                    additionalChargeAmount: itemFromApi.additional_charge_amount || 0,
+                    
+                    // Format the correct date field for the input
+                    date: dateSource ? new Date(dateSource).toISOString().split('T')[0] : ''
+                };
+            });
+
+            // This is the correct place to log for debugging
+            console.log("Data being set to state:", formattedItems);
+
+            if (formattedItems.length > 0) {
+                setItems(formattedItems);
+            }
+
+            isInitialized.current = true;
+        }
+    }, [initialData]);
 
         // --- Data Fetching from Backend ---
         useEffect(() => {

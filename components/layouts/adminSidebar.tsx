@@ -16,14 +16,6 @@ import IconMenuTodo from '@/components/icon/menu/icon-menu-todo';
 import IconMenuNotes from '@/components/icon/menu/icon-menu-notes';
 import IconMenuScrumboard from '@/components/icon/menu/icon-menu-scrumboard';
 import IconMenuContacts from '@/components/icon/menu/icon-menu-contacts';
-import IconMenuInvoice from '@/components/icon/menu/icon-menu-invoice';
-import IconMenuCalendar from '@/components/icon/menu/icon-menu-calendar';
-import IconMenuComponents from '@/components/icon/menu/icon-menu-components';
-import IconMenuElements from '@/components/icon/menu/icon-menu-elements';
-import IconMenuCharts from '@/components/icon/menu/icon-menu-charts';
-import IconMenuWidgets from '@/components/icon/menu/icon-menu-widgets';
-import IconMenuFontIcons from '@/components/icon/menu/icon-menu-font-icons';
-import IconMenuDragAndDrop from '@/components/icon/menu/icon-menu-drag-and-drop';
 import IconMenuTables from '@/components/icon/menu/icon-menu-tables';
 import IconMenuDatatables from '@/components/icon/menu/icon-menu-datatables';
 import IconMenuForms from '@/components/icon/menu/icon-menu-forms';
@@ -47,6 +39,8 @@ import IconClipboardText from '../icon/icon-clipboard-text';
 import IconCashBanknotes from '../icon/icon-cash-banknotes';
 import IconCamera from '../icon/icon-camera';
 import IconChartSquare from '../icon/icon-chart-square';
+import IconTrendingUp from '../icon/icon-trending-up';
+import IconSquareRotated from '../icon/icon-square-rotated';
 
 const AdminSidebar = () => {
     const dispatch = useDispatch();
@@ -104,8 +98,8 @@ const AdminSidebar = () => {
                 <div className="h-full bg-white dark:bg-black">
                     <div className="flex items-center justify-between px-4 py-3">
                         <Link href="/" className="main-logo flex shrink-0 items-center">
-                            <img className="ml-[5px] w-8 flex-none" src="/assets/images/logo.svg" alt="logo" />
-                            <span className="align-middle text-2xl font-semibold ltr:ml-1.5 rtl:mr-1.5 dark:text-white-light lg:inline">VRISTO</span>
+                            <img className="ml-[5px] w-8 flex-none" src="/assets/images/logo.png" alt="logo" />
+                            <span className="align-middle text-2xl font-semibold ltr:ml-1.5 rtl:mr-1.5 dark:text-white-light lg:inline">FIRSTHASH</span>
                         </Link>
 
                         <button
@@ -190,7 +184,7 @@ const AdminSidebar = () => {
 
                                    
                                     
-                                    <li className="nav-item">
+                                    {/* <li className="nav-item">
                                         <Link href="/admin/task-management" className="group">
                                             <div className="flex items-center">
                                                 <IconMessage2 className="shrink-0 group-hover:!text-primary" />
@@ -199,19 +193,28 @@ const AdminSidebar = () => {
                                         </Link>
                                     </li>
 
-
-                                   
-
-                                    {/* <li className="nav-item">
+                                    <li className="nav-item">
                                         <Link href="/admin/expence" className="group">
                                             <div className="flex items-center">
                                                 <IconCashBanknotes className="shrink-0 group-hover:!text-primary" />
                                                 <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('Expence')}</span>
                                             </div>
                                         </Link>
-                                    </li>
+                                    </li> */}
 
                                     <li className="nav-item">
+                                        <Link href="/admin/team-allocation" className="group">
+                                            <div className="flex items-center">
+                                                <IconSquareRotated className="shrink-0 group-hover:!text-primary" />
+                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('Team Allocation')}</span>
+                                            </div>
+                                        </Link>
+                                    </li>
+
+                                    
+
+
+                                   {/*  <li className="nav-item">
                                         <Link href="/admin/clients-details" className="group">
                                             <div className="flex items-center">
                                                 <IconClipboardText className="shrink-0 group-hover:!text-primary" />

@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
@@ -74,6 +72,7 @@ const EmployeeHeader: React.FC = () => {
   const displayName = currentUser?.displayName || null;
   const email = currentUser?.email || null;
   const photoURL = currentUser?.photoURL || null;
+
 
 
   useEffect(() => {
@@ -157,7 +156,7 @@ const EmployeeHeader: React.FC = () => {
                         </li>
 
                         <li className="border-t border-white-light dark:border-white-light/10 cursor-pointer">
-                          <Link href="/users/user-account-settings" className="flex items-center !py-3 px-4">
+                          <Link href="/employee/profile" className="flex items-center !py-3 px-4">
                             <IconUser className="h-4.5 w-4.5 shrink-0 ltr:mr-2 rtl:ml-2" />
                             My Profile
                           </Link>
@@ -183,5 +182,3 @@ const EmployeeHeader: React.FC = () => {
 };
 
 export default EmployeeHeader;
-
-

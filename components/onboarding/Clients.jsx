@@ -3,16 +3,21 @@ import React, { useEffect, useRef, useState } from 'react';
 import 'intl-tel-input/build/css/intlTelInput.css';
 import intlTelInput from 'intl-tel-input';
 
-const Clients = ({ company, onValidChange, onDataChange }) => {
+const Clients = ({ company, onValidChange, onDataChange, initialData }) => {
   const phoneInputRef = useRef(null);
   const itiInstanceRef = useRef(null);
+  const isInitialized = useRef(false);
 
   const [step, setStep] = useState('search');
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [isPhoneNumberValid, setIsPhoneNumberValid] = useState(false);
-  const [clientName, setClientName] = useState('');
-  const [relation, setRelation] = useState('');
-  const [email, setEmail] = useState('');
+    const [phoneNumber, setPhoneNumber] = useState('');
+    const [rawPhoneNumberInput, setRawPhoneNumberInput] = useState('');
+    const [isPhoneNumberValid, setIsPhoneNumberValid] = useState(false);
+    const [clientName, setClientName] = useState('');
+    const [relation, setRelation] = useState('');
+    const [email, setEmail] = useState('');
+    const [clientDetails, setClientDetails] = useState({ name: '', phone: '', relation: '', email: '' });
+
+
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
@@ -34,6 +39,37 @@ const Clients = ({ company, onValidChange, onDataChange }) => {
     }
   }, []);
 
+    // --- CORRECTED useEffect for Initial Data Population ---
+    useEffect(() => {
+        // This logic will now run ONLY ONCE when initialData is first received.
+        if (initialData && itiInstanceRef.current && !isInitialized.current) {
+            console.log('Clients component initializing with data:', initialData);
+
+            const details = initialData.clientDetails || {};
+            
+            // 1. Populate ALL state variables that control the UI
+            setClientName(details.name || '');
+            setRelation(details.relation || '');
+            setEmail(details.email || '');
+            setPhoneNumber(details.phone || ''); // <-- CRUCIAL: Set the formatted phone number state
+            setRawPhoneNumberInput(initialData.rawPhoneNumberInput || '');
+            setIsPhoneNumberValid(initialData.isPhoneNumberValid || false);
+            setClientDetails(details);
+
+            // 2. Force the component into the state that shows the details form
+            // Use 'existing_found' as the step to ensure the form is visible.
+            setStep('existing_found');
+
+            // 3. Programmatically update the phone input library's display
+            if (details.phone) {
+                itiInstanceRef.current.setNumber(details.phone);
+            }
+
+            // 4. Set the flag to true to prevent this from ever running again
+            isInitialized.current = true;
+        }
+    }, [initialData]); 
+    
   // ✅ Handle phone input change via React event
   const handlePhoneChange = async () => {
     if (!itiInstanceRef.current) return;

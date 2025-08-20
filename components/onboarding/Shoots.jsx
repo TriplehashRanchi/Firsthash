@@ -246,10 +246,31 @@ const ShootRow = ({
 };
 
 // --- Shoots Component (Main Container) ---
-const Shoots = ({company, onValidChange, onDataChange }) => {
+const Shoots = ({company, onValidChange, onDataChange, initialData }) => {
     const [shoots, setShoots] = useState([{ id: Date.now(), title: '', date: '', time: '', city: '', selectedServices: {}, showServiceOptions: false }]);
     const [masterEventTitles, setMasterEventTitles] = useState([]);
     const [masterServices, setMasterServices] = useState([]);
+    const isInitialized = useRef(false);
+
+    useEffect(() => {
+        // Only run this logic if initialData exists AND we haven't initialized yet.
+        if (initialData && initialData.shootList && !isInitialized.current) {
+            
+            const shootsWithFormattedDate = initialData.shootList.map(s => ({
+                ...s,
+                date: s.date ? new Date(s.date).toISOString().split('T')[0] : '',
+                showServiceOptions: false
+            }));
+
+            // If there are actual shoots, set them. Otherwise, do nothing to keep the default empty row.
+            if (shootsWithFormattedDate.length > 0) {
+                setShoots(shootsWithFormattedDate);
+            }
+            
+            // Set the flag to true so this block never runs again.
+            isInitialized.current = true;
+        }
+    }, [initialData]); 
 
     useEffect(() => {
         const fetchMasterData = async () => {
@@ -388,7 +409,9 @@ const Shoots = ({company, onValidChange, onDataChange }) => {
             // const componentData = {
             //     shootList: relevantShoots.length > 0 ? relevantShoots : (shoots.length === 1 && relevantShoots.length === 0 ? [] : []),
             // };
-           onDataChange(relevantShoots.length > 0 ? relevantShoots : []);
+           onDataChange({
+                shootList: relevantShoots
+            });
         }
     }, [shoots, onDataChange]);
 
