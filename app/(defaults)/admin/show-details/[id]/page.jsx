@@ -2,7 +2,7 @@
 
 // --- START: ADDED FOR API INTEGRATION ---
 import React, { useState, useEffect, useMemo } from 'react'; // Changed from just 'useState'
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import axios from 'axios';
 import { useAuth } from '@/context/AuthContext';
 import { toast, ToastContainer } from 'react-toastify';
@@ -30,7 +30,8 @@ import {
     PlusCircle,
     X,
     Loader2,
-    Download, // --- NEW: Added Loader icon
+    Download,
+    Edit,
 } from 'lucide-react';
 
 // Import your tab components
@@ -372,6 +373,7 @@ function ProjectReviewPage() {
     const params = useParams();
     const projectId = params.id;
     const { currentUser } = useAuth();
+    const router = useRouter();
 
     const fetchProjectData = async () => {
         setIsLoading(true);
@@ -406,6 +408,10 @@ function ProjectReviewPage() {
         setCurrentDeliverable(deliverable);
         setIsTaskModalOpen(true);
     };
+    const handleEditProject = () => {
+        router.push(`/admin/gopo?projectId=${projectId}`);
+    };
+    console.log("EDIT", handleEditProject);
 
     // --- NEW: Handler to create a task via API ---
     // File: ProjectReviewPage.jsx
@@ -747,7 +753,6 @@ function ProjectReviewPage() {
             }));
         }
     };
-
 
     const handleAddExpense = async (formData) => {
         if (!currentUser || !projectId) return;
@@ -1312,6 +1317,16 @@ function ProjectReviewPage() {
                                     className="px-4 py-2 text-sm font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors shadow-md"
                                 >
                                     Mark as Complete
+                                </button>
+                            )}
+                            {/* --- NEW EDIT BUTTON --- */}
+                            {fullProjectData.projectStatus === 'pending' && (
+                                <button
+                                    onClick={handleEditProject}
+                                    className="flex items-center px-4 py-2 text-sm font-medium bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors shadow-md"
+                                >
+                                    <Edit size={16} className="mr-1.5" />
+                                    Edit Project
                                 </button>
                             )}
                         </div>
