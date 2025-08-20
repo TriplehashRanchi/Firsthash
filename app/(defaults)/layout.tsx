@@ -24,7 +24,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       if (!currentUser) {
         router.push('/register');
       } else if (!isAdmin) {
-        router.push('/unauthorized');
+        router.push('/login');
       } else if (!isSubscribedUser) {
         router.push('/subscribe');
       }

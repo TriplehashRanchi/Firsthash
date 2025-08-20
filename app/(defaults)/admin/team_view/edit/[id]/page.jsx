@@ -93,6 +93,10 @@ export default function MemberEditPage() {
           axios.get(`${API_URL}/api/members/${id}/payment-details`, { headers:{ Authorization:`Bearer ${token}` } })
         ]);
 
+        console.log(" ROLES", rolesRes.data);
+        console.log(" MEMBER", memberRes.data);
+        console.log(" BANK", bankRes.data);
+
         setRoles(rolesRes.data);
         const m = memberRes.data;
         setForm({
@@ -145,6 +149,7 @@ const handleSubmit = async e => {
         { headers: { Authorization:`Bearer ${token}` } }
       );
       setToast({ message:"Member saved!", type:"success" });
+      
     } catch (err) {
       console.error(err);
       const msg = err.response?.data?.error || err.message;
@@ -187,6 +192,8 @@ const handleBankSubmit = async e => {
         return <div className="flex justify-center items-center h-screen bg-gray-50"><div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div></div>;
     }
 
+    console.log(form);
+
     return (
         <div className="bg-gray-50 min-h-screen">
             <Toast message={toast.message} type={toast.type} onClose={() => setToast({ message: '', type: '' })} />
@@ -215,7 +222,8 @@ const handleBankSubmit = async e => {
                             </SelectField>
                             <SelectField label="Role" name="role_id" value={form.role_id} onChange={handleChange} required>
                                 <option value="">Select a role</option>
-                                {roles.map(r => (<option key={r.id} value={r.id}>{r.name}</option>))}
+                                {roles.map(r => (<option key={r.id} value={r.id}>{r.type_name}</option>))}
+                                
                             </SelectField>
                             {form.employee_type === 1 && (
                                 <InputField label="Salary" type="number" name="salary" value={form.salary} onChange={handleChange} />

@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Package, CalendarDays, CheckCircle, XCircle, AlertTriangle, Clock, Eye, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import Link from 'next/link';
 import axios from 'axios';
 
 // --- Constants (Keep these as they are) ---
@@ -22,7 +23,7 @@ const statusConfig = {
     [ProjectStatus.COMPLETED]: { label: 'Completed', icon: <CheckCircle size={14} className="mr-1.5 text-orange-300" />, base: 'bg-orange-500 dark:bg-orange-500', hover: 'hover:bg-orange-600 dark:hover:bg-orange-600', text: 'text-white', pillBg: 'bg-orange-100 dark:bg-orange-400/20', pillText: 'text-orange-700 dark:text-orange-300', activePillBg: 'bg-white/20 dark:bg-orange-400/30', activePillText: 'text-white dark:text-orange-100', focusRing: 'focus:ring-orange-400' },
 };
 // --- Style constants (Keep these as they are) ---
-const pageWrapperStyles = "min-h-screen p-4 sm:p-6 lg:p-8 bg-slate-100 dark:bg-slate-900";
+const pageWrapperStyles = "min-h-screen p-4 sm:p-6 lg:p-8 ";
 const headerContainerStyles = "mb-8";
 const pageTitleStyles = "text-2xl sm:text-3xl font-bold text-slate-800 dark:text-slate-100 mb-5";
 const filterTabsContainerStyles = "flex flex-wrap gap-2 items-center bg-slate-200 dark:bg-slate-800/70 p-1.5 rounded-xl shadow-sm";
@@ -36,6 +37,9 @@ const textDefault = "text-slate-700 dark:text-slate-200";
 const textMuted = "text-slate-500 dark:text-slate-400";
 const rowHoverStyles = "hover:bg-slate-50 dark:hover:bg-slate-700/40";
 const actionButtonStyles = "p-1.5 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 rounded-md hover:bg-blue-100 dark:hover:bg-blue-700/50 transition-colors";
+const breadcrumbLinkStyles = "text-blue-600 hover:underline dark:text-blue-400";
+const breadcrumbSeparatorStyles = "before:content-['/'] ltr:before:mr-2 rtl:before:ml-2 text-gray-500 dark:text-gray-500";
+const breadcrumbCurrentPageStyles = "text-gray-600 dark:text-gray-400";
 
 const ProjectListPage = () => {
     const [projects, setProjects] = useState([]);
@@ -195,7 +199,10 @@ const ProjectListPage = () => {
     return (
         <div className={pageWrapperStyles}>
              <div className={headerContainerStyles}>
-                <h1 className={pageTitleStyles}>Projects Overview</h1>
+                <ul className="flex space-x-2 rtl:space-x-reverse mb-6">
+                <li><Link href="/dashboard" className={breadcrumbLinkStyles}>Dashboard</Link></li>
+                <li className={breadcrumbSeparatorStyles}><span className={breadcrumbCurrentPageStyles}>Project Overview</span></li>
+            </ul>
                 <div className={filterTabsContainerStyles}>
                    {Object.values(ProjectStatus).map(statusValue => {
                         const config = statusConfig[statusValue];

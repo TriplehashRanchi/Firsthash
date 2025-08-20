@@ -28,24 +28,53 @@ export const AuthProvider = ({ children }) => {
 
   // Unified fetch: role + company
   const fetchUserRoleAndCompany = async (firebase_uid) => {
-    try {
-      const { data } = await axios.get(`${API_URL}/api/auth/user-role/${firebase_uid}`);
-      setRole(data.role);
+  try {
+    // 1) Get role (and ideally company_id) first
+    const { data: roleData } = await axios.get(`${API_URL}/api/auth/user-role/${firebase_uid}`);
+    const detectedRole = roleData?.role || null;
+    const employeeCompanyId = roleData?.company_id || null;
 
-      if (data.role === 'admin') {
-        const res = await axios.get(`${API_URL}/api/company/by-uid/${firebase_uid}`);
+    setRole(detectedRole);
+
+    // 2) If admin → company by owner UID
+    if (detectedRole === 'admin') {
+      const res = await axios.get(`${API_URL}/api/company/by-uid/${firebase_uid}`, { validateStatus: () => true });
+      if (res.status === 200) {
         setCompany(res.data);
-      } else if (data.role === 'employee') {
-        const res = await axios.get(`${API_URL}/api/company/by-id/${data.company_id}`);
-        setCompany(res.data);
+      } else {
+        console.warn('Admin company fetch failed:', res.status, res.data);
+        setCompany(null);
       }
-      return data.role;
-    } catch (err) {
-      console.error('Error fetching user role and company:', err);
-      setRole(null);
+    }
+
+    // 3) If employee → company by ID (requires that /api/auth/user-role returns company_id)
+    else if (detectedRole === 'employee') {
+      if (employeeCompanyId) {
+        const res = await axios.get(`${API_URL}/api/company/by-id/${employeeCompanyId}`, { validateStatus: () => true });
+        if (res.status === 200) {
+          setCompany(res.data);
+        } else {
+          console.warn('Employee company fetch failed:', res.status, res.data);
+          setCompany(null);
+        }
+      } else {
+        console.warn('Employee has no company_id in user-role payload');
+        setCompany(null);
+      }
+    } else {
+      // unknown role
       setCompany(null);
     }
-  };
+
+    return detectedRole;
+  } catch (err) {
+    console.error('Error fetching user role and company:', err);
+    // Keep role unknown, but don't crash the flow
+    setCompany(null);
+    return null;
+  }
+};
+
 
   // Firebase auth listener
   useEffect(() => {
@@ -81,11 +110,9 @@ const login = async (email, password) => {
   const role = await fetchUserRoleAndCompany(firebase_uid);
 
   if (typeof window !== 'undefined') {
-    if (role === 'admin') {
-      window.location.href = '/admin/dashboard';
-    } else if (role === 'employee') {
-      window.location.href = '/employee/dashboard';
-    }
+    if (role === 'admin') window.location.href = '/admin/dashboard';
+    else if (role === 'employee') window.location.href = '/employee/dashboard';
+
   }
 };
 
