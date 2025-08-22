@@ -262,7 +262,7 @@ const fetchData = async () => {
 />
             {modalMember && <AttendanceModal member={modalMember} onClose={() => setModalMember(null)} onSave={handleSaveSuccess} />}
             
-            <ul className="flex space-x-2 rtl:space-x-reverse mb-6"><li><a className="text-blue-600 hover:underline dark:text-blue-400" href="/dashboard">Dashboard</a></li><li className="before:content-['/'] ltr:before:mr-2 rtl:before:ml-2 text-gray-500 dark:text-gray-500"><span class="text-gray-600 dark:text-gray-400">Attendance Dashboard</span></li></ul>
+            <ul className="flex space-x-2 rtl:space-x-reverse mb-6"><li><a className="text-blue-600 hover:underline dark:text-blue-400" href="/dashboard">Dashboard</a></li><li className="before:content-['/'] ltr:before:mr-2 rtl:before:ml-2 text-gray-500 dark:text-gray-500"><span className="text-gray-600 dark:text-gray-400">Attendance Dashboard</span></li></ul>
 
             <div className="bg-white overflow-hidden">
                 <table className="min-w-full">
@@ -293,7 +293,7 @@ const fetchData = async () => {
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                                     <div className="flex items-center justify-center space-x-5">
-                                        <IconButton as={Link} href={`/admin/attendance/view/${member.id}`} text="View History">
+                                        <IconButton as={Link} href={`/manager/attendance/view/${member.id}`} text="View History">
                                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" /></svg>
                                         </IconButton>
                                         

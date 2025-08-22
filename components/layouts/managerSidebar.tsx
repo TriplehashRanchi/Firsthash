@@ -17,9 +17,13 @@ import IconUsersGroup from '../icon/icon-users-group';
 import IconCalendar from '../icon/icon-calendar';
 import IconCamera from '../icon/icon-camera';
 import IconSquareRotated from '../icon/icon-square-rotated';
-import { BadgeIndianRupee, BookmarkCheck, Calendar, CalendarCheck, UserPen } from 'lucide-react';
+import IconTag from '../icon/icon-tag';
+import IconDollarSignCircle from '../icon/icon-dollar-sign-circle';
+import IconMenuForms from '../icon/menu/icon-menu-forms';
+import IconUser from '../icon/icon-user';
+import { CalendarCheck, CalendarCheck2, ClipboardCheck, Presentation, ShieldAlert } from 'lucide-react';
 
-const EmployeeSidebar = () => {
+const ManagerSidebar = () => {
     const dispatch = useDispatch();
     const { t } = getTranslation();
     const pathname = usePathname();
@@ -99,7 +103,7 @@ const EmployeeSidebar = () => {
                                 <ul>
 
                                     <li className="nav-item">
-                                        <Link href="/employee/dashboard" className="group">
+                                        <Link href="/manager/dashboard" className="group">
                                             <div className="flex items-center">
                                                 <IconMenuDashboard className="shrink-0 group-hover:!text-primary" />
                                                 <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('Dashboard')}</span>
@@ -108,48 +112,68 @@ const EmployeeSidebar = () => {
                                     </li>
 
                                     <li className="nav-item">
-                                        <Link href="/employee/task" className="group">
+                                        <Link href="/manager/task" className="group">
                                             <div className="flex items-center">
-                                                <BookmarkCheck className="shrink-0 group-hover:!text-primary" />
+                                                <IconTag className="shrink-0 group-hover:!text-primary" />
                                                 <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('Your Task')}</span>
                                             </div>
                                         </Link>
                                     </li>
+
+                                    
                                     <li className="nav-item">
-                                        <Link href="/employee/calendar" className="group">
+                                        <Link href="/manager/expense" className="group">
                                             <div className="flex items-center">
-                                                <Calendar className="shrink-0 group-hover:!text-primary" />
-                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('Calendar')}</span>
-                                            </div>
-                                        </Link>
-                                    </li>
-                                    <li className="nav-item">
-                                        <Link href="/employee/expense" className="group">
-                                            <div className="flex items-center">
-                                                <BadgeIndianRupee className="shrink-0 group-hover:!text-primary" />
+                                                <IconDollarSignCircle className="shrink-0 group-hover:!text-primary" />
                                                 <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('Salary')}</span>
                                             </div>
                                         </Link>
                                     </li>
                                     <li className="nav-item">
-                                        <Link href="/employee/profile" className="group">
+                                        <Link href="/manager/profile" className="group">
                                             <div className="flex items-center">
-                                                <UserPen className="shrink-0 group-hover:!text-primary" />
+                                                <IconUser className="shrink-0 group-hover:!text-primary" />
                                                 <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('Profile')}</span>
                                             </div>
                                         </Link>
                                     </li>
 
                                     <li className="nav-item">
-                                        <Link href="/employee/view-attendance" className="group">
+                                        <Link href="/manager/attendance" className="group">
                                             <div className="flex items-center">
-                                                <CalendarCheck className="shrink-0 group-hover:!text-primary" />
-                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('View-Attendance')}</span>
+                                                <CalendarCheck2 className="shrink-0 group-hover:!text-primary" />
+                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('Attandance')}</span>
                                             </div>
                                         </Link>
                                     </li>
 
-                                   
+                                    <li className="nav-item">
+                                        <Link href="/manager/task-management" className="group">
+                                            <div className="flex items-center">
+                                                <ClipboardCheck className="shrink-0 group-hover:!text-primary" />
+                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('Manage Task')}</span>
+                                            </div>
+                                        </Link>
+                                    </li>
+
+                                    <li className="nav-item">
+                                        <Link href="/manager/project" className="group">
+                                            <div className="flex items-center">
+                                                <Presentation className="shrink-0 group-hover:!text-primary" />
+                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('Project')}</span>
+                                            </div>
+                                        </Link>
+                                    </li>
+
+                                    <li className="nav-item">
+                                        <Link href="/manager/view-attendance" className="group">
+                                            <div className="flex items-center">
+                                                <CalendarCheck className="shrink-0 group-hover:!text-primary" />
+                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('View-Attandance')}</span>
+                                            </div>
+                                        </Link>
+                                    </li>
+
                                 </ul>
                             </li>
 
@@ -162,4 +186,4 @@ const EmployeeSidebar = () => {
     );
 };
 
-export default EmployeeSidebar;
+export default ManagerSidebar;

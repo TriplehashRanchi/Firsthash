@@ -165,61 +165,61 @@ export default function MemberForm() {
     }, [category, types]);
 
     const handleSubmit = async (e) => {
-        e.preventDefault();
-        const auth = getAuth();
-        const admin = auth.currentUser;
-        if (!admin) return toast.error('Admin not logged in');
-        const token = await admin.getIdToken();
+    e.preventDefault();
+    const auth = getAuth();
+    const admin = auth.currentUser;
+    if (!admin) return toast.error('Admin not logged in');
+    const token = await admin.getIdToken();
 
-        // CHANGED: The logic for determining the primary member_type (roleId) is simplified.
-        let member_type;
-        if (category === 'manager') {
-            const managerRole = types.find((t) => t.role_code === 0);
-            if (!managerRole) return toast.error("Manager role not found in system configuration.");
-            member_type = managerRole.id;
-        } else {
-            // For in-house and freelancers, we need at least one specific role.
-            if (selectedRoles.length === 0) return toast.error('Please select at least one role for the member.');
-            // Assign the first selected role as the primary type.
-            member_type = selectedRoles[0];
-        }
+    // Map category to member_type code
+    let member_type;
+    if (category === 'manager') {
+        member_type = 2;
+    } else if (category === 'inhouse') {
+        member_type = 1;
+        if (selectedRoles.length === 0) return toast.error('Please select at least one role for the member.');
+    } else if (category === 'freelancer') {
+        member_type = 0;
+        if (selectedRoles.length === 0) return toast.error('Please select at least one role for the member.');
+    }
 
-        if (password !== confirmPwd) return toast.error('Passwords do not match.');
+    if (password !== confirmPwd) return toast.error('Passwords do not match.');
 
-        const payload = {
-            member_type: Number(member_type),
-            role_ids: selectedRoles.map(Number),
-            full_name: fullName,
-            mobile_no: mobileNo,
-            email,
-            password,
-            company_id: companyId,
-            confirm_password: confirmPwd,
-        };
-
-        const toastId = toast.loading('Creating member...');
-        try {
-            const response = await fetch(`${API_URL}/api/members`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                body: JSON.stringify(payload),
-            });
-            const result = await response.json();
-            if (!response.ok) {
-                throw new Error(result.error || response.statusText);
-            }
-            toast.success('Member created successfully!', { id: toastId });
-            setFullName('');
-            setMobileNo('');
-            setEmail('');
-            setPassword('');
-            setConfirmPwd('');
-            setSelectedRoles([]);
-        } catch (err) {
-            console.error('Submission error:', err);
-            toast.error(`Error: ${err.message}`, { id: toastId });
-        }
+    const payload = {
+        member_type,
+        role_ids: selectedRoles.map(Number),
+        full_name: fullName,
+        mobile_no: mobileNo,
+        email,
+        password,
+        company_id: companyId,
+        confirm_password: confirmPwd,
     };
+
+    const toastId = toast.loading('Creating member...');
+    try {
+        const response = await fetch(`${API_URL}/api/members`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify(payload),
+        });
+        const result = await response.json();
+        if (!response.ok) {
+            throw new Error(result.error || response.statusText);
+        }
+        toast.success('Member created successfully!', { id: toastId });
+        setFullName('');
+        setMobileNo('');
+        setEmail('');
+        setPassword('');
+        setConfirmPwd('');
+        setSelectedRoles([]);
+    } catch (err) {
+        console.error('Submission error:', err);
+        toast.error(`Error: ${err.message}`, { id: toastId });
+    }
+};
+
 
     const renderInputField = (id, label, type, value, setter, placeholder, icon) => (
         <div className="relative">
