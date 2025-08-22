@@ -5,7 +5,7 @@ import Link from 'next/link';
 import axios from 'axios';
 import toast, { Toaster } from 'react-hot-toast';
 import { getAuth } from 'firebase/auth';
-import { Trash2, Edit, Save, X, Briefcase, ChevronRight, ChevronDown, Mic, PlayCircle, PlusCircle, Loader2, Users } from 'lucide-react';
+import { Trash2, Edit, Save, X, Briefcase, ChevronRight, ChevronDown, Mic, PlayCircle, PlusCircle, Loader2, Users, CheckCircle2, Circle } from 'lucide-react';
 
 import Select from 'react-select';
 
@@ -24,18 +24,19 @@ const LoadingSpinner = ({ text }) => (
     </div>
 );
 
-const StatusBadge = ({ status }) => {
+// StatusBadge
+const StatusBadge = ({ status = 'to_do' }) => {
+    const s = String(status).toLowerCase().trim();
     const styles = {
-        to_do: 'bg-gray-200 text-gray-800',
+        to_do: 'bg-gray-100 text-gray-800',
         in_progress: 'bg-blue-100 text-blue-800',
         completed: 'bg-green-100 text-green-800',
+        finalize: 'bg-emerald-100 text-emerald-800', // ← NEW
     };
-    // A default style for any other custom status like "finalize"
-    const defaultStyle = 'bg-yellow-100 text-yellow-800';
-    const currentStyle = styles[status] || defaultStyle;
-    const formattedStatus = (status || 'to_do').replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+    const currentStyle = styles[s] || 'bg-yellow-100 text-yellow-800';
+    const formatted = s.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
 
-    return <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${currentStyle}`}>{formattedStatus}</span>;
+    return <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${currentStyle}`}>{formatted}</span>;
 };
 
 // --- NEW HELPER COMPONENTS FOR BADGES ---
@@ -114,7 +115,7 @@ const AddTaskForm = ({ onAddTask, projects, deliverables, members, parentTasks, 
             deliverable_id: linkedDeliverableId || null,
             assigneeIds: assignedToIds,
         };
-         try {
+        try {
             await onAddTask(taskData);
             resetForm();
             if (onClose) onClose();
@@ -475,7 +476,7 @@ export default function ProjectTaskDashboardPage() {
             }
 
             const assignees = assigneeIdArray.map((id) => memberMap.get(id.trim())).filter(Boolean);
-            
+
             const finalAssignees = assignees.length > 0 ? assignees : [{ name: 'Unassigned', firebase_uid: 'unassigned', primaryRole: '' }];
 
             taskMap.set(task.id, {
@@ -488,7 +489,7 @@ export default function ProjectTaskDashboardPage() {
             });
         });
 
-        console.log("TASK MAP", taskMap);
+        console.log('TASK MAP', taskMap);
 
         const roots = [];
         taskMap.forEach((task) => {
@@ -501,7 +502,6 @@ export default function ProjectTaskDashboardPage() {
 
         return roots;
     }, [tasks, projects, members, deliverables]);
-
 
     // --- Event Handlers ---
     const handleToggleRow = (taskId) => {
@@ -586,15 +586,14 @@ export default function ProjectTaskDashboardPage() {
         }
     };
 
-    const handleStatusChange = async (task, newStatus) => {
-        setStatusEditingTaskId(null);
-        if (task.status === newStatus) return;
+    const handleStatusChange = async (task, newStatusRaw) => {
+        const newStatus = (newStatusRaw || '').toLowerCase().trim();
+        if ((task.status || '').toLowerCase().trim() === newStatus) return;
+
         toast.loading('Updating status...');
-        const success = await handleTaskUpdate(task.id, { status: newStatus });
+        const ok = await handleTaskUpdate(task.id, { status: newStatus });
         toast.dismiss();
-        if (success) {
-            toast.success('Status updated!');
-        }
+        if (ok) toast.success('Status updated!');
     };
 
     const handleDeleteTask = async (taskId) => {
@@ -895,43 +894,66 @@ const AddSubtaskRow = ({ parentId, level, onSave, onCancel }) => {
     );
 };
 const AdminStatusToggle = ({ task, onStatusComplete }) => {
-    const status = task.status;
+    const status = (task.status || '').toLowerCase().trim();
+    const isFinalized = status === 'finalize';
+    const nextStatus = isFinalized ? 'completed' : 'finalize';
+    const [busy, setBusy] = React.useState(false);
 
-    // Determine toggle state and next status
-    const isCompleted = status === 'completed' || status === 'finalize';
-    let nextStatus;
-
-    if (status === 'to_do' || status === 'in_progress') {
-        nextStatus = 'completed';
-    } else if (status === 'completed') {
-        nextStatus = 'finalize';
-    } else if (status === 'finalize') {
-        nextStatus = 'completed'; // allow toggling back
-    }
+    const handleToggle = async () => {
+        if (busy) return;
+        setBusy(true);
+        try {
+            await onStatusComplete(task, nextStatus);
+        } finally {
+            setBusy(false);
+        }
+    };
 
     return (
-        <div className="flex items-center justify-start">
-            <StatusBadge status={status} />
-            <label htmlFor={`toggle-${task.id}`} className="flex items-center cursor-pointer ml-4">
-                <div className="relative">
-                    <input
-                        type="checkbox"
-                        id={`toggle-${task.id}`}
-                        className="sr-only"
-                        checked={isCompleted}
-                        onChange={() => onStatusComplete(task, nextStatus)}
-                    />
-                    <div className={`block w-12 h-7 rounded-full transition-colors ${isCompleted ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-                    <div className={`dot absolute left-1 top-1 bg-white w-5 h-5 rounded-full transition-transform ${isCompleted ? 'translate-x-5' : 'translate-x-0'}`}></div>
-                </div>
-                <div className="ml-2 text-xs text-gray-600 font-medium select-none">
-                    {status === 'finalize' ? 'Finalized' : isCompleted ? 'Completed' : 'Mark Complete'}
-                </div>
-            </label>
+        <div className="flex items-center">
+            <StatusBadge status={task.status} />
+
+            <button
+                type="button"
+                onClick={handleToggle}
+                disabled={busy}
+                role="switch"
+                aria-checked={isFinalized}
+                title={isFinalized ? 'Click to mark as Completed' : 'Click to Finalize'}
+                className={[
+                    'ml-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium',
+                    'border transition-all',
+                    isFinalized ? 'bg-emerald-50 border-emerald-200' : 'bg-gray-50 border-gray-200',
+                    'hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-400',
+                    busy ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer',
+                ].join(' ')}
+            >
+                <span className="relative inline-flex items-center">
+                    <span className={['relative inline-flex h-5 w-10 rounded-full transition-colors', isFinalized ? 'bg-emerald-500' : 'bg-gray-300'].join(' ')}>
+                        <span className={['absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform', isFinalized ? 'translate-x-5' : 'translate-x-0'].join(' ')} />
+                    </span>
+                </span>
+
+                {busy ? (
+                    <span className="inline-flex items-center gap-1">
+                        <Loader2 size={14} className="animate-spin" />
+                        <span>Saving…</span>
+                    </span>
+                ) : isFinalized ? (
+                    <span className="inline-flex items-center gap-1 text-emerald-700">
+                        <CheckCircle2 size={14} />
+                        <span>Finalized</span>
+                    </span>
+                ) : (
+                    <span className="inline-flex items-center gap-1 text-gray-600">
+                        <Circle size={14} />
+                        <span>Mark Finalized</span>
+                    </span>
+                )}
+            </button>
         </div>
     );
 };
-
 
 const TaskRow = ({ task, level, isExpanded, expandedRows, onToggle, members, isAdmin, fullyShownTasks, onToggleFullText, ...handlers }) => {
     const isEditing = handlers.editingTaskId === task.id;
@@ -961,6 +983,8 @@ const TaskRow = ({ task, level, isExpanded, expandedRows, onToggle, members, isA
     const displayText = isLong && !isFullyShown ? words.slice(0, 10).join(' ') : task.taskTitle;
 
     const primaryAssignee = task.assignees && task.assignees.length > 0 ? task.assignees[0] : { name: 'Unassigned', primaryRole: '' };
+    const normalizedStatus = (task.status || '').toLowerCase().trim();
+    console.log('isAdmin?', isAdmin, 'status:', task.status);
 
     return (
         <Fragment>
@@ -1008,29 +1032,7 @@ const TaskRow = ({ task, level, isExpanded, expandedRows, onToggle, members, isA
 
                 {/* Status */}
                 <td className="px-6 py-4 whitespace-nowrap">
-                    {isEditing ? (
-                        <StatusBadge status={handlers.editedTask.status} />
-                    ) : isAdmin && task.status === 'finalize' ? (
-                        <AdminStatusToggle task={task} onStatusComplete={handlers.onStatusChange} />
-                    ) : isEditingStatus ? (
-                        <input
-                            type="text"
-                            defaultValue={task.status}
-                            onBlur={(e) => {
-                                handlers.onStatusChange(task, e.target.value);
-                                handlers.onSetStatusEditingId(null);
-                            }}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter') e.currentTarget.blur();
-                            }}
-                            className="w-full bg-white border border-indigo-500 rounded-md py-1 px-2 text-sm"
-                            autoFocus
-                        />
-                    ) : (
-                        <div onClick={() => !isAdmin && handlers.onSetStatusEditingId(task.id)} className={!isAdmin ? 'cursor-pointer' : ''}>
-                            <StatusBadge status={task.status} />
-                        </div>
-                    )}
+                    {normalizedStatus === 'finalize' ? <AdminStatusToggle task={task} onStatusComplete={handlers.onStatusChange} /> : <StatusBadge status={task.status} />}
                 </td>
                 {/* Assign To */}
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
