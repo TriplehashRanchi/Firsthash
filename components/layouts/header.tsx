@@ -4,7 +4,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useDispatch, useSelector } from 'react-redux';
 import type { User } from 'firebase/auth';
 import { getAuth } from "firebase/auth";
@@ -64,10 +64,21 @@ const Avatar: React.FC<AvatarProps> = ({ name, email, photoURL, className = '' }
 const EmployeeHeader: React.FC = () => {
   const pathname = usePathname();
   const dispatch = useDispatch();
+  const router = useRouter();
   const { logout, loading, currentUser } = useAuth() as {
     logout: () => void;
     loading: boolean;
     currentUser: User | null;
+  };
+
+
+  // redirect to the login page 
+  const handleSignOut = async () => {
+    try {
+      await Promise.resolve(logout());
+    } finally {
+      router.replace('/login');
+    }
   };
 
   console.log("User", currentUser);
@@ -164,7 +175,7 @@ const EmployeeHeader: React.FC = () => {
                         </li>
 
                         <li className="border-t border-white-light dark:border-white-light/10 cursor-pointer">
-                          <button onClick={logout} className="flex items-center !py-3 px-4 text-danger w-full text-left">
+                          <button onClick={handleSignOut} className="flex items-center !py-3 px-4 text-danger w-full text-left">
                             <IconLogout className="h-4.5 w-4.5 shrink-0 rotate-90 ltr:mr-2 rtl:ml-2" />
                             Sign Out
                           </button>
