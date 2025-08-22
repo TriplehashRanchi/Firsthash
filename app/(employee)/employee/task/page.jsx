@@ -5,6 +5,7 @@ import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import axios from 'axios';
 import { getAuth } from 'firebase/auth';
 import { Eye, X, Loader2, CalendarDays, ClipboardList, ChevronDown } from 'lucide-react';
+import Link from 'next/link';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
@@ -138,6 +139,9 @@ export default function TaskPage() {
         axios.get(`${API_URL}/api/employee/projects/assigned`, { headers, validateStatus: () => true }),
       ]);
 
+      console.log("Task ", tRes);
+      console.log("Project ", pRes);
+
       if (tRes.status === 200 && Array.isArray(tRes.data)) {
         setTasks(tRes.data);
       } else if (tRes.status === 403) {
@@ -218,10 +222,18 @@ export default function TaskPage() {
     }
   };
 
+   const breadcrumbLinkStyles = "text-blue-600 hover:underline dark:text-blue-400";
+   const breadcrumbSeparatorStyles = "before:content-['/'] ltr:before:mr-2 rtl:before:ml-2 text-gray-500 dark:text-gray-500";
+   const breadcrumbCurrentPageStyles = "text-gray-600 dark:text-gray-400";
+
   return (
     <div className="p-4 sm:p-6 space-y-8">
       <div>
-        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">My Work</h1>
+            <ul className="flex space-x-1 rtl:space-x-reverse mb-2">
+                       <li><Link href="/dashboard" className={breadcrumbLinkStyles}>Dashboard</Link></li>
+                       <li className={breadcrumbSeparatorStyles}><span className={breadcrumbCurrentPageStyles}>My Task</span></li>
+                   </ul>
+       
         <p className="text-sm text-gray-500">Everything you’re assigned to — tasks and projects. View-only.</p>
       </div>
 

@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import { getAuth } from 'firebase/auth';
+import Link from 'next/link';
 
 // Define the API URL, defaulting for local development
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
@@ -105,7 +106,7 @@ export default function EmployeeAttendancePage() {
       const breadcrumbLinkStyles = "text-blue-600 hover:underline dark:text-blue-400";
     const breadcrumbSeparatorStyles = "before:content-['/'] ltr:before:mr-2 rtl:before:ml-2 text-gray-500 dark:text-gray-500";
     const breadcrumbCurrentPageStyles = "text-gray-600 dark:text-gray-400";
-
+    
 
     return (
         <main className="min-h-screen p-4 md:p-8 bg-gray-50">
