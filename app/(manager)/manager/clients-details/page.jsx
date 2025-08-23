@@ -29,7 +29,7 @@ const ProjectListModal = ({ client, isOpen, onClose }) => {
                     <ul className="space-y-3">
                         {client.projects.map((project) => (
                             <li key={project.projectId}>
-                                <Link href={`/admin/show-details/${project.projectId}`} className="block p-4 border dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+                                <Link href={`/manager/show-details/${project.projectId}`} className="block p-4 border dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
                                     <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
                                         <div className="flex-1">
                                             <p className="font-semibold text-lg text-blue-600 dark:text-blue-400">{project.name}</p>
@@ -148,100 +148,58 @@ const ClientDataTable = () => {
         }
     };
 
-    // --- Data Fetching: Step 1 -> Get Company ID ---
-    useEffect(() => {
-        const fetchCompanyId = async () => {
-            try {
-                const user = getAuth().currentUser;
-                if (!user) {
-                    throw new Error("User not authenticated. Please log in.");
-                }
-
-                // FIX #2: Get the user's UID string, not the whole object.
-                const userUid = user.uid;
-                console.log("User UID:", userUid);
-                // Get the auth token to make a secure request
-                const token = await user.getIdToken();
-                const headers = { Authorization: `Bearer ${token}` };
-                console.log("TOKEN", token);
-
-                // Make the API call with the correct UID string
-                const response = await axios.get(`${API_URL}/api/company/by-uid/${userUid}`, { headers });
-                
-                if (response.data && response.data.id) {
-                    setCompanyId(response.data.id); // Set the company ID to trigger the next step
-                } else {
-                    throw new Error("Company ID not found in API response.");
-                }
-            } catch (err) {
-                console.error("Error fetching company details:", err);
-                setError(err.message || "Could not find your company details.");
-                setLoading(false);
-            }
-        };
-
-        // Firebase auth can take a moment to initialize, so we listen for the state change
+     useEffect(() => {
         const auth = getAuth();
-        const unsubscribe = auth.onAuthStateChanged(user => {
+        const unsubscribe = auth.onAuthStateChanged(async (user) => {
             if (user) {
-                fetchCompanyId();
-            } else {
-                setLoading(false);
-                setError("User is not logged in.");
-            }
+                try {
+                    // --- THIS IS THE FIX ---
+                    // 1. Get the auth token from the currently logged-in user.
+                    const token = await user.getIdToken();
+
+                    // 2. Create the authorization header.
+                    const headers = { Authorization: `Bearer ${token}` };
+
+                    // 3. Pass the headers with the axios request.
+                    const response = await axios.get(`${API_URL}/api/company/for-employee/${user.uid}`, { headers });
+                    
+                    const fetchedCompanyId = response.data?.id;
+                    if (fetchedCompanyId) {
+                        setCompanyId(fetchedCompanyId);
+                        await fetchAllData(fetchedCompanyId);
+                    } else { throw new Error("Company ID not found."); }
+                } catch (err) { setError("Could not find the company you belong to."); setLoading(false); }
+            } else { setError("User not logged in."); setLoading(false); }
         });
-        
-        // Cleanup subscription on component unmount
         return () => unsubscribe();
+    }, []);
 
-    }, []); // Runs only once on component mount
-
-    // --- Data Fetching: Step 2 -> Get Clients once we have the Company ID ---
-    useEffect(() => {
-        if (!companyId) return; // Wait until we have the companyId
-
-        const fetchClientsAndProjects = async () => {
-            // No need to set loading to true here, as the main loading is handled by the company fetch
-            try {
-                const response = await axios.get(`${API_URL}/api/clients/with-projects`, {
-                    params: { company_id: companyId }
-                });
-                setAllClients(response.data);
-            } catch (err) {
-                console.error("Error fetching clients:", err);
-                setError('Failed to fetch client data.');
-            } finally {
-                setLoading(false); // Final loading state is set here
-            }
-        };
-
-        fetchClientsAndProjects();
-    }, [companyId]); // This effect runs only when companyId changes
-
-    // --- Data Processing for search, sort, and pagination ---
     useEffect(() => {
         let data = [...allClients];
-        if (search) {
-            const searchLower = search.toLowerCase();
-            data = data.filter(item =>
-                Object.values(item).some(val => String(val).toLowerCase().includes(searchLower)) ||
-                (item.projects && item.projects.some(p => p.name.toLowerCase().includes(searchLower)))
-            );
-        }
+        if (search) { data = data.filter(item => Object.values(item).some(val => String(val).toLowerCase().includes(search.toLowerCase()))); }
         data = sortBy(data, sortStatus.columnAccessor);
         if (sortStatus.direction === 'desc') data.reverse();
         setRecordsData(data.slice((page - 1) * pageSize, page * pageSize));
     }, [allClients, search, sortStatus, page, pageSize]);
 
-  // --- FINALIZED SAVE HANDLER ---
+    // --- FINALIZED CRUD HANDLERS WITH AUTH TOKEN ---
+
     const handleSaveClient = async (updatedClientData) => {
         try {
-           
-            await axios.put(`${API_URL}/api/clients/details/${updatedClientData.id}`, updatedClientData);
+            const token = await getAuth().currentUser.getIdToken();
+            const headers = { Authorization: `Bearer ${token}` };
 
-            // Refresh the list from the server to show the changes
+            const dataToSave = {
+                name: `${updatedClientData.firstName || ''} ${updatedClientData.lastName || ''}`.trim(),
+                email: updatedClientData.email,
+                phone: updatedClientData.phone,
+            };
+            
+            // Call the OLD, working endpoint, but include the auth header
+             await axios.put(`${API_URL}/api/clients/from-manager/${updatedClientData.id}`, updatedClientData);
+
+
             await fetchAllData(companyId);
-
             setIsEditModalOpen(false);
             alert('Client updated successfully!');
         } catch (err) {
@@ -250,12 +208,14 @@ const ClientDataTable = () => {
         }
     };
 
-    // --- FINALIZED DELETE HANDLER ---
     const handleDeleteClient = async (clientToDelete) => {
         if (window.confirm(`Are you sure you want to delete ${clientToDelete.firstName}?`)) {
             try {
-              
-                await axios.delete(`${API_URL}/api/clients/${clientToDelete.id}`);
+                const token = await getAuth().currentUser.getIdToken();
+                const headers = { Authorization: `Bearer ${token}` };
+
+                await axios.delete(`${API_URL}/api/clients/${clientToDelete.id}`, { headers });
+                
                 await fetchAllData(companyId);
                 alert('Client deleted successfully!');
             } catch (err) {
@@ -264,7 +224,6 @@ const ClientDataTable = () => {
             }
         }
     };
-
 
 
     // --- Modal Open/Close Handlers ---

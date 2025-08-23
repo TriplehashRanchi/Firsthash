@@ -21,7 +21,7 @@ import IconTag from '../icon/icon-tag';
 import IconDollarSignCircle from '../icon/icon-dollar-sign-circle';
 import IconMenuForms from '../icon/menu/icon-menu-forms';
 import IconUser from '../icon/icon-user';
-import { CalendarCheck, CalendarCheck2, ClipboardCheck, Presentation, ShieldAlert } from 'lucide-react';
+import { CalendarCheck, CalendarCheck2, ClipboardCheck, Presentation, ShieldAlert, UserRoundSearch } from 'lucide-react';
 
 const ManagerSidebar = () => {
     const dispatch = useDispatch();
@@ -116,6 +116,15 @@ const ManagerSidebar = () => {
                                             <div className="flex items-center">
                                                 <IconTag className="shrink-0 group-hover:!text-primary" />
                                                 <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('My Task')}</span>
+                                            </div>
+                                        </Link>
+                                    </li>
+
+                                    <li className="nav-item">
+                                        <Link href="/manager/clients-details" className='group'>
+                                            <div className='flex items-center'>
+                                                <UserRoundSearch className="shrink-0 group-hover:!text-primary" />
+                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('Clients')}</span>
                                             </div>
                                         </Link>
                                     </li>
