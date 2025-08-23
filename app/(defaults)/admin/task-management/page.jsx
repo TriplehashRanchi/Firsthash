@@ -14,6 +14,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 const apiClient = axios.create({ baseURL: API_URL });
 
 import { VoiceNoteRecorder } from '@/components/show-details/VoiceNoteRecorder';
+import { on } from 'events';
 
 // --- Reusable UI Components ---
 
@@ -86,7 +87,6 @@ const AddTaskForm = ({ onAddTask, projects, deliverables, members, parentTasks, 
         setDueDate('');
         setLinkedProjectId('');
         setLinkedDeliverableId('');
-        setLinkedParentTaskId('');
         setAssignedToId('');
         setAssignedToIds([]);
     };
@@ -116,11 +116,15 @@ const AddTaskForm = ({ onAddTask, projects, deliverables, members, parentTasks, 
             assigneeIds: assignedToIds,
         };
         try {
-            await onAddTask(taskData);
-            resetForm();
-            if (onClose) onClose();
+            const ok = await onAddTask(taskData);
+            if(ok !== false) {
+                toast.success('Task added!');
+                resetForm();
+                onClose();
+            }
         } catch (err) {
             // Error is handled by parent `handleAddNewTask`
+            toast.error(err?.message || 'Failed to add task.');
         } finally {
             setIsSaving(false);
         }
@@ -984,8 +988,6 @@ const TaskRow = ({ task, level, isExpanded, expandedRows, onToggle, members, isA
 
     const primaryAssignee = task.assignees && task.assignees.length > 0 ? task.assignees[0] : { name: 'Unassigned', primaryRole: '' };
     const normalizedStatus = (task.status || '').toLowerCase().trim();
-    console.log('isAdmin?', isAdmin, 'status:', task.status);
-
     return (
         <Fragment>
             <tr className={level > 0 ? 'bg-gray-50/50 hover:bg-gray-100/50' : 'hover:bg-gray-50'}>

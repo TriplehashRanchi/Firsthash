@@ -14,6 +14,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 const apiClient = axios.create({ baseURL: API_URL });
 
 import { VoiceNoteRecorder } from '@/components/show-details/VoiceNoteRecorder';
+import { on } from 'events';
 
 // --- Reusable UI Components ---
 
@@ -85,7 +86,6 @@ const AddTaskForm = ({ onAddTask, projects, deliverables, members, parentTasks, 
         setDueDate('');
         setLinkedProjectId('');
         setLinkedDeliverableId('');
-        setLinkedParentTaskId('');
         setAssignedToId('');
         setAssignedToIds([]);
     };
@@ -115,11 +115,14 @@ const AddTaskForm = ({ onAddTask, projects, deliverables, members, parentTasks, 
             assigneeIds: assignedToIds,
         };
          try {
-            await onAddTask(taskData);
-            resetForm();
-            if (onClose) onClose();
+            const ok = await onAddTask(taskData);
+            if(ok !== false) {
+                toast.success('Task Added!');
+                resetForm();
+                onClose();
+            }
         } catch (err) {
-            // Error is handled by parent `handleAddNewTask`
+            toast.error(err?.message || 'Failed to add task.');
         } finally {
             setIsSaving(false);
         }
