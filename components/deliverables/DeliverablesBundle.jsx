@@ -156,7 +156,7 @@ const handleSaveCustomBundle = useCallback(async () => {
     const editIconButtonAppliedStyles = `${baseEditDeleteButton} text-blue-600 bg-blue-100 hover:bg-blue-200 dark:text-blue-400 dark:bg-blue-800/30 dark:hover:bg-blue-700/40 focus:ring-blue-400 p-2`;
     const deleteIconButtonAppliedStyles = `${baseEditDeleteButton} text-red-500 bg-red-100 hover:bg-red-200 dark:text-red-400 dark:bg-red-800/30 dark:hover:bg-red-700/40 focus:ring-red-400 p-2`;
     const modalOverlayStyles = "fixed inset-0 bg-black/70 dark:bg-black/80 flex justify-center items-center z-50 p-4 backdrop-blur-sm";
-    const modalContentStyles = "bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-800 dark:text-white p-6 rounded-xl shadow-2xl w-full max-w-xl";
+    const modalContentStyles = "bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 text-gray-800 dark:text-white p-6 rounded-xl shadow-2xl w-full max-w-xl";
     const modalHeaderStyles = "text-2xl font-semibold text-gray-800 dark:text-gray-100";
     const modalCloseButtonStyles = "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white p-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors";
 
@@ -181,7 +181,7 @@ const handleSaveCustomBundle = useCallback(async () => {
                 {customBundles.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {customBundles.map((bundle) => (
-                            <div key={bundle.id} className={`${cardBaseStyles} ${bundle.type === 'global' ? 'bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700' : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700'}`}>
+                            <div key={bundle.id} className={`${cardBaseStyles} ${bundle.type === 'global' ? 'bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700' : 'bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700'}`}>
                                 <div className="flex justify-between items-start mb-1">
                                     <h4 className={cardTitleStyles}>
                                         {bundle.bundle_name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
@@ -213,7 +213,7 @@ const handleSaveCustomBundle = useCallback(async () => {
                         ))}
                     </div>
                 ) : (
-                    <div className="text-center py-10 px-6 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+                    <div className="text-center py-10 px-6 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
                         <PackagePlus size={48} className="mx-auto text-gray-400 dark:text-gray-500 mb-3" />
                         <p className="text-gray-500 dark:text-gray-400 text-md">No bundles found.</p>
                         <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">

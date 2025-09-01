@@ -930,7 +930,7 @@ function PayrollManagementPage() {
     const breadcrumbLinkStyles = 'text-blue-600 dark:text-blue-500 hover:underline';
 
     return (
-        <div className="min-h-screen p-4 sm:p-6 lg:p-8 text-slate-900">
+        <div className="min-h-screen p-4 sm:p-6 lg:p-8 text-slate-900 dark:text-slate-100">
             <BaseSalaryModal isOpen={isBaseSalaryModalOpen} onSave={handleUpdateBaseSalary} onCancel={() => setIsBaseSalaryModalOpen(false)} employee={editingEmployee} />
             <MonthlySalaryModal isOpen={isMonthlyModalOpen} onSave={handleUpdateMonthlyRecord} onCancel={() => setIsMonthlyModalOpen(false)} record={editingMonthlyRecord} />
             <PaymentHistoryModal isOpen={isPaymentHistoryModalOpen} onClose={() => setIsPaymentHistoryModalOpen(false)} employee={viewingEmployee} />
@@ -1052,7 +1052,7 @@ function PayrollManagementPage() {
 
                         {/* --- Freelancers Tab --- */}
                         {activeTab === 'freelancers' && (
-                            <div className="bg-white p-6 rounded-xl shadow-lg">
+                            <div className="bg-white p-6 dark:bg-slate-800 rounded-xl shadow-lg">
                                 <h2 className="text-xl font-bold mb-4">Freelancer Accounts</h2>
                                 <div className="overflow-x-auto">
                                     <table className="w-full text-left">

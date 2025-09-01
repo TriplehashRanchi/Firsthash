@@ -244,15 +244,15 @@ export default function EmployeeRolesPage({ searchParams }) {
   return (
     <>
       <div className="min-h-screen w-full">
-        <div className="w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-8">
+        <div className="w-full mx-auto p-2 sm:p-6 lg:p-4 space-y-2">
           <ul className="flex space-x-2 rtl:space-x-reverse mb-6">
             <li><a className="text-blue-600 hover:underline" href="/dashboard">Dashboard</a></li>
             <li className="before:content-['/'] ltr:before:mr-2 text-gray-500"><span>Manage Roles</span></li>
           </ul>
           
-          <div className="bg-white p-6 rounded-lg shadow-sm">
+          <div className="bg-white dark:bg-gray-900 p-6 rounded-lg shadow-sm">
             <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold text-gray-700">Existing Roles</h2>
+                <h2 className="text-xl dark:text-gray-200 font-semibold text-gray-700">Existing Roles</h2>
                 <button
                     onClick={() => setIsCreateModalOpen(true)}
                     className="inline-flex items-center gap-2 bg-black text-white px-5 py-2.5 rounded-lg font-semibold hover:bg-gray-800"
@@ -267,21 +267,21 @@ export default function EmployeeRolesPage({ searchParams }) {
             {!loading && !error && (
               <div className="overflow-x-auto">
                 <table className="min-w-full">
-                    <thead className="bg-gray-100">
+                    <thead className="bg-gray-100 ">
                         <tr>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase">Role Title</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase">Category</th>
-                            <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">Actions</th>
+                            <th className="px-4 py-3 dark:text-gray-200 text-left text-xs font-medium text-gray-600 uppercase">Role Title</th>
+                            <th className="px-4 py-3 dark:text-gray-200 text-left text-xs font-medium text-gray-600 uppercase">Category</th>
+                            <th className="px-4 py-3 dark:text-gray-200 text-right text-xs font-medium text-gray-600 uppercase">Actions</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-200">
+                    <tbody className="divide-y divide-gray-200 dark:bg-gray-900">
                         {roles.map(r =>
                             editingId === r.id ? (
                             // Inline Edit Row
                             <tr key={r.id} className="bg-indigo-50">
                                 <td className="px-4 py-3"><input className="w-full p-2 border-gray-300 rounded-md" value={editName} onChange={e => setEditName(e.target.value)} /></td>
                                 <td className="px-4 py-3">
-                                    <select className="w-full p-2 border-gray-300 rounded-md" value={editCode} onChange={e => setEditCode(e.target.value)}>
+                                    <select className="w-full p-2 border-gray-300  rounded-md" value={editCode} onChange={e => setEditCode(e.target.value)}>
                                         <option value={1}>On Production (1)</option>
                                         <option value={2}>Post Production (2)</option>
                                         <option value={0}>Manager (0)</option>
@@ -296,15 +296,15 @@ export default function EmployeeRolesPage({ searchParams }) {
                             </tr>
                             ) : (
                             // View Row
-                            <tr key={r.id} className="hover:bg-gray-50">
-                                <td className="px-4 py-3 font-semibold text-gray-800 flex items-center gap-3">
+                            <tr key={r.id} className="hover:bg-gray-50 hover:dark:bg-gray-700">
+                                <td className="px-4 dark:text-gray-200 py-3 font-semibold text-gray-800 flex items-center gap-3">
                                   {r.type_name}
                                   {r.is_predefined && (<span className="flex items-center gap-1.5 text-xs text-green-700 bg-green-100 px-2 py-0.5 rounded-full font-medium"><ShieldCheck size={14} /> Predefined</span>)}
                                 </td>
-                                <td className="px-4 py-3 text-gray-600">{r.role_code === 1 ? 'On Production' : r.role_code === 2 ? 'Post Production' : 'Manager'}</td>
+                                <td className="px-4 py-3 dark:text-gray-200 text-gray-600">{r.role_code === 1 ? 'On Production' : r.role_code === 2 ? 'Post Production' : 'Manager'}</td>
                                 <td className="px-4 py-3 text-right">
                                     <div className="flex justify-end space-x-2">
-                                        <button onClick={() => startEdit(r)} disabled={r.is_predefined} className="p-2 text-gray-500 rounded-md hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed"><Edit size={16} /></button>
+                                        <button onClick={() => startEdit(r)} disabled={r.is_predefined} className="p-2 text-gray-500 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"><Edit size={16} /></button>
                                         <button onClick={() => handleDelete(r.id)} disabled={r.is_predefined} className="p-2 text-gray-500 rounded-md hover:bg-red-100 hover:text-red-600 disabled:opacity-40 disabled:cursor-not-allowed"><Trash2 size={16} /></button>
                                     </div>
                                 </td>

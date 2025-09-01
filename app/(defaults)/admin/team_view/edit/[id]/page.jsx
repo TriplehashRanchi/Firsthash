@@ -28,9 +28,9 @@ const Toast = ({ message, type, onClose }) => {
 };
 
 const FormCard = ({ title, children }) => (
-    <div className="bg-white border border-gray-200 rounded-lg shadow-sm mb-8">
+    <div className="bg-white dark:bg-gray-900 dark:text-gray-200 border border-gray-200 rounded-lg shadow-sm mb-8">
         <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-800">{title}</h2>
+            <h2 className="text-lg dark:text-gray-200 font-semibold text-gray-800">{title}</h2>
         </div>
         <div className="p-6">{children}</div>
     </div>
@@ -38,15 +38,15 @@ const FormCard = ({ title, children }) => (
 
 const InputField = ({ label, ...props }) => (
     <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
-        <input {...props} className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" />
+        <label className="block dark:text-gray-200 text-sm font-medium text-gray-700 mb-1">{label}</label>
+        <input {...props} className="w-full px-3 dark:bg-gray-700 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" />
     </div>
 );
 
 const SelectField = ({ label, children, ...props }) => (
     <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
-        <select {...props} className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+        <label className="block dark:text-gray-200 text-sm font-medium text-gray-700 mb-1">{label}</label>
+        <select {...props} className="w-full px-3  dark:bg-gray-700 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
             {children}
         </select>
     </div>
@@ -189,19 +189,20 @@ const handleBankSubmit = async e => {
 
     
     if (pageLoading) {
-        return <div className="flex justify-center items-center h-screen bg-gray-50"><div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div></div>;
+        return <div className="flex justify-center items-center h-screen bg-gray-50 dark:bg-gray-900"><div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin dark:border-gray-700"></div></div>;
     }
 
     console.log(form);
 
     return (
-        <div className="bg-gray-50 min-h-screen">
+       <div className="bg-gray-50 dark:bg-gray-900 min-h-screen">
+
             <Toast message={toast.message} type={toast.type} onClose={() => setToast({ message: '', type: '' })} />
             
             {/* Page Header */}
-            <div className="bg-white border-b border-gray-200 px-6 py-4">
+            <div className="bg-white dark:bg-gray-900 border-b border-gray-200 px-6 py-4">
                 <div className="flex items-center justify-between">
-                    <h1 className="text-2xl font-semibold text-gray-800">Edit Member</h1>
+                    <h1 className="text-2xl dark:text-gray-200 font-semibold text-gray-800">Edit Member</h1>
                     <button onClick={() => router.back()} className="px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-md hover:bg-gray-700">
                         Back to Team
                     </button>

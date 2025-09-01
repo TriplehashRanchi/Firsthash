@@ -116,23 +116,23 @@ export default function AttendanceViewPage() {
     }, [id]);
 
     if (loading) {
-        return <LoadingSpinner text="Loading History..." />;
+        return <LoadingSpinner text="Loading History..." className="dark:bg-gray-700"/>;
     }
 
     if (error) {
         return <div className="text-center mt-10 p-4 bg-red-100 text-red-700 rounded-md max-w-md mx-auto">{error}</div>;
     }
 
-    // --- The UI below is unchanged ---
+  
 
     return (
-        <main className="min-h-screen p-6 md:p-8 bg-gray-50">
+        <main className="min-h-screen p-6 md:p-8 bg-gray-50 dark:bg-gray-900">
             <div className="flex justify-between items-center mb-6">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-800">Attendance History</h1>
-                    {member && <p className="text-lg text-gray-600">For {member.name}</p>}
+                    <h1 className="text-3xl dark:text-gray-200 font-bold text-gray-800">Attendance History</h1>
+                    {member && <p className="text-lg dark:text-gray-400 text-gray-600">For {member.name}</p>}
                 </div>
-                <button onClick={() => router.back()} className="px-4 py-2 text-black text-sm font-medium flex items-center">
+                <button onClick={() => router.back()} className="px-4 py-2 dark:text-gray-200 text-black text-sm font-medium flex items-center">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 mr-2">
                         <path
                             fillRule="evenodd"
@@ -145,19 +145,19 @@ export default function AttendanceViewPage() {
 
             <div className="bg-white shadow-md rounded-lg overflow-hidden">
                 <table className="min-w-full">
-                    <thead className="bg-gray-100 border-b">
+                    <thead className="bg-gray-100  border-b">
                         <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Clock In</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Clock Out</th>
+                            <th className="px-6 py-3 dark:text-gray-200 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                            <th className="px-6 py-3 dark:text-gray-200 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th className="px-6 py-3 dark:text-gray-200 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Clock In</th>
+                            <th className="px-6 py-3 dark:text-gray-200 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Clock Out</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-200">
+                    <tbody className="divide-y divide-gray-200 dark:bg-gray-900 ">
                         {history.length > 0 ? (
                             history.map((rec) => (
-                                <tr key={rec.a_id} className="hover:bg-gray-50">
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800">
+                                <tr key={rec.a_id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                                    <td className="px-6 py-4 dark:text-gray-200 whitespace-nowrap text-sm text-gray-800">
                                         {new Date(rec.a_date).toLocaleDateString(undefined, {
                                             weekday: 'long',
                                             year: 'numeric',
@@ -165,15 +165,15 @@ export default function AttendanceViewPage() {
                                             day: 'numeric',
                                         })}
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
+                                    <td className="px-6 dark:text-gray-200 py-4 whitespace-nowrap">
                                         <span
                                             className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${rec.a_status === 1 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}
                                         >
                                             {rec.a_status === 1 ? 'Present' : 'Absent'}
                                         </span>
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{rec.in_time || 'N/A'}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{rec.out_time || 'N/A'}</td>
+                                    <td className="px-6 dark:text-gray-200 py-4 whitespace-nowrap text-sm text-gray-500">{rec.in_time || 'N/A'}</td>
+                                    <td className="px-6 dark:text-gray-200 py-4 whitespace-nowrap text-sm text-gray-500">{rec.out_time || 'N/A'}</td>
                                 </tr>
                             ))
                         ) : (

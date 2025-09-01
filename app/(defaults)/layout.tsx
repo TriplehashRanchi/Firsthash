@@ -51,7 +51,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <AdminSidebar />
           {/* END SIDEBAR */}
 
-          <div className="main-content  bg-white flex min-h-screen flex-col">
+          <div className="main-content  flex min-h-screen flex-col">
             {/* BEGIN TOP NAVBAR */}
             <Header />
             {/* END TOP NAVBAR */}

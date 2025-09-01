@@ -76,7 +76,7 @@ const ReceivedAmount = ({ onValidChange, onDataChange, initialData }) => {
 
 
     // --- Styles for Light/Dark Mode ---
-    const sectionWrapperStyles = "mb-6 p-4 bg-white dark:bg-gray-800/50 rounded-lg shadow-md dark:shadow-gray-700/50";
+    const sectionWrapperStyles = "mb-6 p-4 bg-white dark:bg-gray-900/50 rounded-lg shadow-md dark:shadow-gray-700/50";
     const sectionHeadingStyles = "text-xl font-semibold mb-1 text-gray-800 dark:text-gray-100";
     const sectionSubheadingStyles = "text-sm text-gray-500 dark:text-gray-400 mb-3";
     const inputBase = "w-full text-sm rounded-lg p-2.5 h-[42px] border";

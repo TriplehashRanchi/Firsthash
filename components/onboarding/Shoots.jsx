@@ -209,7 +209,7 @@ const ShootRow = ({
             {showServiceOptions && (
                 <>
                     <div className="fixed inset-0 bg-black/30 dark:bg-black/50 z-[4990]" onClick={() => setShowServiceOptions()} aria-hidden="true"></div> {/* High z-index */}
-                    <div ref={servicesPanelRef} className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-[5000] p-4 md:p-6 rounded-lg shadow-2xl w-[90vw] max-w-2xl bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 max-h-[85vh] flex flex-col">
+                    <div ref={servicesPanelRef} className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-[5000] p-4 md:p-6 rounded-lg shadow-2xl w-[90vw] max-w-2xl bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 max-h-[85vh] flex flex-col">
                         <div className="flex justify-between items-center mb-4 pb-3 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
                             <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Manage & Select Services</h3>
                             <button onClick={() => setShowServiceOptions()} className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"><X size={20} /></button>
@@ -417,7 +417,7 @@ const Shoots = ({company, onValidChange, onDataChange, initialData }) => {
 
 
    return (
-        <div className="mb-6 p-4 bg-white dark:bg-gray-800/50 rounded-lg shadow-md dark:shadow-gray-700/50">
+        <div className="mb-6 p-4 bg-white dark:bg-gray-900/50 rounded-lg shadow-md dark:shadow-gray-700/50">
             <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-semibold text-gray-700 dark:text-gray-200">Shoot Schedule</h2>
                 <button onClick={addShoot} className={addShootButtonStyles} title="Add Another Shoot" type="button">

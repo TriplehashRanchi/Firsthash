@@ -244,10 +244,10 @@ export default function MemberForm() {
                         <form onSubmit={handleSubmit} className="space-y-8">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 border-t pt-8">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-600 mb-2">Member Category</label>
+                                    <label className="block text-sm font-medium bg-dark-600 text-gray-600 mb-2">Member Category</label>
                                     <div className="flex flex-col sm:flex-row gap-3">
                                         {categories.map((cat) => (
-                                            <button key={cat.id} type="button" onClick={() => { setCategory(cat.id); setSelectedRoles([]); }} className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-lg border-2 transition-all ${category === cat.id ? 'bg-indigo-50 border-indigo-500 text-indigo-600 shadow-sm' : 'bg-white border-gray-300 text-gray-500 hover:border-gray-400'}`}>
+                                            <button key={cat.id} type="button" onClick={() => { setCategory(cat.id); setSelectedRoles([]); }} className={`flex-1 flex items-center justify-center dark:bg-slate-700 dark:text-gray-100 gap-2 p-3 rounded-lg border-2 transition-all ${category === cat.id ? 'bg-indigo-50  dark:bg-slate-800 dark:text-white border-indigo-500 text-indigo-600 shadow-sm' : 'bg-white border-gray-300 text-gray-500 hover:border-gray-400'}`}>
                                                 {cat.icon}
                                                 <span className="font-semibold">{cat.label}</span>
                                             </button>
@@ -262,7 +262,7 @@ export default function MemberForm() {
                                             <button
                                                 type="button"
                                                 onClick={() => setIsRoleModalOpen(true)}
-                                                className="w-full px-4 py-2 border rounded-md text-left bg-white hover:bg-gray-50 focus:outline-none focus:ring"
+                                                className="w-full px-4 py-2 border rounded-md text-left bg-white dark:bg-slate-800 hover:bg-gray-50 focus:outline-none focus:ring"
                                             >
                                                 {selectedRoles.length > 0 ? `${selectedRoles.length} role(s) selected` : 'Click to select roles...'}
                                             </button>

@@ -75,7 +75,7 @@ const AttendanceModal = ({ isOpen, onClose, record, onRecordChange, onSave, isSa
         }
     };
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
+        <div className="fixed  inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
             <div className="bg-white rounded-xl p-8 w-full max-w-md">
                 <div className="flex justify-between items-start">
                     <div>
@@ -304,7 +304,7 @@ export default function TeamViewPage() {
                                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-200">
+                        <tbody className="divide-y dark:bg-gray-900 dark:divide-gray-700 divide-gray-200">
                             {members.map(m => {
                                 // ===== CORRECTED CODE: This block safely handles the 'roles' property =====
                                 let assignedRoleNames = [];
@@ -338,9 +338,9 @@ export default function TeamViewPage() {
                                 // =======================================================================
                                 
                                 return (
-                                <tr key={m.firebase_uid} className="hover:bg-gray-50 transition-colors">
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{m.name}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{TYPE_LABELS[m.employee_type] || 'Unknown'}</td>
+                                <tr key={m.firebase_uid} className="hover:bg-gray-50  dark:hover:bg-gray-700  dark:bg-gray-900  dark:text-gray-200 transition-colors">
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm dark:text-gray-200 font-medium text-gray-900">{m.name}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm dark:text-gray-200 text-gray-600">{TYPE_LABELS[m.employee_type] || 'Unknown'}</td>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         {/* ======================================================================= */}
                                         {/* --- REPLACED: The old list of badges is replaced with the new component --- */}

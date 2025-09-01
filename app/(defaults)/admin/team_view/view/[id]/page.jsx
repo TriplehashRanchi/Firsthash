@@ -9,9 +9,9 @@ const TYPE_LABELS = { 0: 'Freelancer', 1: 'In-house' };
 
 // A dedicated component for displaying a piece of information.
 const InfoRow = ({ label, value, isCurrency = false }) => (
-    <div className="py-3 sm:grid sm:grid-cols-3 sm:gap-4">
-        <dt className="text-sm font-medium text-gray-600">{label}</dt>
-        <dd className="mt-1 text-sm text-gray-800 sm:mt-0 sm:col-span-2">
+    <div className="py-3  sm:grid sm:grid-cols-3 sm:gap-4">
+        <dt className="text-sm dark:text-gray-200 font-medium text-gray-600">{label}</dt>
+        <dd className="mt-1 dark:text-gray-200 text-sm text-gray-800 sm:mt-0 sm:col-span-2">
             {isCurrency && value ? '₹' : ''}{value || 'N/A'}
         </dd>
     </div>
@@ -19,8 +19,8 @@ const InfoRow = ({ label, value, isCurrency = false }) => (
 
 // A simple loading spinner component.
 const LoadingSpinner = () => (
-    <div className="flex justify-center items-center p-10">
-        <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+    <div className="flex justify-center dark:bg-gray-900 items-center p-10">
+        <div className="w-8 h-8 border-4 dark:bg-gray-700 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
         <p className="ml-4 text-gray-600">Loading Member Details...</p>
     </div>
 );
@@ -80,11 +80,11 @@ export default function MemberViewPage() {
     if (!member) return <p className="p-6 text-center text-red-500">Failed to load member data.</p>;
 
     return (
-        <div className="bg-gray-50 min-h-screen">
+        <div className="bg-gray-50 dark:bg-gray-900 min-h-screen">
             {/* Page Header */}
-            <div className="bg-white border-b border-gray-200 px-6 py-4">
-                <div className="flex items-center justify-between">
-                    <h1 className="text-2xl font-semibold text-gray-800">Member Profile</h1>
+            <div className="bg-white dark:bg-gray-900 border-b border-gray-200 px-6 py-4">
+                <div className="flex  items-center justify-between">
+                    <h1 className="text-2xl dark:text-gray-200 font-semibold text-gray-800">Member Profile</h1>
                     <button
                         onClick={() => router.back()}
                         className="px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-md hover:bg-gray-700"
@@ -97,12 +97,12 @@ export default function MemberViewPage() {
             {/* Main Content */}
             <div className="p-6">
                 {/* Personal Information Card */}
-                <div className="bg-white border border-gray-200 rounded-lg shadow-sm mb-6">
+                <div className="bg-white dark:bg-gray-900   border border-gray-200 rounded-lg shadow-sm mb-6">
                     <div className="px-6 py-4 border-b border-gray-200">
-                        <h2 className="text-lg font-semibold text-gray-800">Personal Information</h2>
+                        <h2 className="text-lg dark:text-gray-200 font-semibold text-gray-800">Personal Information</h2>
                     </div>
-                    <div className="px-6 divide-y divide-gray-200">
-                        <dl>
+                    <div className="px-6 divide-y divide-gray-200 ">
+                        <dl >
                             <InfoRow label="Name" value={member.name} />
                             <InfoRow label="Email" value={member.email} />
                             <InfoRow label="Phone" value={member.phone} />
@@ -112,11 +112,11 @@ export default function MemberViewPage() {
                 </div>
 
                 {/* Employment Details Card */}
-                <div className="bg-white border border-gray-200 rounded-lg shadow-sm mb-6">
+                <div className="bg-white dark:bg-gray-900 border border-gray-200 rounded-lg shadow-sm mb-6">
                     <div className="px-6 py-4 border-b border-gray-200">
-                        <h2 className="text-lg font-semibold text-gray-800">Employment Details</h2>
+                        <h2 className="text-lg dark:text-gray-200 font-semibold text-gray-800">Employment Details</h2>
                     </div>
-                    <div className="px-6 divide-y divide-gray-200">
+                    <div className="px-6 divide-y divide-gray-200 dark:text-gray-200">
                         <dl>
                             <InfoRow label="Type" value={TYPE_LABELS[member.employee_type]} />
                             <InfoRow label="Role" value={member.role} />
@@ -130,15 +130,15 @@ export default function MemberViewPage() {
 
                 {/* Payment Details Card - Only shown for In-house employees */}
                 {member.employee_type === 1 && (
-                    <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
+                    <div className="bg-white dark:bg-gray-900  border border-gray-200 rounded-lg shadow-sm">
                         <div className="px-6 py-4 border-b border-gray-200">
-                            <h2 className="text-lg font-semibold text-gray-800">Payment Details</h2>
+                            <h2 className="text-lg dark:text-gray-200 font-semibold text-gray-800">Payment Details</h2>
                         </div>
                         <div className="px-6">
                             {!paymentDetails ? (
-                                <p className="py-4 text-sm text-gray-500">No payment details have been recorded.</p>
+                                <p className="py-4 text-sm dark:text-gray-200 text-gray-500">No payment details have been recorded.</p>
                             ) : (
-                                <dl className="divide-y divide-gray-200">
+                                <dl className="divide-y divide-gray-200 dark:text-gray-200">
                                     <InfoRow label="Bank Name" value={paymentDetails.bank_name} />
                                     <InfoRow label="Branch Name" value={paymentDetails.branch_name} />
                                     <InfoRow label="IFSC Code" value={paymentDetails.ifsc_code} />

@@ -138,14 +138,14 @@ const Clients = ({ company, onValidChange, onDataChange, initialData }) => {
   const inputBaseStyles = "w-full p-2 rounded border h-[42px]";
   const themedInputStyles = `${inputBaseStyles} bg-white text-gray-800 border-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400`;
   const themedSelectStyles = `${themedInputStyles} appearance-none`;
-  const readonlyInputStyles = `${inputBaseStyles} bg-gray-100 text-gray-700 border-gray-300 dark:bg-gray-800/70 dark:text-gray-300 dark:border-gray-600 cursor-default`;
+  const readonlyInputStyles = `${inputBaseStyles} bg-gray-100 text-gray-700 border-gray-300 dark:bg-gray-900/70 dark:text-gray-300 dark:border-gray-600 cursor-default`;
   const customSelectArrow = {
     backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E")`,
     backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.5rem center',
     backgroundSize: '1.5em 1.5em', paddingRight: '2.5rem'
   };
   const labelStyles = "block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300";
-  const sectionWrapperStyles = "mb-6 p-4 bg-white dark:bg-gray-800/50 rounded-lg shadow-md dark:shadow-gray-700/50";
+  const sectionWrapperStyles = "mb-6 p-4 bg-white dark:bg-gray-900/50 rounded-lg shadow-md dark:shadow-gray-700/50";
   const sectionHeadingStyles = "text-xl font-semibold mb-4 text-gray-700 dark:text-gray-200";
 
   return (

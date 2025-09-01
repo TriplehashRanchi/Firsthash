@@ -20,8 +20,8 @@ import { on } from 'events';
 
 const LoadingSpinner = ({ text }) => (
     <div className="flex flex-col justify-center items-center h-screen bg-gray-50">
-        <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-        <p className="mt-4 text-lg text-gray-600">{text}</p>
+        <div className="w-10 h-10 dark:bg-gray-900 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+        <p className="mt-4 dark:text-gray-200 text-lg text-gray-600">{text}</p>
     </div>
 );
 
@@ -54,15 +54,6 @@ const colorClasses = [
     'bg-orange-100 text-orange-800',
     'bg-teal-100 text-teal-800',
 ];
-const getColorFromString = (str) => {
-    if (!str) return 'bg-gray-100 text-gray-800';
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-        hash = str.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    const index = Math.abs(hash % colorClasses.length);
-    return colorClasses[index];
-};
 
 // --- Redesigned, Compact, and Smart AddTaskForm ---
 const AddTaskForm = ({ onAddTask, projects, deliverables, members, parentTasks, onClose }) => {
@@ -98,15 +89,6 @@ const AddTaskForm = ({ onAddTask, projects, deliverables, members, parentTasks, 
             return;
         }
         setIsSaving(true);
-        // const taskData = {
-        //     title,
-        //     description,
-        //     due_date: dueDate || null,
-        //     project_id: linkedProjectId || null,
-        //     deliverable_id: linkedDeliverableId || null,
-        //     // assignee_ids: assignedToId ? [assignedToId] : [],
-        //     assignee_ids: assignedToIds,
-        // };
         const taskData = {
             title,
             description,
@@ -123,14 +105,13 @@ const AddTaskForm = ({ onAddTask, projects, deliverables, members, parentTasks, 
                 onClose();
             }
         } catch (err) {
-            // Error is handled by parent `handleAddNewTask`
+         
             toast.error(err?.message || 'Failed to add task.');
         } finally {
             setIsSaving(false);
         }
     };
 
-    // --- Custom Styles for react-select (no changes needed) ---
     const customSelectStyles = {
         control: (provided, state) => ({
             ...provided,
@@ -150,12 +131,12 @@ const AddTaskForm = ({ onAddTask, projects, deliverables, members, parentTasks, 
         singleValue: (provided) => ({ ...provided, color: '#1F2937' }),
         placeholder: (provided) => ({ ...provided, color: '#6B7280' }),
     };
-    // --- NEW COMPACT LAYOUT ---
+   
     return (
-        <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Primary Info: Title */}
+        <form onSubmit={handleSubmit} className="space-y-4 ">
+            
             <div>
-                <label htmlFor="task-title" className="block text-sm font-medium text-gray-600 mb-1.5">
+                <label htmlFor="task-title" className="block dark:text-gray-200  text-sm font-medium text-gray-600 mb-1.5">
                     Task Title
                 </label>
                 <input
@@ -164,15 +145,14 @@ const AddTaskForm = ({ onAddTask, projects, deliverables, members, parentTasks, 
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     placeholder="What needs to be done?"
-                    className="w-full bg-gray-50 border border-gray-300 rounded-lg px-4 py-2 text-gray-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
+                    className="w-full bg-gray-50 dark:bg-gray-800 dark:text-gray-200 border border-gray-300 rounded-lg px-4 py-2 text-gray-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
                     required
                 />
             </div>
 
-            {/* Core Details Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 dark:text-gray-200 md:grid-cols-2 gap-4">
                 <div>
-                    <label htmlFor="task-assignee" className="block text-sm font-medium text-gray-600 mb-1.5">
+                    <label htmlFor="task-assignee" className="block dark:text-gray-200 text-sm font-medium text-gray-600 mb-1.5">
                         Assign To
                     </label>
                     <Select
@@ -186,7 +166,7 @@ const AddTaskForm = ({ onAddTask, projects, deliverables, members, parentTasks, 
                     />
                 </div>
                 <div>
-                    <label htmlFor="task-due-date" className="block text-sm font-medium text-gray-600 mb-1.5">
+                    <label htmlFor="task-due-date" className="block dark:text-gray-200 text-sm font-medium text-gray-600 mb-1.5">
                         Due Date
                     </label>
                     <input
@@ -194,11 +174,11 @@ const AddTaskForm = ({ onAddTask, projects, deliverables, members, parentTasks, 
                         type="date"
                         value={dueDate}
                         onChange={(e) => setDueDate(e.target.value)}
-                        className="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2 text-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
+                        className="w-full bg-gray-50 dark:bg-gray-800 dark:text-gray-200 border border-gray-300 rounded-lg px-3 py-2 text-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
                     />
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-gray-600 mb-1.5">Project</label>
+                    <label className="block text-sm dark:text-gray-200 font-medium text-gray-600 mb-1.5">Project</label>
                     <Select
                         styles={customSelectStyles}
                         options={projectOptions}
@@ -211,7 +191,7 @@ const AddTaskForm = ({ onAddTask, projects, deliverables, members, parentTasks, 
                     />
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-gray-600 mb-1.5">Deliverable</label>
+                    <label className="block text-sm dark:text-gray-200 font-medium text-gray-600 mb-1.5">Deliverable</label>
                     <Select
                         styles={customSelectStyles}
                         options={deliverableOptions}
@@ -226,7 +206,7 @@ const AddTaskForm = ({ onAddTask, projects, deliverables, members, parentTasks, 
             </div>
             {/* Additional Details */}
             <div>
-                <label htmlFor="task-description" className="block text-sm font-medium text-gray-600 mb-1.5">
+                <label htmlFor="task-description" className="block dark:text-gray-200  text-sm font-medium text-gray-600 mb-1.5">
                     Description
                 </label>
                 <textarea
@@ -234,12 +214,12 @@ const AddTaskForm = ({ onAddTask, projects, deliverables, members, parentTasks, 
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     placeholder="Add more details (optional)..."
-                    className="w-full bg-gray-50 border border-gray-300 rounded-lg px-4 py-2 text-gray-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
+                    className="w-full bg-gray-50 dark:bg-gray-800 dark:text-gray-200 border border-gray-300 rounded-lg px-4 py-2 text-gray-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
                     rows="2" // Reduced rows
                 />
             </div>
             {/* Final Action Buttons */}
-            <div className="flex justify-end items-center gap-3 pt-4 border-t mt-4">
+            <div className="flex justify-end items-center gap-3 pt-4 mt-4">
                 <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 transition-colors">
                     Cancel
                 </button>
@@ -260,12 +240,12 @@ const CreateTaskModal = ({ isOpen, onClose, ...props }) => {
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-start pt-16 z-50">
-            <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-3xl relative transform transition-all">
+        <div className="fixed  inset-0 bg-black bg-opacity-60 flex justify-center items-start pt-16 z-50">
+            <div className="bg-white  dark:bg-gray-900 p-8 rounded-2xl shadow-2xl w-full max-w-3xl relative transform transition-all">
                 <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-700" title="Close">
                     <X size={24} />
                 </button>
-                <h2 className="text-2xl font-bold text-gray-800 mb-6">Create & Assign a New Task</h2>
+                <h2 className="text-2xl dark:text-gray-200 font-bold text-gray-800 mb-6">Create & Assign a New Task</h2>
                 <AddTaskForm onClose={onClose} {...props} />
             </div>
         </div>
@@ -792,24 +772,24 @@ export default function ProjectTaskDashboardPage() {
                         <table className="min-w-full divide-y divide-gray-200">
                             <thead className="bg-gray-50">
                                 <tr>
-                                    <th scope="col" className="w-2/5 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th scope="col" className="w-2/5 dark:text-gray-200 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Task
                                     </th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th scope="col" className="px-6 dark:text-gray-200 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Status
                                     </th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th scope="col" className="px-6 dark:text-gray-200 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Assign To
                                     </th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th scope="col" className="px-6 dark:text-gray-200 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Due Date
                                     </th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th scope="col" className="px-6 dark:text-gray-200 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Actions
                                     </th>
                                 </tr>
                             </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
+                            <tbody className="bg-white divide-y divide-gray-200 dark:bg-gray-900 dark:divide-gray-700">
                                 {processedTasks.map((task) => (
                                     <TaskRow
                                         key={task.id}
@@ -989,11 +969,11 @@ const TaskRow = ({ task, level, isExpanded, expandedRows, onToggle, members, isA
     const primaryAssignee = task.assignees && task.assignees.length > 0 ? task.assignees[0] : { name: 'Unassigned', primaryRole: '' };
     const normalizedStatus = (task.status || '').toLowerCase().trim();
     return (
-        <Fragment>
-            <tr className={level > 0 ? 'bg-gray-50/50 hover:bg-gray-100/50' : 'hover:bg-gray-50'}>
+        <Fragment className="dark:bg-gray-900">
+            <tr className={level > 0 ? 'bg-gray-50/50 dark:bg-gray-900 hover:bg-gray-100/50' : 'hover:bg-gray-50 dark:hover:bg-gray-600 dark:text-gray-100'}>
                 {/* Task Title */}
                 <td className="px-6 py-4 align-top whitespace-nowrap">
-                    <div className="flex items-start gap-2" style={{ paddingLeft: `${level * 1.5}rem` }}>
+                    <div className="flex dark:text-gray-100 items-start gap-2" style={{ paddingLeft: `${level * 1.5}rem` }}>
                         <div className="flex-shrink-0 pt-1">
                             {hasChildren ? (
                                 <button onClick={() => onToggle(task.id)} className="p-1 rounded-full hover:bg-gray-200">
@@ -1010,14 +990,14 @@ const TaskRow = ({ task, level, isExpanded, expandedRows, onToggle, members, isA
                                     type="text"
                                     value={handlers.editedTask.taskTitle}
                                     onChange={(e) => handlers.onEditChange({ ...handlers.editedTask, taskTitle: e.target.value })}
-                                    className="w-full bg-white border-gray-300 rounded-md shadow-sm py-2 px-3 text-sm"
+                                    className="w-full  bg-white dark:bg-gray-700 dark:text-gray-200 border-gray-300 rounded-md shadow-sm py-2 px-3 text-sm"
                                 />
                             ) : (
                                 <>
                                     <div className="flex items-center flex-wrap">
-                                        <span className="font-semibold text-gray-900">{displayText}</span>
+                                        <span className="font-semibold text-gray-900 dark:text-gray-100">{displayText}</span>
                                         {isLong && !isFullyShown && (
-                                            <button onClick={() => onToggleFullText(task.id)} className="ml-2 text-indigo-600 hover:underline font-bold flex-shrink-0">
+                                            <button onClick={() => onToggleFullText(task.id)} className="ml-2 text-indigo-600 dark:text-gray-400 hover:underline font-bold flex-shrink-0">
                                                 ...
                                             </button>
                                         )}
@@ -1050,10 +1030,10 @@ const TaskRow = ({ task, level, isExpanded, expandedRows, onToggle, members, isA
                             ))}
                         </div>
                         <div className="flex flex-col">
-                            <span className="font-medium group-hover:text-indigo-600 transition">{primaryAssignee.name}</span>
+                            <span className="font-medium dark:text-gray-200 group-hover:text-indigo-600 transition">{primaryAssignee.name}</span>
                             {/* This now displays the role correctly */}
-                            {primaryAssignee.primaryRole && <span className="text-xs text-gray-500">{primaryAssignee.primaryRole}</span>}
-                            {task.assignees.length > 1 && primaryAssignee.name !== 'Unassigned' && <span className="text-xs text-gray-500 mt-1">+{task.assignees.length - 1} more</span>}
+                            {primaryAssignee.primaryRole && <span className="text-xs dark:text-gray-200 text-gray-500">{primaryAssignee.primaryRole}</span>}
+                            {task.assignees.length > 1 && primaryAssignee.name !== 'Unassigned' && <span className="text-xs dark:text-gray-200 text-gray-500 mt-1">+{task.assignees.length - 1} more</span>}
                         </div>
                     </div>
                 </td>
@@ -1064,20 +1044,20 @@ const TaskRow = ({ task, level, isExpanded, expandedRows, onToggle, members, isA
                             type="date"
                             value={handlers.editedTask.dueDate}
                             onChange={(e) => handlers.onEditChange({ ...handlers.editedTask, dueDate: e.target.value })}
-                            className="w-full bg-white border-gray-300 rounded-md py-1 px-2 text-sm"
+                            className="w-full bg-white dark:bg-gray-700  border-gray-300 rounded-md py-1 px-2 text-sm"
                         />
                     ) : isEditingDueDate ? (
                         <input
                             type="date"
                             defaultValue={task.due_date ? new Date(task.due_date).toISOString().split('T')[0] : ''}
                             onBlur={(e) => handlers.onDueDateChange(task, e.target.value)}
-                            className="w-full bg-white border border-indigo-500 rounded-md py-1 px-2 text-sm"
+                            className="w-full bg-white border dark:text-gray-200 dark:bg-gray-700 border-indigo-500 rounded-md py-1 px-2 text-sm"
                             autoFocus
                         />
                     ) : (
                         <div
                             onClick={() => handlers.onSetDueDateEditingId(task.id)}
-                            className={`cursor-pointer inline-block px-2 py-1 rounded-md ${isOverdue ? 'text-red-700 bg-red-100 font-semibold' : 'text-gray-700'}`}
+                            className={`cursor-pointer inline-block px-2 py-1 rounded-md ${isOverdue ? 'text-red-700 dark:text-red-600 bg-red-100 font-semibold' : 'text-gray-700 dark:text-gray-200'}`}
                         >
                             {formattedDueDate}
                         </div>
@@ -1104,16 +1084,16 @@ const TaskRow = ({ task, level, isExpanded, expandedRows, onToggle, members, isA
                                 >
                                     {task.voice_note_url ? <PlayCircle size={16} /> : <Mic size={16} />}
                                 </button>
-                                <button onClick={() => handlers.onToggleSubtaskForm(task.id)} className="text-gray-500 hover:text-gray-800" title="Add Sub-task">
+                                <button onClick={() => handlers.onToggleSubtaskForm(task.id)} className="text-gray-500 dark:text-gray-400 hover:text-gray-800" title="Add Sub-task">
                                     <PlusCircle size={16} />
                                 </button>
-                                <button onClick={() => handlers.onEditClick(task)} className="text-indigo-600 hover:text-indigo-900" title="Edit Task">
+                                <button onClick={() => handlers.onEditClick(task)} className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-900" title="Edit Task">
                                     <Edit size={16} />
                                 </button>
                                 <button onClick={() => handlers.onDelete(task.id)} className="text-red-500 hover:text-red-800" title="Delete Task">
                                     <Trash2 size={16} />
                                 </button>
-                                <button onClick={() => handlers.onOpenAssigneeModal(task)} className="text-purple-600 hover:text-purple-900" title="Manage Assignees">
+                                <button onClick={() => handlers.onOpenAssigneeModal(task)} className="text-purple-600 dark:text-purple-400 hover:text-purple-900" title="Manage Assignees">
                                     <Users size={16} />
                                 </button>
                             </>

@@ -417,7 +417,7 @@ const AdminDashboard = () => {
 
   // Stat Card Component for KPIs
   const StatCard = ({ icon, value, title, colorClass }) => (
-    <div className="panel flex items-center overflow-hidden p-4">
+    <div className="panel  flex items-center overflow-hidden p-4">
       <div className={`grid h-14 w-14 shrink-0 place-content-center rounded-md ${colorClass}`}>
         {icon}
       </div>
@@ -430,7 +430,7 @@ const AdminDashboard = () => {
 
   return (
     <div>
-      <ul className="flex space-x-2 rtl:space-x-reverse">
+      <ul className="flex space-x-2   rtl:space-x-reverse">
         <li>
           <Link href="/" className="text-primary hover:underline">
             Dashboard

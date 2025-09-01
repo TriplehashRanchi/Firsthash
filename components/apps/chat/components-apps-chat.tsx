@@ -638,7 +638,7 @@ const ComponentsAppsChat = () => {
                                                             <div className="space-y-2">
                                                                 <div className="flex items-center gap-3">
                                                                     <div
-                                                                        className={`rounded-md bg-black/10 p-4 py-2 dark:bg-gray-800 ${
+                                                                        className={`rounded-md bg-black/10 p-4 py-2 dark:bg-gray-900 ${
                                                                             message.fromUserId === selectedUser.userId
                                                                                 ? '!bg-primary text-white ltr:rounded-br-none rtl:rounded-bl-none'
                                                                                 : 'ltr:rounded-bl-none rtl:rounded-br-none'

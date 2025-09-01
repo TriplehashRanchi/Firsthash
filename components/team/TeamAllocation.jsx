@@ -105,7 +105,7 @@ const TeamAllocation = ({ projects, teamMembers, onDataChange, onValidChange }) 
     };
 
     // --- Style Definitions ---
-    const sectionWrapperStyles = "p-4 sm:p-6 bg-white dark:bg-gray-800/50 rounded-lg shadow-md dark:shadow-gray-700/50";
+    const sectionWrapperStyles = "p-4 sm:p-6 bg-white dark:bg-gray-900/50 rounded-lg shadow-md dark:shadow-gray-700/50";
     const inputBaseStyles = "w-full p-2.5 rounded-md border h-[42px] text-sm";
     const themedInputStyles = `${inputBaseStyles} bg-white text-gray-800 border-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent`;
     const themedSelectStyles = `${themedInputStyles} appearance-none`;
@@ -150,7 +150,7 @@ const TeamAllocation = ({ projects, teamMembers, onDataChange, onValidChange }) 
                     {/* Table Body */}
                     <div className="space-y-3">
                         {allocations.map(alloc => (
-                            <div key={alloc.id} className="grid grid-cols-1 sm:grid-cols-[2fr_2fr_1fr_auto] gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg items-center">
+                            <div key={alloc.id} className="grid grid-cols-1 sm:grid-cols-[2fr_2fr_1fr_auto] gap-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg items-center">
                                 
                                 <div className="w-full">
                                     <label className="sm:hidden text-xs font-medium text-gray-500 dark:text-gray-400">Role*</label>

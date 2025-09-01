@@ -108,12 +108,12 @@ const handleSave = async () => {
 
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
-            <div className="bg-white  p-8 w-full max-w-md">
+        <div className="fixed inset-0 bg-black bg-opacity-60  flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-gray-900  p-8 w-full max-w-md">
                 <ul className="flex space-x-2 rtl:space-x-reverse mb-6"><li><a className="text-blue-600 hover:underline dark:text-blue-400" href="/dashboard">Dashboard</a></li><li className="before:content-['/'] ltr:before:mr-2 rtl:before:ml-2 text-gray-500 dark:text-gray-500"><span className="text-gray-600 dark:text-gray-400">Mark Attendance</span></li></ul>
                 <p className="text-gray-600 mt-1">For {member.name} on {new Date().toLocaleDateString()}</p>
                 <div className="mt-6 space-y-6">
-                    <div className="flex items-center justify-between bg-gray-50 p-4 rounded-lg">
+                    <div className="flex items-center dark:bg-gray-900 justify-between bg-gray-50 p-4 rounded-lg">
                         <span className={`font-semibold ${record.a_status === 1 ? 'text-green-700' : 'text-gray-700'}`}>
                             {record.a_status === 1 ? 'Present' : 'Absent'}
                         </span>
@@ -124,12 +124,12 @@ const handleSave = async () => {
                     </div>
                     <div className={`grid grid-cols-1 md:grid-cols-2 gap-4 transition-opacity ${record.a_status === 1 ? 'opacity-100' : 'opacity-50'}`}>
                         <div>
-                            <label className="block mb-1 font-medium text-gray-700">Clock In</label>
-                            <input type="time" value={record.in_time || ''} onChange={e => handleChange('in_time', e.target.value)} disabled={record.a_status !== 1} className="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 disabled:bg-gray-100" />
+                            <label className="block dark:text-gray-400 mb-1 font-medium text-gray-700">Clock In</label>
+                            <input type="time" value={record.in_time || ''} onChange={e => handleChange('in_time', e.target.value)} disabled={record.a_status !== 1} className="w-full border-gray-300 dark:bg-gray-900 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 disabled:bg-gray-100" />
                         </div>
                         <div>
-                            <label className="block mb-1 font-medium text-gray-700">Clock Out</label>
-                            <input type="time" value={record.out_time || ''} onChange={e => handleChange('out_time', e.target.value)} disabled={record.a_status !== 1} className="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 disabled:bg-gray-100" />
+                            <label className="block mb-1 dark:text-gray-400 font-medium text-gray-700">Clock Out</label>
+                            <input type="time" value={record.out_time || ''} onChange={e => handleChange('out_time', e.target.value)} disabled={record.a_status !== 1} className="w-full border-gray-300 dark:bg-gray-900 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 disabled:bg-gray-100" />
                         </div>
                     </div>
                 </div>
@@ -236,7 +236,7 @@ const fetchData = async () => {
             let statusColor = 'bg-gray-200 text-gray-800';
             if (todayRecord) {
                 status = todayRecord.a_status === 1 ? 'Present' : 'Absent';
-                statusColor = todayRecord.a_status === 1 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
+                statusColor = todayRecord.a_status === 1 ? 'bg-green-100 text-green-800 dark:bg-green-400 dark:text-green-300' : 'bg-red-100 text-red-800 dark:bg-red-400 dark:text-red-300';
             }
             return { ...member, todayRecord, status, statusColor };
         });
@@ -254,7 +254,7 @@ const fetchData = async () => {
 
     // --- The rest of the return statement is unchanged and will now work ---
     return (
-        <main className="min-h-screen p-6 md:p-8 bg-white">
+        <main className="min-h-screen p-6 rounded md:p-8 bg-white dark:bg-gray-900">
             <Toast
   message={toastMsg.message}
   type={toastMsg.type}
@@ -265,29 +265,29 @@ const fetchData = async () => {
             <ul className="flex space-x-2 rtl:space-x-reverse mb-6"><li><a className="text-blue-600 hover:underline dark:text-blue-400" href="/dashboard">Dashboard</a></li><li className="before:content-['/'] ltr:before:mr-2 rtl:before:ml-2 text-gray-500 dark:text-gray-500"><span class="text-gray-600 dark:text-gray-400">Attendance Dashboard</span></li></ul>
 
             <div className="bg-white overflow-hidden">
-                <table className="min-w-full">
+                <table className="min-w-full dark:bg-gray-900">
                     <thead className="bg-gray-200 border-b">
                         <tr>
-                            <th className="px-6 py-3  text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Member</th>
-                            <th className="px-6 py-3  text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Today's Status</th>
-                            <th className="px-6 py-3  text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            <th className="px-6 py-3 dark:text-gray-200 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Member</th>
+                            <th className="px-6 py-3 dark:text-gray-200 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Today's Status</th>
+                            <th className="px-6 py-3 dark:text-gray-200 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
                         {processedMembers.map(member => (
-                            <tr key={member.id} className="hover:bg-gray-50">
+                            <tr key={member.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                                 <td className="px-6 py-4 whitespace-nowrap">
                                     <div className="flex items-center">
                                         <div className="flex-shrink-0 h-10 w-10 bg-black rounded-full flex items-center justify-center text-white font-bold">
                                             {member.name.charAt(0)}
                                         </div>
                                         <div className="ml-4">
-                                            <div className="text-sm font-medium text-gray-900">{member.name}</div>
+                                            <div className="text-sm dark:text-gray-200 font-medium text-gray-900">{member.name}</div>
                                         </div>
                                     </div>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap">
-                                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${member.statusColor}`}>
+                                    <span className={`px-2 inline-flex text-xs dark:text-gray-800  leading-5 font-semibold rounded-full ${member.statusColor}`}>
                                         {member.status}
                                     </span>
                                 </td>
