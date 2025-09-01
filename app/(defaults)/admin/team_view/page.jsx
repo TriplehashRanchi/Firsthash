@@ -297,11 +297,11 @@ export default function TeamViewPage() {
                     <table className="min-w-full">
                         <thead className="bg-gray-100 border-b border-gray-200">
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Name</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Type</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Roles</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Auth</th>
-                                <th className="px-6 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider">Actions</th>
+                                <th className="px-6 py-3 dark:text-gray-200  text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Name</th>
+                                <th className="px-6 py-3 dark:text-gray-200 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Type</th>
+                                <th className="px-6 py-3 dark:text-gray-200 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Roles</th>
+                                <th className="px-6 py-3 dark:text-gray-200 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Auth</th>
+                                <th className="px-6 py-3 dark:text-gray-200 text-center text-xs font-medium text-gray-600 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y dark:bg-gray-900 dark:divide-gray-700 divide-gray-200">

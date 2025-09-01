@@ -223,9 +223,9 @@ export default function MemberForm() {
 
     const renderInputField = (id, label, type, value, setter, placeholder, icon) => (
         <div className="relative">
-            <label htmlFor={id} className="block text-sm font-medium text-gray-600 mb-1">{label}</label>
+            <label htmlFor={id} className="block dark:text-gray-200 text-sm font-medium text-gray-600 mb-1">{label}</label>
             <div className="absolute inset-y-0 left-0 top-6 flex items-center pl-3 pointer-events-none">{icon}</div>
-            <input id={id} type={type} value={value} onChange={(e) => setter(e.target.value)} placeholder={placeholder} className="form-input w-full border-gray-300 rounded-lg p-3 pl-10 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-shadow" required/>
+            <input id={id} type={type} value={value} onChange={(e) => setter(e.target.value)} placeholder={placeholder} className="form-input dark:text-gray-200 w-full border-gray-300 rounded-lg p-3 pl-10 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-shadow" required/>
         </div>
     );
 
@@ -234,9 +234,9 @@ export default function MemberForm() {
             <div className="min-h-screen flex items-center justify-center p-1">
                 <div className="rounded-xl p-8 md:p-12 w-full max-w-4xl">
                     <div className="flex flex-col items-center text-center mb-8">
-                        <div className="bg-indigo-100 p-3 rounded-full mb-3"><UserPlus size={32} className="text-indigo-600" /></div>
-                        <h1 className="text-3xl font-bold text-gray-800">Create New Member</h1>
-                        <p className="text-gray-500 mt-1">Fill out the form to add a new member to the team.</p>
+                        <div className="bg-indigo-100 p-3 dark:bg-gray-900 rounded-full mb-3"><UserPlus size={32} className="text-indigo-600" /></div>
+                        <h1 className="text-3xl font-bold dark:text-gray-200 text-gray-800">Create New Member</h1>
+                        <p className="text-gray-500 dark:text-gray-200 mt-1">Fill out the form to add a new member to the team.</p>
                     </div>
                     {loading ? (<div className="flex justify-center items-center h-40"><Loader className="animate-spin text-indigo-500" size={40} /></div>
                     ) : error ? (<div className="text-center text-red-500 bg-red-50 p-4 rounded-lg">{error}</div>
@@ -244,7 +244,7 @@ export default function MemberForm() {
                         <form onSubmit={handleSubmit} className="space-y-8">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 border-t pt-8">
                                 <div>
-                                    <label className="block text-sm font-medium bg-dark-600 text-gray-600 mb-2">Member Category</label>
+                                    <label className="block text-sm font-medium dark:text-gray-200 bg-dark-600 text-gray-600 mb-2">Member Category</label>
                                     <div className="flex flex-col sm:flex-row gap-3">
                                         {categories.map((cat) => (
                                             <button key={cat.id} type="button" onClick={() => { setCategory(cat.id); setSelectedRoles([]); }} className={`flex-1 flex items-center justify-center dark:bg-slate-700 dark:text-gray-100 gap-2 p-3 rounded-lg border-2 transition-all ${category === cat.id ? 'bg-indigo-50  dark:bg-slate-800 dark:text-white border-indigo-500 text-indigo-600 shadow-sm' : 'bg-white border-gray-300 text-gray-500 hover:border-gray-400'}`}>
@@ -256,13 +256,13 @@ export default function MemberForm() {
                                 </div>
                                 {category !== 'manager' && (
                                     <div className="space-y-2">
-                                        <label className="block text-sm font-medium text-gray-600 mb-1">Specific Roles <span className="text-gray-500 text-xs">(select one or more)</span></label>
+                                        <label className="block text-sm font-medium dark:text-gray-200 text-gray-600 mb-1">Specific Roles <span className="text-gray-500 dark:text-gray-200 text-xs">(select one or more)</span></label>
                                         <div className="relative">
                                             {/* CHANGED: This button now opens the modal */}
                                             <button
                                                 type="button"
                                                 onClick={() => setIsRoleModalOpen(true)}
-                                                className="w-full px-4 py-2 border rounded-md text-left bg-white dark:bg-slate-800 hover:bg-gray-50 focus:outline-none focus:ring"
+                                                className="w-full dark:text-gray-200 px-4 py-2 border rounded-md text-left bg-white dark:bg-slate-800 hover:bg-gray-50 focus:outline-none focus:ring"
                                             >
                                                 {selectedRoles.length > 0 ? `${selectedRoles.length} role(s) selected` : 'Click to select roles...'}
                                             </button>
@@ -271,12 +271,12 @@ export default function MemberForm() {
                                     </div>
                                 )}
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 border-t pt-8">
-                                {renderInputField('fullName', 'Full Name', 'text', fullName, setFullName, 'John Doe', <User size={16} className="text-gray-400" />)}
-                                {renderInputField('mobileNo', 'Mobile No.', 'tel', mobileNo, setMobileNo, '123-456-7890', <Phone size={16} className="text-gray-400" />)}
-                                {renderInputField('email', 'Email Address', 'email', email, setEmail, 'email@example.com', <Mail size={16} className="text-gray-400" />)}
-                                {renderInputField('password', 'Password', 'password', password, setPassword, '••••••••', <Key size={16} className="text-gray-400" />)}
-                                {renderInputField('confirmPwd', 'Confirm Password', 'password', confirmPwd, setConfirmPwd, '••••••••', <Key size={16} className="text-gray-400" />)}
+                            <div className="grid grid-cols-1 dark:text-gray-200  md:grid-cols-2 gap-8 border-t pt-8">
+                                {renderInputField('fullName', 'Full Name', 'text', fullName, setFullName, 'John Doe', <User size={16} className="text-gray-400 dark:text-gray-200" />)}
+                                {renderInputField('mobileNo', 'Mobile No.', 'tel', mobileNo, setMobileNo, '123-456-7890', <Phone size={16} className="text-gray-400 dark:text-gray-200" />)}
+                                {renderInputField('email', 'Email Address', 'email', email, setEmail, 'email@example.com', <Mail size={16} className="text-gray-400 dark:text-gray-200" />)}
+                                {renderInputField('password', 'Password', 'password', password, setPassword, '••••••••', <Key size={16} className="text-gray-400 dark:text-gray-200" />)}
+                                {renderInputField('confirmPwd', 'Confirm Password', 'password', confirmPwd, setConfirmPwd, '••••••••', <Key size={16} className="text-gray-400 dark:text-gray-200" />)}
                             </div>
                             <div className="flex justify-end pt-8 border-t">
                                 <button type="submit" className="w-full md:w-auto inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-8 rounded-lg shadow-md transition-transform transform hover:scale-105">

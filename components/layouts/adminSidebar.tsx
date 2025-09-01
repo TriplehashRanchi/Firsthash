@@ -116,7 +116,7 @@ const AdminSidebar = () => {
                         <ul className="relative space-y-0.5 p-4 py-0 font-semibold">
                             
 
-                            <h2 className="-mx-4 mb-1 flex items-center bg-white-light/30 px-7 py-3 font-extrabold uppercase dark:bg-dark dark:bg-opacity-[0.08]">
+                            <h2 className="-mx-4 mb-1 flex  items-center bg-white-light/30 px-7 py-3 font-extrabold uppercase dark:bg-dark dark:bg-opacity-[0.08]">
                                 <IconMinus className="hidden h-5 w-4 flex-none" />
                                 <span>{t('apps')}</span>
                             </h2>
@@ -128,7 +128,7 @@ const AdminSidebar = () => {
                                         <Link href="/admin/dashboard" className="group">
                                             <div className="flex items-center">
                                                 <IconMenuDashboard className="shrink-0 group-hover:!text-primary" />
-                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('Dashboard')}</span>
+                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:text-gray-200 dark:group-hover:text-white-dark">{t('Dashboard')}</span>
                                             </div>
                                         </Link>
                                     </li>
@@ -137,7 +137,7 @@ const AdminSidebar = () => {
                                         <Link href="/admin/clients-details" className='group'>
                                             <div className='flex items-center'>
                                                 <UserRoundSearch className="shrink-0 group-hover:!text-primary" />
-                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('Clients')}</span>
+                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:text-gray-200 dark:group-hover:text-white-dark">{t('Clients')}</span>
                                             </div>
                                         </Link>
                                     </li>
@@ -146,7 +146,7 @@ const AdminSidebar = () => {
                                         <Link href="/admin/roleForm" className="group">
                                             <div className="flex items-center">
                                                 <IconUserPlus className="shrink-0 group-hover:!text-primary" />
-                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('Add Employee')}</span>
+                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:text-gray-200 dark:group-hover:text-white-dark">{t('Add Employee')}</span>
                                             </div>
                                         </Link>
                                     </li>
@@ -154,7 +154,7 @@ const AdminSidebar = () => {
                                         <Link href="/admin/team_view" className="group">
                                             <div className="flex items-center">
                                                 <IconUsersGroup className="shrink-0 group-hover:!text-primary" />
-                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('Team Data')}</span>
+                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:text-gray-200 dark:group-hover:text-white-dark">{t('Team Data')}</span>
                                             </div>
                                         </Link>
                                     </li>
@@ -162,7 +162,7 @@ const AdminSidebar = () => {
                                         <Link href="/admin/employee" className="group">
                                             <div className="flex items-center">
                                                 <IconMenuUsers className="shrink-0 group-hover:!text-primary" />
-                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('New Roles')}</span>
+                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:text-gray-200 dark:group-hover:text-white-dark">{t('New Roles')}</span>
                                             </div>
                                         </Link>
                                     </li>
@@ -170,7 +170,7 @@ const AdminSidebar = () => {
                                         <Link href="/admin/attendance" className="group">
                                             <div className="flex items-center">
                                                 <IconCalendar className="shrink-0 group-hover:!text-primary" />
-                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('Attendance')}</span>
+                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:text-gray-200 dark:group-hover:text-white-dark">{t('Attendance')}</span>
                                             </div>
                                         </Link>
                                     </li>
@@ -179,7 +179,7 @@ const AdminSidebar = () => {
                                         <Link href="/admin/gopo" className="group">
                                             <div className="flex items-center">
                                                 <IconPlus className="shrink-0 group-hover:!text-primary" />
-                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('Create Project')}</span>
+                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:text-gray-200 dark:group-hover:text-white-dark">{t('Create Project')}</span>
                                             </div>
                                         </Link>
                                     </li>
@@ -188,7 +188,7 @@ const AdminSidebar = () => {
                                         <Link href="/admin/project" className="group">
                                             <div className="flex items-center">
                                                 <IconCamera className="shrink-0 group-hover:!text-primary" />
-                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('Projects')}</span>
+                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:text-gray-200 dark:group-hover:text-white-dark">{t('Projects')}</span>
                                             </div>
                                         </Link>
                                     </li>
@@ -199,7 +199,7 @@ const AdminSidebar = () => {
                                         <Link href="/admin/task-management" className="group">
                                             <div className="flex items-center">
                                                 <IconMessage2 className="shrink-0 group-hover:!text-primary" />
-                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('To-do')}</span>
+                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:text-gray-200 dark:group-hover:text-white-dark">{t('To-do')}</span>
                                             </div>
                                         </Link>
                                     </li>
@@ -208,7 +208,7 @@ const AdminSidebar = () => {
                                         <Link href="/admin/expence" className="group">
                                             <div className="flex items-center">
                                                 <IconCashBanknotes className="shrink-0 group-hover:!text-primary" />
-                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('Expence')}</span>
+                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:text-gray-200 dark:group-hover:text-white-dark">{t('Expence')}</span>
                                             </div>
                                         </Link>
                                     </li>
@@ -217,7 +217,7 @@ const AdminSidebar = () => {
                                         <Link href="/admin/team-allocation" className="group">
                                             <div className="flex items-center">
                                                 <IconSquareRotated className="shrink-0 group-hover:!text-primary" />
-                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('Team Allocation')}</span>
+                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:text-gray-200 dark:group-hover:text-white-dark">{t('Team Allocation')}</span>
                                             </div>
                                         </Link>
                                     </li>

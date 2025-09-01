@@ -15,6 +15,7 @@ import IconMenu from '@/components/icon/icon-menu';
 import IconUser from '@/components/icon/icon-user';
 import IconLogout from '@/components/icon/icon-logout';
 import { useAuth } from '@/context/AuthContext';
+import { BadgePlus, WorkflowIcon } from 'lucide-react';
 
 interface AvatarProps {
     name?: string | null;
@@ -118,23 +119,25 @@ const EmployeeHeader: React.FC = () => {
                     <div className="flex items-center gap-2 sm:gap-3">
                         <Link
                             href="/admin/team-allocation"
-                            className="inline-flex items-center rounded-md px-3 py-1.5 text-sm font-medium
-                 bg-indigo-600 text-white hover:bg-indigo-700
+                            className="inline-flex items-center justify-space-between gap-1 rounded-md px-3 py-1.5 text-sm font-medium
+                 bg-black text-white hover:bg-gray-700
                  focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1
-                 dark:bg-indigo-500 dark:hover:bg-indigo-600 dark:focus:ring-indigo-400"
+                 dark:bg-gray-600 dark:hover:bg-gray-700 dark:focus:ring-indigo-400"
                         >
-                            Team Allocation
+                           <WorkflowIcon size={16} /> Team Allocation
                         </Link>
 
                         <Link
                             href="/admin/gopo"
-                            className="inline-flex items-center rounded-md px-3 py-1.5 text-sm font-medium
-                 border border-gray-300 text-gray-700 bg-white hover:bg-gray-50
-                 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-offset-1
-                 dark:border-gray-600 dark:text-gray-200 dark:bg-transparent dark:hover:bg-gray-800 dark:focus:ring-gray-600"
+                            className="inline-flex items-center justify-space-between gap-1 rounded-md px-3 py-1.5 text-sm font-medium
+                 bg-black text-white hover:bg-gray-700
+                 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1
+                 dark:bg-gray-600 dark:hover:bg-gray-600 dark:focus:ring-indigo-400"
                         >
-                            Create Project
+                          <BadgePlus size={16}  />  Create Project
                         </Link>
+
+                        
 
                         <div className="flex items-center space-x-1.5 ltr:ml-auto rtl:mr-auto rtl:space-x-reverse dark:text-[#d0d2d6] sm:flex-1 ltr:sm:ml-0 sm:rtl:mr-0 lg:space-x-2">
                             <div className="flex justify-end space-x-1.5 rtl:space-x-reverse dark:text-[#d0d2d6] sm:flex-1 lg:space-x-2 ml-auto">
