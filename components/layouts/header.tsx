@@ -130,15 +130,12 @@ const EmployeeHeader: React.FC = () => {
                         <Link
                             href="/admin/gopo"
                             className="inline-flex items-center justify-space-between gap-1 rounded-md px-3 py-1.5 text-sm font-medium
-                 bg-gray-200 text-dark border border-gray-200 hover:bg-gray-700
+                 bg-gray-200 text-dark border border-gray-200 hover:bg-gray-400
                  focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1
                  dark:bg-gray-300 dark:hover:bg-gray-600 dark:focus:ring-indigo-400"
                         >
                           <BadgePlus size={16}  />  Create Project
                         </Link>
-
-                        
-
                         <div className="flex items-center space-x-1.5 ltr:ml-auto rtl:mr-auto rtl:space-x-reverse dark:text-[#d0d2d6] sm:flex-1 ltr:sm:ml-0 sm:rtl:mr-0 lg:space-x-2">
                             <div className="flex justify-end space-x-1.5 rtl:space-x-reverse dark:text-[#d0d2d6] sm:flex-1 lg:space-x-2 ml-auto">
                                 {loading ? (
