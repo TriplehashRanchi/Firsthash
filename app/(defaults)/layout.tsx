@@ -25,9 +25,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         router.push('/register');
       } else if (!isAdmin) {
         router.push('/login');
-      } else if (!isSubscribedUser) {
-        router.push('/subscribe');
-      }
+       } // else if (!isSubscribedUser) {
+      //   router.push('/subscribe');
+      // }
     }
   }, [loading, currentUser, isAdmin, isSubscribedUser]);
 
