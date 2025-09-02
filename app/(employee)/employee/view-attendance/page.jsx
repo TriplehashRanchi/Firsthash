@@ -21,8 +21,8 @@ const LoadingSpinner = () => (
 
 // A component for displaying key attendance stats
 const StatCard = ({ title, value, color }) => (
-    <div className="bg-white p-6 rounded-lg border border-gray-200">
-        <p className="text-sm font-medium text-gray-500">{title}</p>
+    <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200">
+        <p className="text-sm dark:text-gray-200 font-medium text-gray-500">{title}</p>
         <p className={`text-3xl font-bold ${color}`}>{value}</p>
     </div>
 );
@@ -103,20 +103,20 @@ export default function EmployeeAttendancePage() {
     if (error) {
         return <div className="text-center mt-20 p-6 bg-red-50 text-red-700 rounded-lg max-w-lg mx-auto border border-red-200">{error}</div>;
     }
-      const breadcrumbLinkStyles = "text-blue-600 hover:underline dark:text-blue-400";
+      const breadcrumbLinkStyles = "text-blue-600 dark:text-blue-400 hover:underline dark:text-blue-400";
     const breadcrumbSeparatorStyles = "before:content-['/'] ltr:before:mr-2 rtl:before:ml-2 text-gray-500 dark:text-gray-500";
-    const breadcrumbCurrentPageStyles = "text-gray-600 dark:text-gray-400";
+    const breadcrumbCurrentPageStyles = "text-gray-600 dark:text-gray-400 dark:text-gray-400";
     
 
     return (
-        <main className="min-h-screen p-4 md:p-8 bg-gray-50">
+        <main className="min-h-screen p-4 md:p-8 bg-gray-50 dark:bg-gray-900">
             <div className="max-w-6xl mx-auto">
                 <header className="mb-8">
                     <ul className="flex space-x-1 rtl:space-x-reverse mb-2">
                 <li><Link href="/dashboard" className={breadcrumbLinkStyles}>Dashboard</Link></li>
                 <li className={breadcrumbSeparatorStyles}><span className={breadcrumbCurrentPageStyles}>My Attendance</span></li>
             </ul>
-                    <p className="text-gray-600">Welcome, {userName}. Here is your complete attendance history.</p>
+                    <p className="text-gray-600 dark:text-gray-400">Welcome, {userName}. Here is your complete attendance history.</p>
                 </header>
 
                 {/* --- STATS SUMMARY --- */}
@@ -127,22 +127,22 @@ export default function EmployeeAttendancePage() {
                 </div>
 
                 {/* --- ATTENDANCE TABLE --- */}
-                <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                <div className="bg-white dark:bg-gray-800 border border-gray-200 rounded-lg overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="min-w-full">
-                            <thead className="bg-gray-100">
+                            <thead className="bg-gray-100 ">
                                 <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Date</th>
-                                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
-                                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Clock In</th>
-                                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Clock Out</th>
+                                    <th className="px-6 py-3 dark:text-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Date</th>
+                                    <th className="px-6 py-3 dark:text-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+                                    <th className="px-6 py-3 dark:text-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Clock In</th>
+                                    <th className="px-6 py-3 dark:text-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Clock Out</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-200">
                                 {history.length > 0 ? (
                                     history.map((rec) => (
-                                        <tr key={rec.a_id || rec.a_date} className="hover:bg-gray-50 transition-colors">
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">
+                                        <tr key={rec.a_id || rec.a_date} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">
                                                 {new Date(rec.a_date).toLocaleDateString(undefined, {
                                                     weekday: 'long',
                                                     year: 'numeric',
@@ -152,13 +152,13 @@ export default function EmployeeAttendancePage() {
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <span
-                                                    className={`px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full ${rec.a_status === 1 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}
+                                                    className={`px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full ${rec.a_status === 1 ? 'bg-green-100 text-green-800 dark:bg-green-700 dark:text-green-300' : 'bg-red-100 text-red-800 dark:bg-red-700 dark:text-red-300'}`}
                                                 >
                                                     {rec.a_status === 1 ? 'Present' : 'Absent'}
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{rec.in_time || 'N/A'}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{rec.out_time || 'N/A'}</td>
+                                            <td className="px-6 py-4 dark:text-gray-200 whitespace-nowrap text-sm text-gray-500">{rec.in_time || 'N/A'}</td>
+                                            <td className="px-6 py-4 dark:text-gray-200 whitespace-nowrap text-sm text-gray-500">{rec.out_time || 'N/A'}</td>
                                         </tr>
                                     ))
                                 ) : (

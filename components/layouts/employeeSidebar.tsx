@@ -90,7 +90,7 @@ const EmployeeSidebar = () => {
                         <ul className="relative space-y-0.5 p-4 py-0 font-semibold">
                             
 
-                            <h2 className="-mx-4 mb-1 flex items-center bg-white-light/30 px-7 py-3 font-extrabold uppercase dark:bg-dark dark:bg-opacity-[0.08]">
+                            <h2 className="-mx-4 mb-1 flex items-center bg-white-light/30 dark:text-gray-200 px-7 py-3 font-extrabold uppercase dark:bg-dark dark:bg-opacity-[0.08]">
                                 <IconMinus className="hidden h-5 w-4 flex-none" />
                                 <span>{t('apps')}</span>
                             </h2>
@@ -102,7 +102,7 @@ const EmployeeSidebar = () => {
                                         <Link href="/employee/dashboard" className="group">
                                             <div className="flex items-center">
                                                 <IconMenuDashboard className="shrink-0 group-hover:!text-primary" />
-                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('Dashboard')}</span>
+                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-gray-200 dark:group-hover:text-white-dark">{t('Dashboard')}</span>
                                             </div>
                                         </Link>
                                     </li>
@@ -111,7 +111,7 @@ const EmployeeSidebar = () => {
                                         <Link href="/employee/task" className="group">
                                             <div className="flex items-center">
                                                 <BookmarkCheck className="shrink-0 group-hover:!text-primary" />
-                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('My Task')}</span>
+                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-gray-200 dark:group-hover:text-white-dark">{t('My Task')}</span>
                                             </div>
                                         </Link>
                                     </li>
@@ -119,7 +119,7 @@ const EmployeeSidebar = () => {
                                         <Link href="/employee/calendar" className="group">
                                             <div className="flex items-center">
                                                 <Calendar className="shrink-0 group-hover:!text-primary" />
-                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('Calendar')}</span>
+                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-gray-200 dark:group-hover:text-white-dark">{t('Calendar')}</span>
                                             </div>
                                         </Link>
                                     </li>
@@ -127,7 +127,7 @@ const EmployeeSidebar = () => {
                                         <Link href="/employee/expense" className="group">
                                             <div className="flex items-center">
                                                 <BadgeIndianRupee className="shrink-0 group-hover:!text-primary" />
-                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('Salary')}</span>
+                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-gray-200 dark:group-hover:text-white-dark">{t('Salary')}</span>
                                             </div>
                                         </Link>
                                     </li>
@@ -135,7 +135,7 @@ const EmployeeSidebar = () => {
                                         <Link href="/employee/profile" className="group">
                                             <div className="flex items-center">
                                                 <UserPen className="shrink-0 group-hover:!text-primary" />
-                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('Profile')}</span>
+                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-gray-200 dark:group-hover:text-white-dark">{t('Profile')}</span>
                                             </div>
                                         </Link>
                                     </li>
@@ -144,7 +144,7 @@ const EmployeeSidebar = () => {
                                         <Link href="/employee/view-attendance" className="group">
                                             <div className="flex items-center">
                                                 <CalendarCheck className="shrink-0 group-hover:!text-primary" />
-                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('View-Attendance')}</span>
+                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-gray-200 dark:group-hover:text-white-dark">{t('View-Attendance')}</span>
                                             </div>
                                         </Link>
                                     </li>
