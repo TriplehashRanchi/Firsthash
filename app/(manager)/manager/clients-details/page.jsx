@@ -77,7 +77,7 @@ const EditClientModal = ({ client, isOpen, onClose, onSave }) => {
         <div className="fixed inset-0 bg-black/60 z-[51] flex items-center justify-center p-4" onClick={onClose}>
             <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
                 <div className="flex justify-between items-center p-5 border-b dark:border-slate-700">
-                    <h3 className="text-xl font-bold text-slate-800 dark:text-white">Edit Client</h3>
+                    <h3 className="text-xl font-bold text-slate-800 dark:text-gray-200">Edit Client</h3>
                     <button onClick={onClose} className="text-slate-500 hover:text-slate-700 dark:text-slate-300 dark:hover:text-white"><X size={24} /></button>
                 </div>
                 <form onSubmit={handleSave}>

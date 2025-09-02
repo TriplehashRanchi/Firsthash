@@ -18,8 +18,8 @@ const LoadingSpinner = () => (
 );
 
 const StatCard = ({ title, value, color }) => (
-    <div className="bg-white p-6 rounded-lg border border-gray-200">
-        <p className="text-sm font-medium text-gray-500">{title}</p>
+    <div className="bg-white dark:bg-gray-900 p-6 rounded-lg border border-gray-200">
+        <p className="text-sm dark:text-gray-200 font-medium text-gray-500">{title}</p>
         <p className={`text-3xl font-bold ${color}`}>{value}</p>
     </div>
 );
@@ -93,43 +93,43 @@ export default function EmployeeAttendancePage() {
 
     const breadcrumbLinkStyles = "text-blue-600 hover:underline dark:text-blue-400";
     const breadcrumbSeparatorStyles = "before:content-['/'] ltr:before:mr-2 rtl:before:ml-2 text-gray-500 dark:text-gray-500";
-    const breadcrumbCurrentPageStyles = "text-gray-600 dark:text-gray-400";
+    const breadcrumbCurrentPageStyles = "text-gray-600 dark:text-gray-400 ";
 
     return (
-        <main className="min-h-screen p-4 md:p-8 bg-gray-50">
+        <main className="min-h-screen p-4 md:p-8 bg-gray-50 dark:bg-gray-900">
             <div className="max-w-6xl mx-auto">
                 <header className="mb-8">
                      <ul className="flex space-x-1 rtl:space-x-reverse mb-2">
                 <li><Link href="/dashboard" className={breadcrumbLinkStyles}>Dashboard</Link></li>
                 <li className={breadcrumbSeparatorStyles}><span className={breadcrumbCurrentPageStyles}>My Attendance</span></li>
             </ul>
-                    <p className="text-gray-600">Welcome, {userName}. Here is your complete attendance history.</p>
+                    <p className="text-gray-600 dark:text-gray-400">Welcome, {userName}. Here is your complete attendance history.</p>
                 </header>
 
                 {/* --- STATS SUMMARY --- */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <StatCard title="Present Days" value={stats.present} color="text-green-600" />
+                <div className="grid grid-cols-1  md:grid-cols-3 gap-6  mb-8">
+                    <StatCard title="Present Days" value={stats.present} color="text-green-600 "/>
                     <StatCard title="Absent Days" value={stats.absent} color="text-red-600" />
                     <StatCard title="Attendance %" value={`${stats.percentage}%`} color="text-blue-600" />
                 </div>
 
                 {/* --- ATTENDANCE TABLE --- */}
-                <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                <div className="bg-white dark:bg-gray-800 border border-gray-200 rounded-lg overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="min-w-full">
-                            <thead className="bg-gray-100">
+                            <thead className="bg-gray-100 dark:bg-gray-900">
                                 <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Date</th>
-                                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
-                                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Clock In</th>
-                                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Clock Out</th>
+                                    <th className="px-6 py-3 dark:text-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Date</th>
+                                    <th className="px-6 py-3 dark:text-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+                                    <th className="px-6 py-3 dark:text-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Clock In</th>
+                                    <th className="px-6 py-3 dark:text-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Clock Out</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-200">
+                            <tbody className="divide-y  divide-gray-200">
                                 {history.length > 0 ? (
                                     history.map((rec) => (
-                                        <tr key={rec.a_id || rec.a_date} className="hover:bg-gray-50 transition-colors">
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">
+                                        <tr key={rec.a_id || rec.a_date} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                            <td className="px-6 py-4 dark:text-gray-200 whitespace-nowrap text-sm font-medium text-gray-800">
                                                 {new Date(rec.a_date).toLocaleDateString(undefined, {
                                                     weekday: 'long',
                                                     year: 'numeric',
@@ -144,13 +144,13 @@ export default function EmployeeAttendancePage() {
                                                     {rec.a_status === 1 ? 'Present' : 'Absent'}
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{rec.in_time || 'N/A'}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{rec.out_time || 'N/A'}</td>
+                                            <td className="px-6 py-4 dark:text-gray-200 whitespace-nowrap text-sm text-gray-500">{rec.in_time || 'N/A'}</td>
+                                            <td className="px-6 py-4 dark:text-gray-200 whitespace-nowrap text-sm text-gray-500">{rec.out_time || 'N/A'}</td>
                                         </tr>
                                     ))
                                 ) : (
                                     <tr>
-                                        <td colSpan="4" className="text-center py-12 text-gray-500">
+                                        <td colSpan="4" className="text-center dark:text-gray-200 py-12 text-gray-500">
                                             No attendance records have been marked for you yet.
                                         </td>
                                     </tr>

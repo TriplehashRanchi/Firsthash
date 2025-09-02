@@ -44,19 +44,19 @@ const StatusBadge = ({ status }) => {
 };
 
 const Loading = ({ text = 'Loading...' }) => (
-  <div className="w-full flex items-center justify-center py-16 text-gray-600"><Loader2 className="w-5 h-5 mr-2 animate-spin" /><span>{text}</span></div>
+  <div className="w-full dark:bg-gray-900 flex items-center justify-center py-16 text-gray-600"><Loader2 className="w-5 h-5 mr-2 animate-spin" /><span>{text}</span></div>
 );
 
 const ErrorBox = ({ msg }) => (
-  <div className="w-full rounded-lg border border-rose-200 bg-rose-50 text-rose-800 px-4 py-3 text-sm">{msg}</div>
+  <div className="w-full dark:bg-gray-900 rounded-lg border border-rose-200 bg-rose-50 text-rose-800 px-4 py-3 text-sm">{msg}</div>
 );
 
 const Drawer = ({ open, onClose, children, title }) => (
   <>
-    <div className={`fixed inset-0 bg-black/20 transition-opacity ${open ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} onClick={onClose} />
+    <div className={`fixed dark:bg-gray-900 inset-0 bg-black/20 transition-opacity ${open ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} onClick={onClose} />
     <div className={`fixed top-0 right-0 h-full w-full sm:w-[520px] bg-white shadow-2xl transition-transform duration-300 ${open ? 'translate-x-0' : 'translate-x-full'}`}>
-      <div className="flex items-center justify-between px-4 py-3 border-b"><h3 className="font-semibold text-gray-900">{title}</h3><button onClick={onClose} className="p-2 rounded hover:bg-gray-100"><X className="w-5 h-5" /></button></div>
-      <div className="p-4 overflow-y-auto h-[calc(100%-56px)]">{children}</div>
+      <div className="flex dark:bg-gray-900 items-center justify-between px-4 py-3 border-b"><h3 className="font-semibold dark:text-gray-200 text-gray-900">{title}</h3><button onClick={onClose} className="p-2 rounded hover:bg-gray-100"><X className="w-5 h-5" /></button></div>
+      <div className="p-4 dark:bg-gray-900 overflow-y-auto h-[calc(100%-56px)]">{children}</div>
     </div>
   </>
 );
@@ -93,8 +93,8 @@ const UpdateStatusModal = ({ isOpen, onClose, task, customStatuses = [], onSubmi
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black/50 flex justify-center items-center p-4 z-50">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
+        <div className="fixed  inset-0 bg-black/50 flex justify-center items-center p-4 z-50">
+            <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl w-full max-w-md">
                 <div className="p-4 border-b"><h3 className="font-semibold text-gray-800">Update Task Status</h3><p className="text-sm text-gray-500 line-clamp-1">Task: {task?.title}</p></div>
                 <div className="p-4 space-y-4">
                     <div>
@@ -379,12 +379,12 @@ const handleCloseDetails = () => {
     finally { setDetailsLoading(false); }
   };
 
-  const breadcrumbLinkStyles = "text-blue-600 hover:underline";
-  const breadcrumbSeparatorStyles = "before:content-['/'] ltr:before:mr-2 rtl:before:ml-2 text-gray-500";
-  const breadcrumbCurrentPageStyles = "text-gray-600";
+  const breadcrumbLinkStyles = "text-blue-600 hover:underline dark:text-gray-200";
+  const breadcrumbSeparatorStyles = "before:content-['/'] ltr:before:mr-2 rtl:before:ml-2 text-gray-500 dark:text-gray-200";
+  const breadcrumbCurrentPageStyles = "text-gray-600 dark:text-gray-200";
 
   return (
-    <div className="p-1 sm:p-6 space-y-8 bg-gray-50 min-h-screen">
+    <div className="p-1 dark:bg-gray-900 sm:p-6 space-y-8 bg-gray-50 min-h-screen">
       <Toaster position="top-right" />
       <UpdateStatusModal isOpen={isStatusModalOpen} onClose={handleCloseStatusModal} task={taskToUpdate} customStatuses={customStatuses} onSubmit={handleUpdateTaskStatus} />
       <AudioPlayerModal {...audioPlayerData} onClose={handleCloseAudioPlayer} />
@@ -395,11 +395,11 @@ const handleCloseDetails = () => {
           <li><Link href="/dashboard" className={breadcrumbLinkStyles}>Dashboard</Link></li>
           <li className={breadcrumbSeparatorStyles}><span className={breadcrumbCurrentPageStyles}>My Work</span></li>
         </ul>
-        <p className="text-sm text-gray-500">Everything you’re assigned to. Update your task status here.</p>
+        <p className="text-sm text-gray-500 dark:text-gray-200">Everything you’re assigned to. Update your task status here.</p>
       </div>
 
-      <div className="flex items-center px-3 py-2 border rounded-lg w-full sm:w-96 bg-white shadow-sm">
-        <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search your tasks..." className="w-full outline-none text-sm" />
+      <div className="flex items-center dark:bg-gray-800  px-3 py-2 border rounded-lg w-full sm:w-96 bg-white shadow-sm">
+        <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search your tasks..." className="w-full dark:bg-gray-800 dark:text-gray-200  outline-none text-sm" />
       </div>
 
       {loading && <Loading text="Loading your work..." />}
@@ -429,14 +429,14 @@ const handleCloseDetails = () => {
       {/* Assigned Projects */}
       {!loading && !err && (
         <div className="space-y-3">
-          <h2 className="text-lg font-semibold text-gray-900">Assigned Projects</h2>
-          <div className="overflow-x-auto rounded-lg border bg-white">
-            <table className="min-w-full text-sm">
+          <h2 className="text-lg dark:text-gray-200 font-semibold text-gray-900">Assigned Projects</h2>
+          <div className="overflow-x-auto rounded-lg border bg-white dark:bg-gray-800 ">
+            <table className="min-w-full  text-sm">
                 <thead className="bg-gray-50 text-gray-600">
-                    <tr><th className="px-4 py-3 text-left font-medium">Project</th><th className="px-4 py-3 text-left font-medium">Client</th><th className="px-4 py-3 text-left font-medium">Dates</th><th className="px-4 py-3 text-left font-medium">Counts</th><th className="px-4 py-3 text-left font-medium">Status</th><th className="px-4 py-3 text-left font-medium">Actions</th></tr>
+                    <tr><th className="px-4 py-3 dark:text-gray-200 text-left font-medium">Project</th><th className="px-4 py-3 dark:text-gray-200 text-left font-medium">Client</th><th className="px-4 py-3 dark:text-gray-200 text-left font-medium">Dates</th><th className="px-4 py-3 dark:text-gray-200 text-left font-medium">Counts</th><th className="px-4 py-3 dark:text-gray-200 text-left font-medium">Status</th><th className="px-4 py-3 dark:text-gray-200 text-left font-medium">Actions</th></tr>
                 </thead>
                 <tbody>
-                    {filteredProjects.length === 0 && (<tr><td colSpan={6} className="px-4 py-8 text-center text-gray-500">No projects assigned to you.</td></tr>)}
+                    {filteredProjects.length === 0 && (<tr><td colSpan={6} className="px-4 dark:text-gray-200 py-8 text-center text-gray-500">No projects assigned to you.</td></tr>)}
                     {filteredProjects.map((p) => (
                     <tr key={p.id} className="border-t hover:bg-gray-50">
                         <td className="px-4 py-3"><div className="font-medium text-gray-900">{p.name}</div></td>
@@ -455,31 +455,31 @@ const handleCloseDetails = () => {
 
       {/* Drawer: project details */}
       <Drawer open={detailsOpen} onClose={() => setDetailsOpen(false)} title="Project Details">
-        {!activeProjectId ? <div className="text-sm text-gray-500">No project selected.</div> : (
+        {!activeProjectId ? <div className="text-sm text-gray-500 dark:text-gray-200">No project selected.</div> : (
           <>
             {detailsLoading && <Loading text="Loading project details..." />}
-            {!detailsLoading && !details && <div className="text-sm text-gray-500">Couldn’t load project details.</div>}
+            {!detailsLoading && !details && <div className="text-sm text-gray-500 dark:text-gray-200">Couldn’t load project details.</div>}
             {!detailsLoading && details && (
               <>
-                <section className="mb-6">
-                  <h4 className="text-sm font-semibold text-gray-900 mb-2">Overview</h4>
+                <section className="mb-6 dark:bg-gray-900">
+                  <h4 className="text-sm dark:text-gray-200 font-semibold text-gray-900 mb-2">Overview</h4>
                   <div className="text-sm grid grid-cols-2 gap-2">
-                    <div><span className="text-gray-500">Project:</span> <span className="font-medium">{details.projectName || details.name}</span></div>
-                    <div><span className="text-gray-500">Client:</span> {details.clientName || '—'}</div>
-                    <div><span className="text-gray-500">Status:</span> {statusLabel(details.projectStatus || details.status)}</div>
-                    <div><span className="text-gray-500">Total:</span> ₹{Number(details.overallTotalCost ?? details.totalCost ?? 0).toLocaleString('en-IN')}</div>
+                    <div><span className="text-gray-500 dark:text-gray-200">Project:</span> <span className="font-medium">{details.projectName || details.name}</span></div>
+                    <div><span className="text-gray-500 dark:text-gray-200">Client:</span> {details.clientName || '—'}</div>
+                    <div><span className="text-gray-500 dark:text-gray-200">Status:</span> {statusLabel(details.projectStatus || details.status)}</div>
+                    <div><span className="text-gray-500 dark:text-gray-200">Total:</span> ₹{Number(details.overallTotalCost ?? details.totalCost ?? 0).toLocaleString('en-IN')}</div>
                   </div>
                 </section>
                 {Array.isArray(details?.shoots?.shootList) && details.shoots.shootList.length > 0 && (
-                  <section className="mb-6">
-                    <h4 className="text-sm font-semibold text-gray-900 mb-2">Shoots</h4>
-                    <div className="space-y-2">{details.shoots.shootList.map((s) => (<div key={s.id} className="border rounded p-2 text-sm"><div className="font-medium">{s.title} — {s.city}</div><div className="text-gray-500"><CalendarDays className="inline-block w-4 h-4 mr-1 align[-2px]" />{formatDate(s.date)} {s.time ? `• ${s.time}` : ''}</div></div>))}</div>
+                  <section className="mb-6 dark:bg-gray-900">
+                    <h4 className="text-sm dark:text-gray-200 font-semibold text-gray-900 mb-2">Shoots</h4>
+                    <div className="space-y-2 dark:text-gray-200">{details.shoots.shootList.map((s) => (<div key={s.id} className="border rounded dark:text-gray-200 p-2 text-sm"><div className="font-medium dark:text-gray-200">{s.title} — {s.city}</div><div className="text-gray-500 dark:text-gray-200"><CalendarDays className="inline-block w-4 h-4 mr-1 align[-2px] dark:text-gray-200" />{formatDate(s.date)} {s.time ? `• ${s.time}` : ''}</div></div>))}</div>
                   </section>
                 )}
                 {Array.isArray(details?.deliverables?.deliverableItems) && details.deliverables.deliverableItems.length > 0 && (
-                  <section className="mb-6">
-                    <h4 className="text-sm font-semibold text-gray-900 mb-2">Deliverables</h4>
-                    <div className="space-y-1 text-sm">{details.deliverables.deliverableItems.map((d) => (<div key={d.id} className="flex items-center justify-between border-b py-1"><div>{d.title}</div><div className="text-xs text-gray-500">{statusLabel(d.status || '')}</div></div>))}</div>
+                  <section className="mb-6 dark:bg-gray-900">
+                    <h4 className="text-sm dark:text-gray-200 font-semibold text-gray-900 mb-2">Deliverables</h4>
+                    <div className="space-y-1 text-sm dark:text-gray-200">{details.deliverables.deliverableItems.map((d) => (<div key={d.id} className="flex items-center dark:text-gray-200 justify-between border-b py-1"><div>{d.title}</div><div className="text-xs dark:text-gray-200 text-gray-500">{statusLabel(d.status || '')}</div></div>))}</div>
                   </section>
                 )}
               </>
