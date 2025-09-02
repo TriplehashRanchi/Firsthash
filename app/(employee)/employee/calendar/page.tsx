@@ -168,18 +168,18 @@ const ComponentsAppsCalendar = () => {
                             {events.length > 0 ? (
                                 <table className="w-full text-sm">
                                     <thead>
-                                        <tr className="text-left text-gray-500">
-                                            <th className="p-2">Project</th>
-                                            <th className="p-2">Date</th>
-                                            <th className="p-2">Action</th>
+                                        <tr className="text-left text-gray-500 dark:text-gray-200">
+                                            <th className="p-2 dark:text-gray-300">Project</th>
+                                            <th className="p-2 dark:text-gray-300">Date</th>
+                                            <th className="p-2 dark:text-gray-300">Action</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {events.map((event) => (
-                                            <tr key={event.id} className="border-t hover:bg-gray-50">
+                                            <tr key={event.id} className="border-t hover:bg-gray-50 dark:hover:bg-gray-700">
                                                 <td className="p-2">
                                                     <div className="font-semibold">{event.title}</div>
-                                                    <div className="text-xs text-gray-500">Client: {event.extendedProps.clientName}</div>
+                                                    <div className="text-xs text-gray-500 dark:text-gray-400">Client: {event.extendedProps.clientName}</div>
                                                 </td>
                                                 <td className="p-2 text-xs">
                                                     {new Date(event.start).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
