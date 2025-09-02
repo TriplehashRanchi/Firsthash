@@ -1065,7 +1065,7 @@ function ProjectReviewPage() {
             case TABS.SHOOTS:
                 return (
                     <Shoots
-                        shoots={shootsObject.shootList}
+                        shoots={shootsObject?.shootList?.length ? shootsObject.shootList : fullProjectData.shootList}
                         isReadOnly={isReadOnly}
                         eligibleTeamMembers={eligibleShootTeam || []} // <-- ADD THIS PROP
                         sectionTitleStyles={sectionTitleStyles}

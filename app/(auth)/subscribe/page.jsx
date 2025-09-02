@@ -105,7 +105,7 @@ export default function SubscribePage() {
                 plan: selectedPlan.name,
               });
               toast.success('Subscription activated!');
-              router.push('/dashboard');
+              router.push('/admin/dashboard');
             } catch (err) {
               toast.error('Verification failed');
               console.error(err);

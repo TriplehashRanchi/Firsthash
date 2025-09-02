@@ -34,6 +34,7 @@ function AllocationsPage() {
             setIsLoading(false);
         }
     };
+    console.log('Calendar Data:', calendarData);
 
     useEffect(() => {
         const auth = getAuth();

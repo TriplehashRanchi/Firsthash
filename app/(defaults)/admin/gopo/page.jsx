@@ -146,6 +146,7 @@ function Page() {
             receivedAmount: receivedAmountData,
             paymentSchedule: paymentScheduleData,
         };
+        console.log('🟡 fullProjectData:', fullProjectData);
 
         const toastId = toast.loading(isEditMode ? 'Updating project...' : 'Saving project...');
 
@@ -177,6 +178,8 @@ function Page() {
                 const createProjectResponse = await axios.post(`${API_URL}/api/projects`, fullProjectData, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
+
+                console.log('🟡 createProjectResponse:', createProjectResponse);
 
                 if (!createProjectResponse.data.success) {
                     throw new Error('Failed to save the project details.');

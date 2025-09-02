@@ -208,7 +208,7 @@ const AdminSidebar = () => {
                                         <Link href="/admin/expence" className="group">
                                             <div className="flex items-center">
                                                 <IconCashBanknotes className="shrink-0 group-hover:!text-primary" />
-                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:text-gray-200 dark:group-hover:text-white-dark">{t('Expence')}</span>
+                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:text-gray-200 dark:group-hover:text-white-dark">{t('Expense')}</span>
                                             </div>
                                         </Link>
                                     </li>

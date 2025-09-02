@@ -125,7 +125,7 @@ const CreateRoleModal = ({ isOpen, onClose, companyId, onRoleCreated }) => {
                                 >
                                     <option value={1}>On Production</option>
                                     <option value={2}>Post Production</option>
-                                    <option value={0}>Manager</option>
+                                    {/* <option value={0}>Manager</option> */}
                                 </select>
                             </div>
                         </div>
