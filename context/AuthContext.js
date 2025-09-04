@@ -4,6 +4,7 @@ import { createContext, useContext, useState, useEffect } from 'react';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 import axios from 'axios';
+import toast from 'react-hot-toast';
 
 const AuthContext = createContext();
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
@@ -24,10 +25,10 @@ export const AuthProvider = ({ children }) => {
             const { data: roleData } = await axios.get(`${API_URL}/api/auth/user-role/${firebase_uid}`);
             const detectedRole = roleData?.role || null;
             const employeeCompanyId = roleData?.company_id || null;
-            const employeeType = roleData?.employee_type ?? null;
+            const detectedEmployeeType = roleData?.employee_type ?? null;
 
-            setRole(detectedRole);
-            setEmployeeType(detectedEmployeeType);
+           setRole(detectedRole);
+      setEmployeeType(detectedEmployeeType);
 
             // 2) If admin → company by owner UID
             if (detectedRole === 'admin') {
@@ -133,45 +134,54 @@ export const AuthProvider = ({ children }) => {
     };
 
     // Google signup
-    const loginWithGoogle = async ({ name, phone, company_name }) => {
-        const provider = new GoogleAuthProvider();
-        const cred = await signInWithPopup(auth, provider);
-        const firebase_uid = cred.user.uid;
+    // Google signup/login
+const loginWithGoogle = async ({ name, phone, company_name }) => {
+  const provider = new GoogleAuthProvider();
+  const cred = await signInWithPopup(auth, provider);
+  const firebase_uid = cred.user.uid;
 
-        try {
-            // Check if user already exists in the DB
-            const res = await axios.get(`${API_URL}/api/auth/user-role/${firebase_uid}`);
-            const role = res?.data?.role;
+  try {
+    let role = null;
+    try {
+      // 1) Try to fetch role
+      const res = await axios.get(`${API_URL}/api/auth/user-role/${firebase_uid}`);
+      role = res?.data?.role || null;
+    } catch (err) {
+      if (err.response?.status !== 404) {
+        throw err; // some other server error
+      }
+    }
 
-            if (!role) {
-                // User doesn't exist → Register now
-                await axios.post(`${API_URL}/api/auth/register-google`, {
-                    firebase_uid,
-                    email: cred.user.email,
-                    name: name || cred.user.displayName,
-                    phone,
-                    company_name,
-                });
-            }
+    // 2) If no role → user doesn’t exist → register in DB
+    if (!role) {
+      await axios.post(`${API_URL}/api/auth/register-google`, {
+        firebase_uid,
+        email: cred.user.email,
+        name: name || cred.user.displayName,
+        phone,
+        company_name,
+      });
+    }
 
-            // Fetch company & role after login
-            const detectedRole = await fetchUserRoleAndCompany(firebase_uid);
+    // 3) Fetch company & role after login
+    const detectedRole = await fetchUserRoleAndCompany(firebase_uid);
 
-            // Redirect
-            if (detectedRole === 'admin') {
-                window.location.href = '/admin/dashboard';
-            } else if (detectedRole === 'employee') {
-                window.location.href = '/employee/dashboard';
-            } else if (detectedRole === 'manager') 
-                window.location.href = '/manager/dashboard'; 
-            else {
-                toast.error('Unknown role or user not authorized.');
-            }
-        } catch (err) {
-            console.error('Google login error:', err);
-            toast.error('Google login failed.');
-        }
-    };
+    // 4) Redirect
+    if (detectedRole === 'admin') {
+      window.location.href = '/admin/dashboard';
+    } else if (detectedRole === 'employee') {
+      window.location.href = '/employee/dashboard';
+    } else if (detectedRole === 'manager') {
+      window.location.href = '/manager/dashboard';
+    } else {
+      toast.error('Unknown role or user not authorized.');
+    }
+  } catch (err) {
+    console.error('Google login error:', err);
+    toast.error('Google login failed.');
+  }
+};
+
 
     const logout = () => {
         setCompany(null);
@@ -181,9 +191,9 @@ export const AuthProvider = ({ children }) => {
 
     const isSubscribedUser = !!company && new Date(company.plan_expiry) > new Date();
 
-    const isAdmin = role === 'admin';
-    const isEmployee = role === 'employee';
-    const isManager = role === 'manager';
+    // const isAdmin = role === 'admin';
+    // const isEmployee = role === 'employee';
+    // const isManager = role === 'manager';
 
     return (
         <AuthContext.Provider
@@ -191,9 +201,9 @@ export const AuthProvider = ({ children }) => {
                 currentUser,
                 company,
                 role,
-                isAdmin,
-                isEmployee,
-                isManager,
+                isAdmin :role === 'admin',
+                isEmployee : role === 'employee',
+                isManager : role === 'manager',
                 isSubscribedUser,
                 register,
                 login,

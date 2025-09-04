@@ -48,6 +48,7 @@ const Avatar: React.FC<AvatarProps> = ({ name, email, photoURL, className = '' }
         </div>
     );
 };
+console.log('User', auth.currentUser);
 
 const EmployeeHeader: React.FC = () => {
     const pathname = usePathname();
@@ -69,9 +70,10 @@ const EmployeeHeader: React.FC = () => {
     };
 
     console.log('User', currentUser);
-    const displayName = currentUser?.displayName || null;
-    const email = currentUser?.email || null;
-    const photoURL = currentUser?.photoURL || null;
+    // ✅ CHANGE: prefer Auth photoURL, then providerData[0].photoURL
+    const displayName = currentUser?.displayName ?? null;
+    const email = currentUser?.email ?? null;
+    const photoURL = currentUser?.photoURL ?? currentUser?.providerData?.[0]?.photoURL ?? null;
 
     useEffect(() => {
         // highlight active link in horizontal menu (client-only)
@@ -124,7 +126,7 @@ const EmployeeHeader: React.FC = () => {
                  focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1
                  dark:bg-gray-600 dark:hover:bg-gray-700 dark:focus:ring-indigo-400"
                         >
-                           <WorkflowIcon size={16} /> Team Allocation
+                            <WorkflowIcon size={16} /> Team Allocation
                         </Link>
 
                         <Link
@@ -134,7 +136,7 @@ const EmployeeHeader: React.FC = () => {
                  focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1
                  dark:bg-gray-400 dark:hover:bg-gray-300 dark:focus:ring-indigo-400"
                         >
-                          <BadgePlus size={16}  />  Create Project
+                            <BadgePlus size={16} /> Create Project
                         </Link>
                         <div className="flex items-center space-x-1.5 ltr:ml-auto rtl:mr-auto rtl:space-x-reverse dark:text-[#d0d2d6] sm:flex-1 ltr:sm:ml-0 sm:rtl:mr-0 lg:space-x-2">
                             <div className="flex justify-end space-x-1.5 rtl:space-x-reverse dark:text-[#d0d2d6] sm:flex-1 lg:space-x-2 ml-auto">
