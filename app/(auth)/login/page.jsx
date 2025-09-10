@@ -18,6 +18,7 @@ export default function LoginPage() {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
+ 
   const handleEmailLogin = async () => {
     if (!form.email || !form.password) {
       return toast.error('Please enter both email and password.');

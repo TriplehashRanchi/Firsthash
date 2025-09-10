@@ -36,7 +36,7 @@ import { Toaster } from 'react-hot-toast';
                     themeConfig.rtlClass
                 } main-section relative font-nunito text-sm font-normal antialiased`}
             >
-                 <Toaster position="top-right" />
+                 <Toaster position="top-center" />
                 {isLoading ? <Loading /> : children}
             </div>
             </AuthProvider>

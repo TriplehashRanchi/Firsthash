@@ -93,28 +93,26 @@ const AssignmentModalContent = ({
                     <ul className="max-h-60 overflow-y-auto space-y-2 pr-1 mb-6 border border-slate-300 dark:border-slate-700 rounded-md p-3 bg-slate-50 dark:bg-slate-800/50">
                         {teamMembersToDisplay.map((member) => (
                             <li key={member.id}>
-            <label
-                htmlFor={`member-${member.id}-${serviceName}`}
-                className={`flex items-center w-full p-3 rounded-lg cursor-pointer transition-all duration-200 ease-in-out border-2 ${selectedMemberIds.includes(member.id) ? 'bg-indigo-500/10 dark:bg-indigo-600/20 border-indigo-500' : 'bg-slate-100 dark:bg-slate-700/50 border-slate-300 dark:border-slate-600 hover:bg-slate-200 dark:hover:bg-slate-600/70'}`}
-            >
-                <input
-                    type="checkbox"
-                    id={`member-${member.id}-${serviceName}`}
-                    checked={selectedMemberIds.includes(member.id)}
-                    onChange={() => handleMemberSelect(member.id)}
-                    disabled={!selectedMemberIds.includes(member.id) && selectedMemberIds.length >= requiredCount}
-                    className="h-5 w-5 rounded border-slate-400 text-indigo-600 focus:ring-indigo-500"
-                />
-                <div className="flex-grow ml-4">
-                    <span className="block text-sm font-medium text-slate-800 dark:text-slate-100">{member.name}</span>
-                    {/* This now displays only the member's relevant "on-production" roles */}
-                    <span className="block text-xs text-slate-600 dark:text-slate-400">
-                        {member.onProductionRoles.join(', ')}
-                    </span>
-                </div>
-                {selectedMemberIds.includes(member.id) && <CheckCircle size={18} className="text-green-500 ml-auto" />}
-            </label>
-        </li>
+                                <label
+                                    htmlFor={`member-${member.id}-${serviceName}`}
+                                    className={`flex items-center w-full p-3 rounded-lg cursor-pointer transition-all duration-200 ease-in-out border-2 ${selectedMemberIds.includes(member.id) ? 'bg-indigo-500/10 dark:bg-indigo-600/20 border-indigo-500' : 'bg-slate-100 dark:bg-slate-700/50 border-slate-300 dark:border-slate-600 hover:bg-slate-200 dark:hover:bg-slate-600/70'}`}
+                                >
+                                    <input
+                                        type="checkbox"
+                                        id={`member-${member.id}-${serviceName}`}
+                                        checked={selectedMemberIds.includes(member.id)}
+                                        onChange={() => handleMemberSelect(member.id)}
+                                        disabled={!selectedMemberIds.includes(member.id) && selectedMemberIds.length >= requiredCount}
+                                        className="h-5 w-5 rounded border-slate-400 text-indigo-600 focus:ring-indigo-500"
+                                    />
+                                    <div className="flex-grow ml-4">
+                                        <span className="block text-sm font-medium text-slate-800 dark:text-slate-100">{member.name}</span>
+                                        {/* This now displays only the member's relevant "on-production" roles */}
+                                        <span className="block text-xs text-slate-600 dark:text-slate-400">{member.onProductionRoles.join(', ')}</span>
+                                    </div>
+                                    {selectedMemberIds.includes(member.id) && <CheckCircle size={18} className="text-green-500 ml-auto" />}
+                                </label>
+                            </li>
                         ))}
                     </ul>
                 ) : (
@@ -139,7 +137,7 @@ const AssignmentModalContent = ({
 };
 
 // --- MAIN COMPONENT (with corrected props and logic) ---
-const ShootsTab = ({isReadOnly, shoots, eligibleTeamMembers, sectionTitleStyles, DetailPairStylishComponent, ContentListItemComponent, onUpdateShootAssignment }) => {
+const ShootsTab = ({ isReadOnly, shoots, eligibleTeamMembers, sectionTitleStyles, DetailPairStylishComponent, ContentListItemComponent, onUpdateShootAssignment, onEditCity, }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [assignmentContext, setAssignmentContext] = useState(null);
 
@@ -282,7 +280,19 @@ const ShootsTab = ({isReadOnly, shoots, eligibleTeamMembers, sectionTitleStyles,
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-4 mb-3">
                                 <DetailPairStylishComponent label="Date" value={shoot.date} isDate icon={CalendarDays} />
                                 <DetailPairStylishComponent label="Time" value={shoot.time} icon={Clock} />
-                                <DetailPairStylishComponent label="City" value={shoot.city} icon={MapPin} />
+                                <div className="flex items-center justify-between">
+                                    <DetailPairStylishComponent label="City" value={shoot.city} icon={MapPin} />
+                                    {!isReadOnly && (
+                                        <button
+                                            onClick={() => onEditCity && onEditCity(shoot)}
+                                            className="ml-2 px-2 py-1 text-xs bg-indigo-50 text-indigo-600 
+                   rounded-md hover:bg-indigo-100 dark:bg-indigo-500/10 
+                   dark:text-indigo-300"
+                                        >
+                                            Change
+                                        </button>
+                                    )}
+                                </div>
                             </div>
 
                             {shoot.selectedServices && Object.keys(shoot.selectedServices).length > 0 && (
