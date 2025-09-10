@@ -120,20 +120,16 @@ export default function MemberForm() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPwd, setConfirmPwd] = useState('');
-    
-    // REMOVED: The old state for the dropdown is no longer needed.
-    // const [showRoles, setShowRoles] = useState(false);
-    
-    // ADDED: New state to control the visibility of the role selection modal.
-    const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
+    const [alternatePhone, setAlternatePhone] = useState('');
 
-    // This handler function receives the selections from the modal and updates the form's state.
+    
+    const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
     const handleSaveRoles = (newSelectedRoles) => {
         setSelectedRoles(newSelectedRoles);
     };
 
     useEffect(() => {
-        if (!companyId) return; // Don't fetch if companyId is not ready
+        if (!companyId) return; 
         async function fetchTypes() {
             setLoading(true);
             setError(null);
@@ -190,6 +186,7 @@ export default function MemberForm() {
         role_ids: selectedRoles.map(Number),
         full_name: fullName,
         mobile_no: mobileNo,
+        alternate_phone: alternatePhone,
         email,
         password,
         company_id: companyId,
@@ -203,6 +200,7 @@ export default function MemberForm() {
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
             body: JSON.stringify(payload),
         });
+        console.log('response', response);
         const result = await response.json();
         if (!response.ok) {
             throw new Error(result.error || response.statusText);
@@ -210,6 +208,7 @@ export default function MemberForm() {
         toast.success('Member created successfully!', { id: toastId });
         setFullName('');
         setMobileNo('');
+        setAlternatePhone('');
         setEmail('');
         setPassword('');
         setConfirmPwd('');
@@ -274,6 +273,7 @@ export default function MemberForm() {
                             <div className="grid grid-cols-1 dark:text-gray-200  md:grid-cols-2 gap-8 border-t pt-8">
                                 {renderInputField('fullName', 'Full Name', 'text', fullName, setFullName, 'John Doe', <User size={16} className="text-gray-400 dark:text-gray-200" />)}
                                 {renderInputField('mobileNo', 'Mobile No.', 'tel', mobileNo, setMobileNo, '123-456-7890', <Phone size={16} className="text-gray-400 dark:text-gray-200" />)}
+                                {renderInputField('alternatePhone','Alternate Phone No.','tel',alternatePhone,setAlternatePhone,'987-654-3210',<Phone size={16} className="text-gray-400 dark:text-gray-200" />)}
                                 {renderInputField('email', 'Email Address', 'email', email, setEmail, 'email@example.com', <Mail size={16} className="text-gray-400 dark:text-gray-200" />)}
                                 {renderInputField('password', 'Password', 'password', password, setPassword, '••••••••', <Key size={16} className="text-gray-400 dark:text-gray-200" />)}
                                 {renderInputField('confirmPwd', 'Confirm Password', 'password', confirmPwd, setConfirmPwd, '••••••••', <Key size={16} className="text-gray-400 dark:text-gray-200" />)}

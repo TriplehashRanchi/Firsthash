@@ -7,7 +7,8 @@ import axios from 'axios';
 import { getAuth } from 'firebase/auth';
 import { 
     ArrowLeft, User, Mail, Phone, MapPin, Briefcase, ShieldCheck, 
-    Banknote, Building, Library, Hash, UserCheck, Pencil
+    Banknote, Building, Library, Hash, UserCheck, Pencil,
+    PhoneCall
 } from 'lucide-react';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
@@ -154,7 +155,7 @@ export default function MemberViewPage() {
             {/* Profile Header */}
             <div className="bg-white dark:bg-slate-800/50 border-y border-slate-200 dark:border-slate-700 px-6 py-8">
                 <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center gap-6">
-                    <Avatar name={member.name} imageUrl={member.imageUrl /* Assuming you have an imageUrl property */} />
+                    <Avatar name={member.name} imageUrl={member.imageUrl } />
                     <div className="text-center sm:text-left flex-grow">
                         <h1 className="text-3xl font-bold text-slate-900 dark:text-white">{member.name}</h1>
                         <p className="text-md text-blue-600 dark:text-blue-400 font-semibold mt-1">{member.role}</p>
@@ -183,6 +184,7 @@ export default function MemberViewPage() {
                         <InfoCard title="Personal Information" icon={User}>
                             <DetailItem icon={Mail} label="Email Address" value={member.email} />
                             <DetailItem icon={Phone} label="Phone Number" value={member.phone} />
+                            <DetailItem icon={PhoneCall} label="Alternate Phone Number" value={member.alternate_phone} />
                             <DetailItem icon={MapPin} label="Address" value={member.address} />
                         </InfoCard>
 

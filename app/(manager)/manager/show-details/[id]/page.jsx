@@ -369,6 +369,51 @@ function ProjectReviewPage() {
     const [isGeneratingFullPaid, setIsGeneratingFullPaid] = useState(false); // <-- AND ADD THIS
     const [processingPaymentId, setProcessingPaymentId] = useState(null);
     // const [quotations, setQuotations] = useState([]); // To store a list of generated quotes
+    const [isCityModalOpen, setIsCityModalOpen] = useState(false);
+    const [cityModalShoot, setCityModalShoot] = useState(null);
+    const [newCityValue, setNewCityValue] = useState('');
+    const [savingCity, setSavingCity] = useState(false);
+
+    const openCityModal = (shoot) => {
+        setCityModalShoot(shoot);
+        setNewCityValue(shoot?.city || '');
+        setIsCityModalOpen(true);
+    };
+
+    const closeCityModal = () => {
+        setIsCityModalOpen(false);
+        setCityModalShoot(null);
+        setNewCityValue('');
+    };
+
+    const submitCityChange = async () => {
+        if (!currentUser || !cityModalShoot?.id) return;
+        setSavingCity(true);
+
+        // Optimistic UI update
+        const prevShoots = fullProjectData.shoots.shootList;
+        setFullProjectData((prev) => ({
+            ...prev,
+            shoots: {
+                ...prev.shoots,
+                shootList: prev.shoots.shootList.map((s) => (s.id === cityModalShoot.id ? { ...s, city: newCityValue.trim() } : s)),
+            },
+        }));
+
+        try {
+            const token = await currentUser.getIdToken();
+            await axios.patch(`${API_URL}/api/shoots/${cityModalShoot.id}/city`, { city: newCityValue.trim() }, { headers: { Authorization: `Bearer ${token}` } });
+            toast.success('Location updated');
+            closeCityModal();
+        } catch (err) {
+            console.error('Failed to update city:', err);
+            toast.error('Could not update location. Reverting.');
+            // Roll back
+            setFullProjectData((prev) => ({ ...prev, shoots: { ...prev.shoots, shootList: prevShoots } }));
+        } finally {
+            setSavingCity(false);
+        }
+    };
 
     const params = useParams();
     const projectId = params.id;
@@ -411,6 +456,7 @@ function ProjectReviewPage() {
     const handleEditProject = () => {
         router.push(`/manager/gopo?projectId=${projectId}`);
     };
+    console.log('EDIT', handleEditProject);
 
     // --- NEW: Handler to create a task via API ---
     // File: ProjectReviewPage.jsx
@@ -529,11 +575,6 @@ function ProjectReviewPage() {
         }
     };
 
-    /**
-     * Updates an existing task's details (e.g., title, status) via the API.
-     * @param {string} taskId - The UUID of the task to update.
-     * @param {object} updateData - The fields to update (e.g., { status: 'completed' }).
-     */
     const handleTaskUpdate = async (taskId, updateData) => {
         if (!currentUser) return alert('Cannot update task: Missing user context.');
 
@@ -1066,11 +1107,12 @@ function ProjectReviewPage() {
                     <Shoots
                         shoots={shootsObject?.shootList?.length ? shootsObject.shootList : fullProjectData.shootList}
                         isReadOnly={isReadOnly}
-                        eligibleTeamMembers={eligibleShootTeam || []} // <-- ADD THIS PROP
+                        eligibleTeamMembers={eligibleShootTeam || []}
                         sectionTitleStyles={sectionTitleStyles}
                         DetailPairStylishComponent={DetailPairStylish}
                         ContentListItemComponent={ContentListItem}
                         onUpdateShootAssignment={handleUpdateShootAssignment}
+                         onEditCity={openCityModal}
                     />
                 );
             case TABS.DELIVERABLES:
@@ -1372,7 +1414,52 @@ function ProjectReviewPage() {
                     </div>
                 </div>
             </div>
-        </>
+
+              {isCityModalOpen && (
+      <div
+        className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4"
+        onClick={closeCityModal}
+      >
+        <div
+          className="bg-white dark:bg-slate-800 rounded-lg shadow-2xl p-6 w-full max-w-md"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4">
+            Update Shoot Location
+          </h3>
+          <input
+            type="text"
+            value={newCityValue}
+            onChange={(e) => setNewCityValue(e.target.value)}
+            className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 
+                       rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 
+                       focus:border-indigo-500 bg-white dark:bg-slate-700 
+                       text-slate-900 dark:text-slate-100"
+            placeholder="Enter new city"
+          />
+          <div className="mt-6 flex justify-end gap-3">
+            <button
+              onClick={closeCityModal}
+              className="px-4 py-2 text-sm font-medium text-slate-700 
+                         bg-slate-100 dark:bg-slate-600 dark:text-slate-200 
+                         rounded-md hover:bg-slate-200 dark:hover:bg-slate-500"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={submitCityChange}
+              disabled={savingCity}
+              className="px-4 py-2 text-sm font-medium text-white 
+                         bg-indigo-600 rounded-md hover:bg-indigo-700 
+                         disabled:opacity-50"
+            >
+              {savingCity ? 'Saving...' : 'Save'}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+  </>
     );
 }
 

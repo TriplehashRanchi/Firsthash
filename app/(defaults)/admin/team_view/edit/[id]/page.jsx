@@ -64,7 +64,7 @@ export default function MemberEditPage() {
     const { id } = useParams();
 
     // State Management
-    const [form, setForm] = useState({ full_name: '', email: '', phone: '', employee_type: 1, address: '', salary: '', role_id: '' });
+    const [form, setForm] = useState({ full_name: '', email: '', phone: '',  alternate_phone: '', employee_type: 1, address: '', salary: '', role_id: '' });
     const [bankForm, setBankForm] = useState({ bank_name: '', branch_name: '', ifsc_code: '', account_number: '', account_holder: '', account_type: 'savings', upi_id: '' });
     const [roles, setRoles] = useState([]);
     const [pageLoading, setPageLoading] = useState(true);
@@ -100,7 +100,7 @@ export default function MemberEditPage() {
         setRoles(rolesRes.data);
         const m = memberRes.data;
         setForm({
-          full_name: m.name, email: m.email, phone: m.phone,
+          full_name: m.name, email: m.email, phone: m.phone, alternate_phone: m.alternate_phone,
           employee_type: m.employee_type,
           address: m.address||'', salary: m.salary||'', role_id: m.role_id||''
         });
@@ -217,6 +217,7 @@ const handleBankSubmit = async e => {
                             <InputField label="Full Name" name="full_name" value={form.full_name} onChange={handleChange} required />
                             <InputField label="Email Address" type="email" name="email" value={form.email} onChange={handleChange} required />
                             <InputField label="Mobile Number" name="phone" value={form.phone} onChange={handleChange} required />
+                            <InputField label="Alternate Mobile Number" name="alternate_phone" value={form.alternate_phone} onChange={handleChange} required />
                             <InputField label="Address" name="address" value={form.address} onChange={handleChange} />
                             <SelectField label="Employment Type" name="employee_type" value={form.employee_type} onChange={handleChange}>
                                 {TYPE_OPTIONS.map(opt => (<option key={opt.value} value={opt.value}>{opt.label}</option>))}
