@@ -22,6 +22,8 @@ import IconDollarSignCircle from '../icon/icon-dollar-sign-circle';
 import IconMenuForms from '../icon/menu/icon-menu-forms';
 import IconUser from '../icon/icon-user';
 import { CalendarCheck, CalendarCheck2, ClipboardCheck, Presentation, ShieldAlert, UserRoundSearch } from 'lucide-react';
+import IconCaretDown from '../icon/icon-caret-down';
+import AnimateHeight from 'react-animate-height';
 
 const ManagerSidebar = () => {
     const dispatch = useDispatch();
@@ -110,6 +112,36 @@ const ManagerSidebar = () => {
                                             </div>
                                         </Link>
                                     </li>
+
+                                     <li className="menu nav-item">
+                                        <button type="button" className={`${currentMenu === 'customer_tab' ? 'active' : ''} nav-link group w-full`} onClick={() => toggleMenu('customer_tab')}>
+                                            <div className="flex items-center">
+                                                <IconMenuUsers className="shrink-0 group-hover:!text-primary" />
+                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('Enquiry')}</span>
+                                            </div>
+
+                                           <div className={currentMenu !== 'automation' ? '-rotate-90 rtl:rotate-90' : ''}>
+                                                <IconCaretDown />
+                                            </div>
+                                        </button>
+
+                                        <AnimateHeight duration={300} height={currentMenu === 'customer_tab' ? 'auto' : 0}>
+                                            <ul className="sub-menu text-gray-500">
+                                                 <li>
+                                                    <Link href="/manager/enquiry">{t('Enquiry')}</Link>
+                                                </li>
+
+                                                <li>
+                                                    <Link href="/manager/leads">{t('All Enquiry')}</Link>
+                                                </li>
+                                               
+                                                {/* <li>
+                                                    <Link href="/customers">{t('Clients')}</Link>
+                                                </li> */}
+                                            </ul>
+                                        </AnimateHeight>
+                                   </li>
+
 
                                     <li className="nav-item">
                                         <Link href="/manager/task" className="group">
