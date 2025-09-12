@@ -108,30 +108,13 @@ export const AuthProvider = ({ children }) => {
         await fetchUserRoleAndCompany(firebase_uid);
     };
 
-    // Email login
-    const login = async (email, password) => {
-        const cred = await signInWithEmailAndPassword(auth, email, password);
-        const firebase_uid = cred.user.uid;
-        console.log('initialting');
-
-        const role = await fetchUserRoleAndCompany(firebase_uid);
-        console.log('role', role);
-
-        console.log(typeof window !== 'undefined');
-
-        if (typeof window !== 'undefined') {
-            console.log('rolex', role);
-            if (role === 'admin') {
-                console.log('admin');
-                window.location.href = '/admin/dashboard';
-            } else if (role == 'manager') {
-                console.log('manager');
-                window.location.href = '/manager/dashboard';
-            } else if (role === 'employee') {
-                window.location.href = '/employee/dashboard';
-            }
-        }
-    };
+    // Email login// In AuthContext.js
+const login = async (email, password) => {
+    const cred = await signInWithEmailAndPassword(auth, email, password);
+    const firebase_uid = cred.user.uid;
+    const role = await fetchUserRoleAndCompany(firebase_uid);
+    return { role }; // Return the user's role
+};
 
     // Google signup
     // Google signup/login
@@ -139,21 +122,21 @@ const loginWithGoogle = async ({ name, phone, company_name }) => {
   const provider = new GoogleAuthProvider();
   const cred = await signInWithPopup(auth, provider);
   const firebase_uid = cred.user.uid;
+  let isNewUser = false;
 
   try {
     let role = null;
     try {
-      // 1) Try to fetch role
       const res = await axios.get(`${API_URL}/api/auth/user-role/${firebase_uid}`);
       role = res?.data?.role || null;
     } catch (err) {
       if (err.response?.status !== 404) {
-        throw err; // some other server error
+        throw err; // Re-throw if it's not a 'user not found' error
       }
     }
 
-    // 2) If no role → user doesn’t exist → register in DB
     if (!role) {
+      isNewUser = true;
       await axios.post(`${API_URL}/api/auth/register-google`, {
         firebase_uid,
         email: cred.user.email,
@@ -163,22 +146,13 @@ const loginWithGoogle = async ({ name, phone, company_name }) => {
       });
     }
 
-    // 3) Fetch company & role after login
-    const detectedRole = await fetchUserRoleAndCompany(firebase_uid);
+    await fetchUserRoleAndCompany(firebase_uid);
+    return { isNewUser }; // Return the user's status
 
-    // 4) Redirect
-    if (detectedRole === 'admin') {
-      window.location.href = '/admin/dashboard';
-    } else if (detectedRole === 'employee') {
-      window.location.href = '/employee/dashboard';
-    } else if (detectedRole === 'manager') {
-      window.location.href = '/manager/dashboard';
-    } else {
-      toast.error('Unknown role or user not authorized.');
-    }
   } catch (err) {
     console.error('Google login error:', err);
     toast.error('Google login failed.');
+    throw err;
   }
 };
 

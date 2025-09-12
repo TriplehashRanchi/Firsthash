@@ -19,15 +19,26 @@ export default function LoginPage() {
   };
 
  
-  const handleEmailLogin = async () => {
+const handleEmailLogin = async () => {
     if (!form.email || !form.password) {
       return toast.error('Please enter both email and password.');
     }
 
     try {
       setLoading(true);
-      await login(form.email, form.password);
-      // redirection handled in AuthContext
+      const { role } = await login(form.email, form.password);
+
+      toast.success('Login successful!');
+
+      if (role === 'admin') {
+          router.push('/admin/dashboard');
+      } else if (role === 'manager') {
+          router.push('/manager/dashboard');
+      } else if (role === 'employee') {
+          router.push('/employee/dashboard');
+      } else {
+          router.push('/'); // Fallback redirect
+      }
     } catch (err) {
       console.error(err);
       toast.error('Login failed. Check credentials.');
@@ -36,15 +47,28 @@ export default function LoginPage() {
     }
   };
 
+
+
   const handleGoogleLogin = async () => {
     try {
       setLoading(true);
-      await loginWithGoogle({
-        name: 'Google User', // dummy (already handled in AuthContext)
+      const { isNewUser } = await loginWithGoogle({
+        name: 'Google User',
         phone: '0000000000',
         company_name: 'Untitled Studio',
       });
-      // redirection handled in AuthContext
+
+      if (isNewUser) {
+        toast.success('Account created! Please subscribe to continue.');
+        router.push('/subscribe');
+      } else {
+        toast.success('Logged in successfully!');
+        // For existing users, redirection can be handled by a protected route layout
+        // or you can explicitly redirect here after the context is updated.
+        // A common pattern is to redirect to a generic dashboard or home page,
+        // and let a layout component handle role-specific rendering.
+        router.push('/');
+      }
     } catch (err) {
       console.error(err);
       toast.error('Google login failed.');
