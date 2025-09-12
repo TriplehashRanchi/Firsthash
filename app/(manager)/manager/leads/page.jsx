@@ -20,6 +20,8 @@ import {
 } from 'react-icons/hi';
 import Link from 'next/link';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+
 const LoadingSpinner = () => (
     <div className="flex justify-center items-center h-64">
         <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-indigo-500"></div>
@@ -43,17 +45,14 @@ const DetailItem = ({ icon, label, value }) => {
     );
 };
 
-// --- THE NEW "GLAMOUR" LeadDetailModal ---
 const LeadDetailModal = ({ lead, onClose }) => {
     if (!lead) return null;
 
-    // Helper to create initials for the avatar
     const getInitials = (name = '') => {
         const parts = name.split(' ');
         return (parts.length > 1 ? `${parts[0][0]}${parts[parts.length - 1][0]}` : name.substring(0, 2)).toUpperCase();
     };
 
-    // Helper for formatting dates cleanly
     const formatDate = (dateString) => {
         if (!dateString) return null;
         return new Date(dateString).toLocaleDateString('en-US', {
@@ -63,7 +62,6 @@ const LeadDetailModal = ({ lead, onClose }) => {
         });
     };
 
-    // Helper for formatting currency
     const formatCurrency = (amount) => {
         if (amount === null || amount === undefined) return null;
         return new Intl.NumberFormat('en-IN', {
@@ -167,7 +165,7 @@ export default function LeadsDashboard() {
                 setIsLoading(true);
                 setError('');
                 try {
-                    const response = await fetch(`http://localhost:8080/api/leads/${user.uid}`);
+                    const response = await fetch(`${API_URL}/api/leads/${user.uid}`);
                     if (!response.ok) throw new Error('Failed to fetch leads.');
                     const data = await response.json();
                     setLeads(data);

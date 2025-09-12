@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import {
     HiOutlineEye,
@@ -17,8 +17,11 @@ import {
     HiOutlinePencilAlt,
     HiOutlineClock,
     HiOutlineHashtag,
+    HiChevronDown, HiCheck
 } from 'react-icons/hi';
 import Link from 'next/link';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
 const LoadingSpinner = () => (
     <div className="flex justify-center items-center h-64">
@@ -39,6 +42,109 @@ const DetailItem = ({ icon, label, value }) => {
                 <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{label}</p>
                 <p className="text-base text-gray-800 dark:text-gray-300 break-words">{String(value)}</p>
             </div>
+        </div>
+    );
+};
+
+
+// A more robust config for easier styling and future additions
+const statusConfig = {
+    'New': { textColor: 'text-blue-700 dark:text-blue-300', dotColor: 'bg-blue-500',hoverBg: 'hover:bg-blue-50 dark:hover:bg-blue-900/50',},
+    'Hot Lead': {textColor: 'text-red-700 dark:text-red-400', dotColor: 'bg-red-500',hoverBg: 'hover:bg-red-50 dark:hover:bg-red-900/50',},
+    'Cold Lead': {textColor: 'text-gray-600 dark:text-gray-400', dotColor: 'bg-gray-500',hoverBg: 'hover:bg-gray-100 dark:hover:bg-gray-700/50',},
+    'Contacted': { textColor: 'text-yellow-700 dark:text-yellow-400', dotColor: 'bg-yellow-500',hoverBg: 'hover:bg-yellow-50 dark:hover:bg-yellow-900/50', },
+    'Converted': {textColor: 'text-green-700 dark:text-green-400',dotColor: 'bg-green-500',hoverBg: 'hover:bg-green-50 dark:hover:bg-green-900/50',},
+    'Rejected': { textColor: 'text-purple-700 dark:text-purple-400', dotColor: 'bg-purple-500', hoverBg: 'hover:bg-purple-50 dark:hover:bg-purple-900/50', },
+};
+
+
+const StatusDropdown = ({ lead, onStatusChange }) => {
+    const [currentStatus, setCurrentStatus] = useState(lead.lead_status || 'New');
+    const [isOpen, setIsOpen] = useState(false);
+    const [isDropdownAbove, setIsDropdownAbove] = useState(false);
+    const dropdownRef = useRef(null); // Ref for the main container
+
+    const currentConfig = statusConfig[currentStatus] || statusConfig['Cold Lead'];
+
+    const handleSelect = async (status) => {
+        setIsOpen(false);
+        if (status === currentStatus) return;
+
+        const previousStatus = currentStatus;
+        setCurrentStatus(status);
+
+        try {
+            await onStatusChange(lead.id, status);
+        } catch (error) {
+            setCurrentStatus(previousStatus);
+            console.error("Failed to update status:", error);
+        }
+    };
+
+    // --- NEW LOGIC TO CHECK POSITION ---
+    const toggleDropdown = () => {
+        if (!isOpen && dropdownRef.current) {
+            const rect = dropdownRef.current.getBoundingClientRect();
+            const spaceBelow = window.innerHeight - rect.bottom;
+            const dropdownHeight = 250; // Approximate height of the dropdown panel
+
+            // If not enough space below, open above
+            setIsDropdownAbove(spaceBelow < dropdownHeight);
+        }
+        setIsOpen(!isOpen);
+    };
+
+    // Dynamically set position classes
+    const dropdownPositionClasses = isDropdownAbove
+        ? 'bottom-full mb-2 origin-bottom-right'
+        : 'top-full mt-2 origin-top-right';
+
+    return (
+        <div ref={dropdownRef} className="relative inline-block text-left w-36">
+            <div>
+                <button
+                    type="button"
+                    onClick={toggleDropdown} // Use the new toggle function
+                    className={`inline-flex items-center justify-between w-full rounded-md border border-gray-300 dark:border-gray-600 shadow-sm px-3 py-1.5 bg-white dark:bg-gray-700 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 dark:focus:ring-offset-gray-800 focus:ring-indigo-500 transition-all duration-150 ${currentConfig.hoverBg}`}
+                >
+                    <div className="flex items-center">
+                        <span className={`w-2.5 h-2.5 mr-2 rounded-full ${currentConfig.dotColor}`}></span>
+                        <span className={`${currentConfig.textColor}`}>{currentStatus}</span>
+                    </div>
+                    <HiChevronDown className={`h-5 w-5 ml-1 text-gray-400 transition-transform duration-200 ${isOpen ? 'transform rotate-180' : ''}`} />
+                </button>
+            </div>
+
+            {isOpen && (
+                <div
+                    className={`absolute right-0 w-56 rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 focus:outline-none z-20 transition ease-out duration-100 ${dropdownPositionClasses}`}
+                    // Animation style works for both directions
+                    style={{ transition: 'opacity 100ms, transform 100ms', opacity: 1, transform: 'scale(1)' }}
+                >
+                    <div className="py-1" role="menu" aria-orientation="vertical">
+                        {Object.entries(statusConfig).map(([status, config]) => (
+                            <a
+                                key={status}
+                                href="#"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    handleSelect(status);
+                                }}
+                                className="flex items-center justify-between px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                role="menuitem"
+                            >
+                                <div className="flex items-center">
+                                    <span className={`w-2.5 h-2.5 mr-3 rounded-full ${config.dotColor}`}></span>
+                                    {status}
+                                </div>
+                                {currentStatus === status && (
+                                    <HiCheck className="w-5 h-5 text-indigo-600" />
+                                )}
+                            </a>
+                        ))}
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
@@ -167,7 +273,7 @@ export default function LeadsDashboard() {
                 setIsLoading(true);
                 setError('');
                 try {
-                    const response = await fetch(`http://localhost:8080/api/leads/${user.uid}`);
+                    const response = await fetch(`${API_URL}/api/leads/${user.uid}`);
                     if (!response.ok) throw new Error('Failed to fetch leads.');
                     const data = await response.json();
                     setLeads(data);
@@ -184,6 +290,33 @@ export default function LeadsDashboard() {
             setLeads([]);
         }
     }, [user]);
+
+    const handleStatusChange = async (leadId, newStatus) => {
+        try {
+            const response = await fetch(`${API_URL}/api/leads/${leadId}/status`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                // Send `lead_status` in the body to match the controller
+                body: JSON.stringify({ lead_status: newStatus }),
+            });
+
+            if (!response.ok) {
+                throw new Error('Server responded with an error.');
+            }
+            
+            // Update local state to ensure UI is in sync with the database
+            setLeads(currentLeads =>
+                currentLeads.map(lead => 
+                    lead.id === leadId ? { ...lead, lead_status: newStatus } : lead
+                )
+            );
+
+        } catch (err) {
+            console.error('Error updating lead status:', err);
+            // Re-throw the error so the StatusDropdown component can catch it and revert its state
+            throw err;
+        }
+    };
 
     // Memoized filtering to prevent re-calculating on every render
     const filteredLeads = useMemo(() => {
@@ -257,6 +390,7 @@ export default function LeadsDashboard() {
                                     <th className="px-6 py-3 dark:text-gray-300 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Name</th>
                                     <th className="px-6 py-3 dark:text-gray-300 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Email</th>
                                     <th className="px-6 py-3 dark:text-gray-300 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Phone Number</th>
+                                    <th className="px-6 py-3 dark:text-gray-300 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
                                     <th className="px-6 py-3 dark:text-gray-300 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Source</th>
                                     <th className="px-6 py-3 dark:text-gray-300 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Actions</th>
                                 </tr>
@@ -269,7 +403,10 @@ export default function LeadsDashboard() {
                                             <td className="px-6 py-4 dark:text-gray-300 whitespace-nowrap text-sm font-medium text-gray-900">{lead.full_name}</td>
                                             <td className="px-6 py-4 dark:text-gray-300 whitespace-nowrap text-sm text-gray-500">{lead.email}</td>
                                             <td className="px-6 py-4 dark:text-gray-300 whitespace-nowrap text-sm text-gray-500">{lead.phone_number}</td>
-                                            <td className="px-6 py-4 dark:text-gray-300 whitespace-nowrap text-sm text-gray-500">{lead.source || 'Web Form'}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                                <StatusDropdown lead={lead} onStatusChange={handleStatusChange} />
+                                            </td>
+                                            <td className="px-6 py-4 dark:text-gray-300 whitespace-nowrap text-sm text-gray-500">{lead.source || 'LP/Form'}</td>
                                             <td className="px-6 py-4 dark:text-gray-300 whitespace-nowrap text-center">
                                                 <button
                                                     onClick={() => setSelectedLead(lead)}
@@ -304,9 +441,3 @@ export default function LeadsDashboard() {
         </div>
     );
 }
-
-// Add these to your global CSS or a style tag if you don't have them
-// for the cool animations on the modal
-/*
-
-*/
