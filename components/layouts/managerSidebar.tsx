@@ -134,10 +134,6 @@ const ManagerSidebar = () => {
                                                 <li>
                                                     <Link href="/manager/leads">{t('All Enquiry')}</Link>
                                                 </li>
-                                               
-                                                {/* <li>
-                                                    <Link href="/customers">{t('Clients')}</Link>
-                                                </li> */}
                                             </ul>
                                         </AnimateHeight>
                                    </li>
