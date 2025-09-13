@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect } from 'react';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from 'firebase/auth';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, signInWithCustomToken, getAuth } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 import axios from 'axios';
 import toast from 'react-hot-toast';
@@ -169,6 +169,29 @@ const loginWithGoogle = async ({ name, phone, company_name }) => {
     // const isEmployee = role === 'employee';
     // const isManager = role === 'manager';
 
+    const loginWithPhone = async (accessTokenFromWidget) => {
+  try {
+    // Call your backend with the MSG91 access token
+    const res = await axios.post(`${API_URL}/api/auth/otp/verify`, {
+      accessToken: accessTokenFromWidget,
+    });
+
+    const { firebaseToken } = res.data;
+
+    const auth = getAuth();
+    const cred = await signInWithCustomToken(auth, firebaseToken);
+
+    const firebase_uid = cred.user.uid;
+    const role = await fetchUserRoleAndCompany(firebase_uid);
+
+    return { role };
+  } catch (err) {
+    console.error("Phone login error:", err);
+    toast.error("Phone login failed.");
+    throw err;
+  }
+};
+
     return (
         <AuthContext.Provider
             value={{
@@ -182,6 +205,7 @@ const loginWithGoogle = async ({ name, phone, company_name }) => {
                 register,
                 login,
                 loginWithGoogle,
+                loginWithPhone,
                 logout,
                 loading,
             }}
