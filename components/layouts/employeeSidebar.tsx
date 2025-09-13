@@ -131,14 +131,14 @@ const EmployeeSidebar = () => {
                                             </div>
                                         </Link>
                                     </li>
-                                    <li className="nav-item">
+                                    {/* <li className="nav-item">
                                         <Link href="/employee/profile" className="group">
                                             <div className="flex items-center">
                                                 <UserPen className="shrink-0 group-hover:!text-primary" />
                                                 <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-gray-200 dark:group-hover:text-white-dark">{t('Profile')}</span>
                                             </div>
                                         </Link>
-                                    </li>
+                                    </li> */}
 
                                     <li className="nav-item">
                                         <Link href="/employee/view-attendance" className="group">
