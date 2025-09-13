@@ -101,6 +101,46 @@ function Page() {
         }
     }, [isEditMode, projectId, currentUser, API_URL, router]);
 
+     useEffect(() => {
+        // This effect should ONLY run if we are NOT in edit mode.
+        if (!isEditMode) {
+            const leadName = searchParams.get('lead_name');
+            const leadPhone = searchParams.get('lead_phone');
+            const leadEmail = searchParams.get('lead_email');
+            const leadCost = searchParams.get('lead_cost');
+
+            // If a lead_name exists in the URL, we assume we're creating from a lead.
+            if (leadName) {
+                setProjectName(leadName);
+            }
+
+            if (leadCost) {
+                setProjectPackageCost(leadCost);
+            }
+
+            // Pre-fill the client data. This structure must match what the
+            // Clients component expects for its `initialData` prop.
+            if (leadPhone || leadEmail) {
+                const clientInitialData = {
+                    clientDetails: {
+                        name: leadName || '',
+                        phone: leadPhone || '',
+                        relation: '', // Default to empty, admin can select
+                        email: leadEmail || '',
+                    },
+                    // These additional fields ensure the child component's UI state is correct
+                    rawPhoneNumberInput: leadPhone || '',
+                    currentStep: 'existing_found', // This forces the details form to be visible
+                    isPhoneNumberValid: true, // Assume valid since it came from a lead
+                };
+                setClientsData(clientInitialData); // This state is passed as `initialData` to the Clients component
+            }
+        }
+        // We only want this to run once when the page loads and params are available.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isEditMode]); // Dependency array ensures it runs when these values are determined.
+
+
     const handleSave = async () => {
     console.log('🟡 handleSave triggered');
     if (!projectName.trim()) {
