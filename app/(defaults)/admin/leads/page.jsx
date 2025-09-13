@@ -15,13 +15,17 @@ import {
     HiOutlineOfficeBuilding,
     HiOutlineCurrencyDollar,
     HiOutlinePencilAlt,
-    HiOutlineClock,
     HiOutlineHashtag,
-    HiChevronDown, HiCheck
+    HiChevronDown,
+    HiCheck,
+    HiSelector, // For sort icon
+    HiChevronUp,
+    HiOutlineCamera,
 } from 'react-icons/hi';
 import Link from 'next/link';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+const ITEMS_PER_PAGE = 10;
 
 const LoadingSpinner = () => (
     <div className="flex justify-center items-center h-64">
@@ -46,17 +50,15 @@ const DetailItem = ({ icon, label, value }) => {
     );
 };
 
-
 // A more robust config for easier styling and future additions
 const statusConfig = {
-    'New': { textColor: 'text-blue-700 dark:text-blue-300', dotColor: 'bg-blue-500',hoverBg: 'hover:bg-blue-50 dark:hover:bg-blue-900/50',},
-    'Hot Lead': {textColor: 'text-red-700 dark:text-red-400', dotColor: 'bg-red-500',hoverBg: 'hover:bg-red-50 dark:hover:bg-red-900/50',},
-    'Cold Lead': {textColor: 'text-gray-600 dark:text-gray-400', dotColor: 'bg-gray-500',hoverBg: 'hover:bg-gray-100 dark:hover:bg-gray-700/50',},
-    'Contacted': { textColor: 'text-yellow-700 dark:text-yellow-400', dotColor: 'bg-yellow-500',hoverBg: 'hover:bg-yellow-50 dark:hover:bg-yellow-900/50', },
-    'Converted': {textColor: 'text-green-700 dark:text-green-400',dotColor: 'bg-green-500',hoverBg: 'hover:bg-green-50 dark:hover:bg-green-900/50',},
-    'Rejected': { textColor: 'text-purple-700 dark:text-purple-400', dotColor: 'bg-purple-500', hoverBg: 'hover:bg-purple-50 dark:hover:bg-purple-900/50', },
+    New: { textColor: 'text-blue-700 dark:text-blue-300', dotColor: 'bg-blue-500', hoverBg: 'hover:bg-blue-50 dark:hover:bg-blue-900/50' },
+    'Hot Lead': { textColor: 'text-red-700 dark:text-red-400', dotColor: 'bg-red-500', hoverBg: 'hover:bg-red-50 dark:hover:bg-red-900/50' },
+    'Cold Lead': { textColor: 'text-gray-600 dark:text-gray-400', dotColor: 'bg-gray-500', hoverBg: 'hover:bg-gray-100 dark:hover:bg-gray-700/50' },
+    Contacted: { textColor: 'text-yellow-700 dark:text-yellow-400', dotColor: 'bg-yellow-500', hoverBg: 'hover:bg-yellow-50 dark:hover:bg-yellow-900/50' },
+    Converted: { textColor: 'text-green-700 dark:text-green-400', dotColor: 'bg-green-500', hoverBg: 'hover:bg-green-50 dark:hover:bg-green-900/50' },
+    Rejected: { textColor: 'text-purple-700 dark:text-purple-400', dotColor: 'bg-purple-500', hoverBg: 'hover:bg-purple-50 dark:hover:bg-purple-900/50' },
 };
-
 
 const StatusDropdown = ({ lead, onStatusChange }) => {
     const [currentStatus, setCurrentStatus] = useState(lead.lead_status || 'New');
@@ -77,27 +79,22 @@ const StatusDropdown = ({ lead, onStatusChange }) => {
             await onStatusChange(lead.id, status);
         } catch (error) {
             setCurrentStatus(previousStatus);
-            console.error("Failed to update status:", error);
+            console.error('Failed to update status:', error);
         }
     };
 
-    // --- NEW LOGIC TO CHECK POSITION ---
     const toggleDropdown = () => {
         if (!isOpen && dropdownRef.current) {
             const rect = dropdownRef.current.getBoundingClientRect();
             const spaceBelow = window.innerHeight - rect.bottom;
-            const dropdownHeight = 250; // Approximate height of the dropdown panel
+            const dropdownHeight = 250;
 
-            // If not enough space below, open above
             setIsDropdownAbove(spaceBelow < dropdownHeight);
         }
         setIsOpen(!isOpen);
     };
 
-    // Dynamically set position classes
-    const dropdownPositionClasses = isDropdownAbove
-        ? 'bottom-full mb-2 origin-bottom-right'
-        : 'top-full mt-2 origin-top-right';
+    const dropdownPositionClasses = isDropdownAbove ? 'bottom-full mb-2 origin-bottom-right' : 'top-full mt-2 origin-top-right';
 
     return (
         <div ref={dropdownRef} className="relative inline-block text-left w-36">
@@ -118,7 +115,6 @@ const StatusDropdown = ({ lead, onStatusChange }) => {
             {isOpen && (
                 <div
                     className={`absolute right-0 w-56 rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 focus:outline-none z-20 transition ease-out duration-100 ${dropdownPositionClasses}`}
-                    // Animation style works for both directions
                     style={{ transition: 'opacity 100ms, transform 100ms', opacity: 1, transform: 'scale(1)' }}
                 >
                     <div className="py-1" role="menu" aria-orientation="vertical">
@@ -137,9 +133,7 @@ const StatusDropdown = ({ lead, onStatusChange }) => {
                                     <span className={`w-2.5 h-2.5 mr-3 rounded-full ${config.dotColor}`}></span>
                                     {status}
                                 </div>
-                                {currentStatus === status && (
-                                    <HiCheck className="w-5 h-5 text-indigo-600" />
-                                )}
+                                {currentStatus === status && <HiCheck className="w-5 h-5 text-indigo-600" />}
                             </a>
                         ))}
                     </div>
@@ -149,17 +143,14 @@ const StatusDropdown = ({ lead, onStatusChange }) => {
     );
 };
 
-// --- THE NEW "GLAMOUR" LeadDetailModal ---
 const LeadDetailModal = ({ lead, onClose }) => {
     if (!lead) return null;
 
-    // Helper to create initials for the avatar
     const getInitials = (name = '') => {
         const parts = name.split(' ');
         return (parts.length > 1 ? `${parts[0][0]}${parts[parts.length - 1][0]}` : name.substring(0, 2)).toUpperCase();
     };
 
-    // Helper for formatting dates cleanly
     const formatDate = (dateString) => {
         if (!dateString) return null;
         return new Date(dateString).toLocaleDateString('en-US', {
@@ -169,7 +160,6 @@ const LeadDetailModal = ({ lead, onClose }) => {
         });
     };
 
-    // Helper for formatting currency
     const formatCurrency = (amount) => {
         if (amount === null || amount === undefined) return null;
         return new Intl.NumberFormat('en-IN', {
@@ -199,9 +189,7 @@ const LeadDetailModal = ({ lead, onClose }) => {
                     </button>
                 </div>
 
-                {/* Scrollable Body with Paired Information */}
                 <div className="p-8 space-y-8 overflow-y-auto max-h-[60vh]">
-                    {/* Section 1: Contact & Location */}
                     <section>
                         <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 border-b pb-2">Contact & Location</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -211,7 +199,6 @@ const LeadDetailModal = ({ lead, onClose }) => {
                         </div>
                     </section>
 
-                    {/* Section 2: Event & Submission Details */}
                     <section>
                         <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 border-b pb-2">Event & Submission Details</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -224,7 +211,6 @@ const LeadDetailModal = ({ lead, onClose }) => {
                         </div>
                     </section>
 
-                    {/* Section 3: Custom Form Data */}
                     {lead.raw_payload && lead.raw_payload.length > 0 && (
                         <section>
                             <h3 className="text-lg font-semibold text-gray-800 mb-4 border-b pb-2">Custom Form Data</h3>
@@ -242,7 +228,6 @@ const LeadDetailModal = ({ lead, onClose }) => {
                     )}
                 </div>
 
-                {/* Clean Footer */}
                 <div className="px-6 py-4 bg-gray-100 dark:bg-gray-800 border-t rounded-b-xl text-right">
                     <button
                         onClick={onClose}
@@ -256,6 +241,127 @@ const LeadDetailModal = ({ lead, onClose }) => {
     );
 };
 
+// --- NEW: Reusable Pagination Component (With Page Numbers) ---
+const Pagination = ({ currentPage, totalItems, itemsPerPage, onPageChange }) => {
+    const totalPages = Math.ceil(totalItems / itemsPerPage);
+
+    if (totalPages <= 1) {
+        return null; // Don't show pagination if there's only one page
+    }
+
+    const getPageNumbers = () => {
+        const pageNumbers = [];
+        const maxPagesToShow = 5; // Max number of page buttons to show
+        const ellipsis = '...';
+
+        if (totalPages <= maxPagesToShow + 2) {
+            // If total pages is small, show all numbers
+            for (let i = 1; i <= totalPages; i++) {
+                pageNumbers.push(i);
+            }
+        } else {
+            // Logic for showing ellipsis
+            pageNumbers.push(1); // Always show the first page
+
+            if (currentPage > 3) {
+                pageNumbers.push(ellipsis);
+            }
+
+            const startPage = Math.max(2, currentPage - 1);
+            const endPage = Math.min(totalPages - 1, currentPage + 1);
+
+            for (let i = startPage; i <= endPage; i++) {
+                pageNumbers.push(i);
+            }
+
+            if (currentPage < totalPages - 2) {
+                pageNumbers.push(ellipsis);
+            }
+
+            pageNumbers.push(totalPages); // Always show the last page
+        }
+        return pageNumbers;
+    };
+
+    const pages = getPageNumbers();
+    const startItem = (currentPage - 1) * itemsPerPage + 1;
+    const endItem = Math.min(startItem + itemsPerPage - 1, totalItems);
+
+    return (
+        <div className="px-4 py-3 flex items-center justify-between border-t border-gray-200 dark:border-gray-700 sm:px-6">
+            {/* Mobile view (simple prev/next) */}
+            <div className="flex-1 flex justify-between sm:hidden">
+                <button
+                    onClick={() => onPageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+                >
+                    Previous
+                </button>
+                <button
+                    onClick={() => onPageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+                >
+                    Next
+                </button>
+            </div>
+
+            {/* Desktop view (full pagination) */}
+            <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                <div>
+                    <p className="text-sm text-gray-700 dark:text-gray-400">
+                        Showing <span className="font-medium">{startItem}</span> to <span className="font-medium">{endItem}</span> of <span className="font-medium">{totalItems}</span> results
+                    </p>
+                </div>
+                <div>
+                    <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                        <button
+                            onClick={() => onPageChange(currentPage - 1)}
+                            disabled={currentPage === 1}
+                            className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-medium text-gray-500 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
+                        >
+                            Previous
+                        </button>
+
+                        {/* Page Numbers */}
+                        {pages.map((page, index) =>
+                            typeof page === 'number' ? (
+                                <button
+                                    key={index}
+                                    onClick={() => onPageChange(page)}
+                                    className={`relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium
+                                    ${
+                                        currentPage === page
+                                            ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600 dark:bg-gray-900 dark:text-white'
+                                            : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                                    }`}
+                                >
+                                    {page}
+                                </button>
+                            ) : (
+                                <span
+                                    key={index}
+                                    className="relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-400"
+                                >
+                                    {page}
+                                </span>
+                            ),
+                        )}
+
+                        <button
+                            onClick={() => onPageChange(currentPage + 1)}
+                            disabled={currentPage === totalPages}
+                            className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-medium text-gray-500 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
+                        >
+                            Next
+                        </button>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    );
+};
 // This is the main component for displaying your leads
 export default function LeadsDashboard() {
     const { currentUser: user } = useAuth();
@@ -264,6 +370,10 @@ export default function LeadsDashboard() {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
+    const [statusFilter, setStatusFilter] = useState('All'); // For status filter dropdown
+    const [currentPage, setCurrentPage] = useState(1); // For pagination
+    // For sorting. Default sort by newest leads.
+    const [sortConfig, setSortConfig] = useState({ key: 'created_at', direction: 'descending' });
 
     useEffect(() => {
         if (user === undefined) return; // Wait until auth state is determined
@@ -303,14 +413,9 @@ export default function LeadsDashboard() {
             if (!response.ok) {
                 throw new Error('Server responded with an error.');
             }
-            
-            // Update local state to ensure UI is in sync with the database
-            setLeads(currentLeads =>
-                currentLeads.map(lead => 
-                    lead.id === leadId ? { ...lead, lead_status: newStatus } : lead
-                )
-            );
 
+            // Update local state to ensure UI is in sync with the database
+            setLeads((currentLeads) => currentLeads.map((lead) => (lead.id === leadId ? { ...lead, lead_status: newStatus } : lead)));
         } catch (err) {
             console.error('Error updating lead status:', err);
             // Re-throw the error so the StatusDropdown component can catch it and revert its state
@@ -318,13 +423,56 @@ export default function LeadsDashboard() {
         }
     };
 
-    // Memoized filtering to prevent re-calculating on every render
-    const filteredLeads = useMemo(() => {
-        if (!searchQuery) return leads;
-        return leads.filter(
-            (lead) => lead.full_name.toLowerCase().includes(searchQuery.toLowerCase()) || lead.email.toLowerCase().includes(searchQuery.toLowerCase()) || lead.phone_number.includes(searchQuery),
-        );
-    }, [leads, searchQuery]);
+    const handleSort = (key) => {
+        let direction = 'ascending';
+        if (sortConfig.key === key && sortConfig.direction === 'ascending') {
+            direction = 'descending';
+        }
+        setSortConfig({ key, direction });
+    };
+
+    const processedLeads = useMemo(() => {
+        let filteredLeads = [...leads];
+
+        // 1. Status Filtering
+        if (statusFilter !== 'All') {
+            filteredLeads = filteredLeads.filter((lead) => lead.lead_status === statusFilter);
+        }
+
+        // 2. Search Query Filtering
+        if (searchQuery) {
+            filteredLeads = filteredLeads.filter(
+                (lead) => lead.full_name.toLowerCase().includes(searchQuery.toLowerCase()) || lead.email.toLowerCase().includes(searchQuery.toLowerCase()) || lead.phone_number.includes(searchQuery),
+            );
+        }
+
+        // 3. Sorting
+        if (sortConfig.key) {
+            filteredLeads.sort((a, b) => {
+                if (sortConfig.key === 'created_at') {
+                    // Special handling for dates
+                    const dateA = new Date(a.created_at).getTime();
+                    const dateB = new Date(b.created_at).getTime();
+                    if (dateA < dateB) return sortConfig.direction === 'ascending' ? -1 : 1;
+                    if (dateA > dateB) return sortConfig.direction === 'ascending' ? 1 : -1;
+                    return 0;
+                } else {
+                    // Standard string sorting
+                    if (a[sortConfig.key] < b[sortConfig.key]) return sortConfig.direction === 'ascending' ? -1 : 1;
+                    if (a[sortConfig.key] > b[sortConfig.key]) return sortConfig.direction === 'ascending' ? 1 : -1;
+                    return 0;
+                }
+            });
+        }
+
+        return filteredLeads;
+    }, [leads, searchQuery, statusFilter, sortConfig]);
+
+    const currentTableData = useMemo(() => {
+        const firstPageIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+        const lastPageIndex = firstPageIndex + ITEMS_PER_PAGE;
+        return processedLeads.slice(firstPageIndex, lastPageIndex);
+    }, [currentPage, processedLeads]);
 
     if (isLoading) {
         return (
@@ -337,6 +485,13 @@ export default function LeadsDashboard() {
     if (error) {
         return <div className="p-8 text-center text-red-500">Error: {error}</div>;
     }
+
+    const getSortIcon = (key) => {
+        if (sortConfig.key !== key) {
+            return <HiSelector className="w-4 h-4 ml-1 text-gray-400" />;
+        }
+        return sortConfig.direction === 'ascending' ? <HiChevronUp className="w-4 h-4 ml-1" /> : <HiChevronDown className="w-4 h-4 ml-1" />;
+    };
 
     return (
         <div className="p-4 md:p-8 bg-gray-100 dark:bg-gray-900 min-h-screen">
@@ -365,67 +520,108 @@ export default function LeadsDashboard() {
                 {/* Search and Table Container */}
                 <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg">
                     {/* Search Bar */}
-                    <div className="p-4 border-b border-gray-200">
-                        <div className="relative">
+                    <div className="p-4 border-b border-gray-200 dark:border-gray-700 grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="relative md:col-span-2">
                             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <HiSearch className="h-5 w-5 text-gray-400 dark:text-gray-600" />
+                                <HiSearch className="h-5 w-5 text-gray-400" />
                             </div>
                             <input
                                 type="text"
                                 value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
+                                onChange={(e) => {
+                                    setSearchQuery(e.target.value);
+                                    setCurrentPage(1);
+                                }}
                                 placeholder="Search by name, email, or phone..."
-                                className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:text-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 dark:bg-gray-800 dark:text-gray-300 dark:placeholder-gray-600 dark:focus:placeholder-gray-500 dark:focus:ring-indigo-600 focus:border-indigo-500 sm:text-sm"
+                                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md ..."
                             />
+                        </div>
+                        <div>
+                            <select
+                                value={statusFilter}
+                                onChange={(e) => {
+                                    setStatusFilter(e.target.value);
+                                    setCurrentPage(1);
+                                }}
+                                className="block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm ..."
+                            >
+                                <option value="All">All Statuses</option>
+                                {Object.keys(statusConfig).map((status) => (
+                                    <option key={status} value={status}>
+                                        {status}
+                                    </option>
+                                ))}
+                            </select>
                         </div>
                     </div>
 
-                    {/* Leads Table */}
                     {/* Leads Table */}
                     <div className="overflow-x-auto">
                         <table className="min-w-full divide-y divide-gray-200">
                             <thead className="bg-gray-50">
                                 <tr>
                                     {/* --- HEADER ROW --- */}
-                                    <th className="px-6 py-3 dark:text-gray-300 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Name</th>
+                                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                        <button onClick={() => handleSort('full_name')} className="flex items-center">
+                                            Name {getSortIcon('full_name')}
+                                        </button>
+                                    </th>
                                     <th className="px-6 py-3 dark:text-gray-300 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Email</th>
                                     <th className="px-6 py-3 dark:text-gray-300 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Phone Number</th>
                                     <th className="px-6 py-3 dark:text-gray-300 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                        <button onClick={() => handleSort('created_at')} className="flex items-center">
+                                            Date Received {getSortIcon('created_at')}
+                                        </button>
+                                    </th>
                                     <th className="px-6 py-3 dark:text-gray-300 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Source</th>
                                     <th className="px-6 py-3 dark:text-gray-300 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200">
-                                {filteredLeads.length > 0 ? (
-                                    filteredLeads.map((lead) => (
-                                        <tr key={lead.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                                            {/* --- DATA ROWS --- */}
-                                            <td className="px-6 py-4 dark:text-gray-300 whitespace-nowrap text-sm font-medium text-gray-900">{lead.full_name}</td>
-                                            <td className="px-6 py-4 dark:text-gray-300 whitespace-nowrap text-sm text-gray-500">{lead.email}</td>
-                                            <td className="px-6 py-4 dark:text-gray-300 whitespace-nowrap text-sm text-gray-500">{lead.phone_number}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                                <StatusDropdown lead={lead} onStatusChange={handleStatusChange} />
-                                            </td>
-                                            <td className="px-6 py-4 dark:text-gray-300 whitespace-nowrap text-sm text-gray-500">{lead.source || 'LP/Form'}</td>
-                                            <td className="px-6 py-4 dark:text-gray-300 whitespace-nowrap text-center">
-                                                <button
-                                                    onClick={() => setSelectedLead(lead)}
-                                                    className="text-indigo-600 hover:text-indigo-900 p-1 rounded-full hover:bg-indigo-100"
-                                                    title="View Full Details"
-                                                >
-                                                    <HiOutlineEye className="w-6 h-6" />
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    ))
+                            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                                {currentTableData.length > 0 ? (
+                                    currentTableData.map((lead) => {
+                                        const createProjectUrl = `/admin/gopo?lead_name=${encodeURIComponent(
+                                            lead.full_name || ''
+                                        )}&lead_phone=${encodeURIComponent(
+                                            lead.phone_number || ''
+                                        )}&lead_email=${encodeURIComponent(
+                                            lead.email || ''
+                                        )}&lead_cost=${encodeURIComponent(
+                                            lead.coverage_amount || ''
+                                        )}`;
+
+                                        return (
+                                            <tr key={lead.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-300">{lead.full_name}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{lead.email}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{lead.phone_number}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                                    <StatusDropdown lead={lead} onStatusChange={handleStatusChange} />
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                                    {new Date(lead.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{lead.source || 'LP/Form'}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium space-x-2">
+                                                    <button onClick={() => setSelectedLead(lead)} className="text-indigo-600 hover:text-indigo-900 p-1 rounded-full hover:bg-indigo-100 dark:hover:bg-gray-600 inline-flex items-center justify-center" title="View Full Details">
+                                                        <HiOutlineEye className="w-6 h-6" />
+                                                    </button>
+                                                    <Link href={createProjectUrl} className="text-green-600 hover:text-green-900 p-1 rounded-full hover:bg-green-100 dark:hover:bg-gray-600 inline-flex items-center justify-center" title="Create Project from Lead">
+                                                        <HiOutlineCamera className="w-6 h-6" />
+                                                    </Link>
+                                                </td>
+                                          </tr>
+                                        );
+                                    })
                                 ) : (
                                     <tr>
                                         {/* --- EMPTY STATE ROW --- */}
-                                        <td colSpan="5" className="px-6 py-12 text-center text-sm text-gray-500">
+                                        <td colSpan="7" className="px-6 py-12 text-center text-sm text-gray-500 dark:text-gray-400">
                                             <div className="flex flex-col items-center">
                                                 <HiOutlineDocumentText className="w-12 h-12 text-gray-300 mb-2" />
                                                 <span className="font-semibold">No Leads Found</span>
-                                                <span className="text-xs text-gray-400">{searchQuery ? 'Try adjusting your search query.' : 'You have not received any leads yet.'}</span>
+                                                <span className="text-xs text-gray-400 mt-1">{leads.length > 0 ? 'Try adjusting your search or filter.' : 'You have not received any leads yet.'}</span>
                                             </div>
                                         </td>
                                     </tr>
@@ -433,10 +629,9 @@ export default function LeadsDashboard() {
                             </tbody>
                         </table>
                     </div>
+                    <Pagination currentPage={currentPage} totalItems={processedLeads.length} itemsPerPage={ITEMS_PER_PAGE} onPageChange={(page) => setCurrentPage(page)} />
                 </div>
             </div>
-
-            {/* Render the Modal */}
             <LeadDetailModal lead={selectedLead} onClose={() => setSelectedLead(null)} />
         </div>
     );

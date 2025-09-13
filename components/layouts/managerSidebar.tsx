@@ -138,6 +138,34 @@ const ManagerSidebar = () => {
                                         </AnimateHeight>
                                    </li>
 
+                                    <li className="nav-item">
+                                        <Link href="/manager/project" className="group">
+                                            <div className="flex items-center">
+                                                <Presentation className="shrink-0 group-hover:!text-primary" />
+                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-gray-200  dark:group-hover:text-white-dark">{t('Project')}</span>
+                                            </div>
+                                        </Link>
+                                    </li>
+
+                                     <li className="nav-item">
+                                        <Link href="/manager/task-management" className="group">
+                                            <div className="flex items-center">
+                                                <ClipboardCheck className="shrink-0 group-hover:!text-primary" />
+                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-gray-200  dark:group-hover:text-white-dark">{t('Manage Task')}</span>
+                                            </div>
+                                        </Link>
+                                    </li>
+
+                                     <li className="nav-item">
+                                        <Link href="/manager/clients-details" className='group'>
+                                            <div className='flex items-center'>
+                                                <UserRoundSearch className="shrink-0 group-hover:!text-primary" />
+                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-gray-200  dark:group-hover:text-white-dark">{t('Clients')}</span>
+                                            </div>
+                                        </Link>
+                                    </li>
+
+
 
                                     <li className="nav-item">
                                         <Link href="/manager/task" className="group">
@@ -148,15 +176,7 @@ const ManagerSidebar = () => {
                                         </Link>
                                     </li>
 
-                                    <li className="nav-item">
-                                        <Link href="/manager/clients-details" className='group'>
-                                            <div className='flex items-center'>
-                                                <UserRoundSearch className="shrink-0 group-hover:!text-primary" />
-                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-gray-200  dark:group-hover:text-white-dark">{t('Clients')}</span>
-                                            </div>
-                                        </Link>
-                                    </li>
-
+                                   
                                     
                                     <li className="nav-item">
                                         <Link href="/manager/expense" className="group">
@@ -166,14 +186,14 @@ const ManagerSidebar = () => {
                                             </div>
                                         </Link>
                                     </li>
-                                    <li className="nav-item">
+                                    {/* <li className="nav-item">
                                         <Link href="/manager/profile" className="group">
                                             <div className="flex items-center">
                                                 <IconUser className="shrink-0 group-hover:!text-primary" />
                                                 <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-gray-200  dark:group-hover:text-white-dark">{t('Profile')}</span>
                                             </div>
                                         </Link>
-                                    </li>
+                                    </li> */}
 
                                     <li className="nav-item">
                                         <Link href="/manager/attendance" className="group">
@@ -184,23 +204,9 @@ const ManagerSidebar = () => {
                                         </Link>
                                     </li>
 
-                                    <li className="nav-item">
-                                        <Link href="/manager/task-management" className="group">
-                                            <div className="flex items-center">
-                                                <ClipboardCheck className="shrink-0 group-hover:!text-primary" />
-                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-gray-200  dark:group-hover:text-white-dark">{t('Manage Task')}</span>
-                                            </div>
-                                        </Link>
-                                    </li>
+                                   
 
-                                    <li className="nav-item">
-                                        <Link href="/manager/project" className="group">
-                                            <div className="flex items-center">
-                                                <Presentation className="shrink-0 group-hover:!text-primary" />
-                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-gray-200  dark:group-hover:text-white-dark">{t('Project')}</span>
-                                            </div>
-                                        </Link>
-                                    </li>
+                                   
 
                                     <li className="nav-item">
                                         <Link href="/manager/view-attendance" className="group">
