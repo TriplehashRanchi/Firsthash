@@ -28,6 +28,7 @@ const inlineIcons = {
     phone_number: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>`,
 };
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 export default function EnhancedFormBuilder() {
     const { currentUser: user } = useAuth();
     console.log("USER FROM AUTH CONTEXT:", user);
@@ -175,7 +176,7 @@ export default function EnhancedFormBuilder() {
         const formId = 'sarthiEmbedForm'; // Unique ID
         const statusId = 'sarthiEmbedStatus'; // Unique ID
 
-        let code = `<form id="${formId}" action="http://localhost:8080/api/leads/embed" method="POST" data-redirect="${styles.redirectUrl || ''}" style="background-color: ${styles.formBackgroundColor}; padding: 25px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; border-radius: ${borderRadiusMap[styles.roundedCorners]}; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">\n`;
+        let code = `<form id="${formId}" action="${API_URL}/api/leads/embed" method="POST" data-redirect="${styles.redirectUrl || ''}" style="background-color: ${styles.formBackgroundColor}; padding: 25px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; border-radius: ${borderRadiusMap[styles.roundedCorners]}; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">\n`;
 
         code += `  <input type="hidden" name="admin_id" value="${admin_id || 'YOUR_ADMIN_ID_FALLBACK'}" />\n`; // Use admin_id
 
