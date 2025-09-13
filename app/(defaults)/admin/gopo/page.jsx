@@ -120,38 +120,35 @@ function Page() {
                 setProjectPackageCost(leadCost);
             }
 
-            // Pre-fill the client data. This structure must match what the
-            // Clients component expects for its `initialData` prop.
             if (leadPhone || leadEmail) {
                 const clientInitialData = {
                     clientDetails: {
                         name: leadName || '',
                         phone: leadPhone || '',
-                        relation: '', // Default to empty, admin can select
+                        relation: '', 
                         email: leadEmail || '',
                     },
-                    // These additional fields ensure the child component's UI state is correct
+                   
                     rawPhoneNumberInput: leadPhone || '',
-                    currentStep: 'existing_found', // This forces the details form to be visible
-                    isPhoneNumberValid: true, // Assume valid since it came from a lead
+                    currentStep: 'existing_found', 
+                    isPhoneNumberValid: true, 
                 };
-                setClientsData(clientInitialData); // This state is passed as `initialData` to the Clients component
+                setClientsData(clientInitialData); 
             }
 
             if(leadEventLocation) {
                 const initialShootsData = [{
-                id: `shoot-${Date.now()}`, // A temporary unique ID is good practice
-                shootName: 'Main Event',     // A sensible default name for the shoot
-                date: null,                  // Default to null, admin must pick a date
-                startTime: '',               // Default to empty
+                id: `shoot-${Date.now()}`, 
+                shootName: 'Main Event',     
+                date: null,                  
+                startTime: '',               
                 endTime: '',                 // Default to empty
                 location: leadEventLocation, // Here is where we use the data from the URL!
             }];
             setShootsData(initialShootsData);
             }
         }
-        // We only want this to run once when the page loads and params are available.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+       
     }, [isEditMode]); // Dependency array ensures it runs when these values are determined.
 
 

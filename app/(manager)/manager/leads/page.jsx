@@ -204,7 +204,7 @@ const LeadDetailModal = ({ lead, onClose }) => {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <DetailItem icon={<HiOutlineCalendar size={22} />} label="Event Date" value={formatDate(lead.date)} />
                             {/* <DetailItem icon={<HiOutlineClock size={22} />} label="Submitted On" value={new Date(lead.created_at).toLocaleString()} /> */}
-                            <DetailItem icon={<HiOutlineOfficeBuilding size={22} />} label="Company Name" value={lead.company_name} />
+                            <DetailItem icon={<HiOutlineOfficeBuilding size={22} />} label="Event Type" value={lead.company_name} />
                             <DetailItem icon={<HiOutlineLocationMarker size={22} />} label="Event Location" value={lead.event_location} />
                             <DetailItem icon={<HiOutlineCurrencyDollar size={22} />} label="Amount" value={formatCurrency(lead.coverage_amount)} />
                             <DetailItem icon={<HiOutlineUser size={22} />} label="Gender" value={lead.gender} />
