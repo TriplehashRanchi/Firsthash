@@ -109,6 +109,7 @@ function Page() {
             const leadPhone = searchParams.get('lead_phone');
             const leadEmail = searchParams.get('lead_email');
             const leadCost = searchParams.get('lead_cost');
+            const leadEventLocation = searchParams.get('lead_event_location');
 
             // If a lead_name exists in the URL, we assume we're creating from a lead.
             if (leadName) {
@@ -135,6 +136,18 @@ function Page() {
                     isPhoneNumberValid: true, // Assume valid since it came from a lead
                 };
                 setClientsData(clientInitialData); // This state is passed as `initialData` to the Clients component
+            }
+
+            if(leadEventLocation) {
+                const initialShootsData = [{
+                id: `shoot-${Date.now()}`, // A temporary unique ID is good practice
+                shootName: 'Main Event',     // A sensible default name for the shoot
+                date: null,                  // Default to null, admin must pick a date
+                startTime: '',               // Default to empty
+                endTime: '',                 // Default to empty
+                location: leadEventLocation, // Here is where we use the data from the URL!
+            }];
+            setShootsData(initialShootsData);
             }
         }
         // We only want this to run once when the page loads and params are available.

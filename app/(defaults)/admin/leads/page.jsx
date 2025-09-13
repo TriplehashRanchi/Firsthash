@@ -589,6 +589,8 @@ export default function LeadsDashboard() {
                                             lead.email || ''
                                         )}&lead_cost=${encodeURIComponent(
                                             lead.coverage_amount || ''
+                                        )}&lead_event_location=${encodeURIComponent(
+                                            lead.event_location || ''
                                         )}`;
 
                                         return (

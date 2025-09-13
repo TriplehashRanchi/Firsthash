@@ -165,13 +165,13 @@ const handlePhoneLogin = () => {
         >
           <span>Login with Google</span>
         </button>
-        <button
+        {/* <button
   onClick={handlePhoneLogin}
   disabled={loading}
   className="w-full bg-green-100 text-black py-3 rounded font-semibold flex items-center justify-center space-x-2"
 >
   <span>Login with Phone</span>
-</button>
+</button> */}
 
         <p className="text-sm text-center text-gray-500">
           Don’t have an account? <a href="/register" className="underline">Register</a>
