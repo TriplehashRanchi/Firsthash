@@ -7,6 +7,7 @@ import axios from 'axios';
 import { useAuth } from '@/context/AuthContext';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import Swal from 'sweetalert2';
 // --- END: ADDED FOR API INTEGRATION ---
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
@@ -932,6 +933,43 @@ function ProjectReviewPage() {
         }
     };
 
+
+      // Function to delete project
+    const handleDeleteProject = async (projectId) => {
+        const result = await Swal.fire({
+            title: 'Are you sure?',
+            text: 'This action cannot be undone!',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, delete it!',
+        });
+
+        if (!result.isConfirmed) return; // user cancelled
+
+        try {
+            const token = await currentUser.getIdToken();
+
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/projects/${projectId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            if (!res.ok) throw new Error('Failed to delete project');
+
+            Swal.fire('Deleted!', 'Project has been deleted.', 'success');
+            router.push('/manager/project');
+        } catch (error) {
+            console.error('Delete failed:', error);
+            Swal.fire('Error', 'Failed to delete project', 'error');
+        }
+    };
+
+
     // --- START: CORRECTED useMemo HOOKS ---
     const eligibleShootTeam = useMemo(() => {
         if (!fullProjectData?.teamMembers) return [];
@@ -1368,6 +1406,25 @@ function ProjectReviewPage() {
                                 >
                                     <Edit size={16} className="mr-1.5" />
                                     Edit Project
+                                </button>
+                            )}
+                            {/* Reject (always visible if not completed/rejected) */}
+                            {(fullProjectData.projectStatus === 'pending' || fullProjectData.projectStatus === 'ongoing') && (
+                                <button
+                                    onClick={() => handleStatusChange('rejected')}
+                                    className="px-4 py-2 text-sm font-medium bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors shadow-md"
+                                >
+                                    Reject Project
+                                </button>
+                            )}
+
+                            {/* Delete (only visible in completed or rejected) */}
+                            {(fullProjectData.projectStatus === 'completed' || fullProjectData.projectStatus === 'rejected') && (
+                                <button
+                                    onClick={() => handleDeleteProject(fullProjectData.id)}
+                                    className="px-4 py-2 text-sm font-medium bg-red-700 hover:bg-red-800 text-white rounded-lg transition-colors shadow-md"
+                                >
+                                    Delete Project
                                 </button>
                             )}
                         </div>

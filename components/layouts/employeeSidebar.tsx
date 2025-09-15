@@ -8,15 +8,8 @@ import { useState, useEffect } from 'react';
 import IconCaretsDown from '@/components/icon/icon-carets-down';
 import IconMenuDashboard from '@/components/icon/menu/icon-menu-dashboard';
 import IconMinus from '@/components/icon/icon-minus';
-import IconMenuUsers from '@/components/icon/menu/icon-menu-users';
 import { usePathname } from 'next/navigation';
 import { getTranslation } from '@/i18n';
-import IconPlus from '../icon/icon-plus';
-import IconUserPlus from '../icon/icon-user-plus';
-import IconUsersGroup from '../icon/icon-users-group';
-import IconCalendar from '../icon/icon-calendar';
-import IconCamera from '../icon/icon-camera';
-import IconSquareRotated from '../icon/icon-square-rotated';
 import { BadgeIndianRupee, BookmarkCheck, Calendar, CalendarCheck, UserPen } from 'lucide-react';
 
 const EmployeeSidebar = () => {

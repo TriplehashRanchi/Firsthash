@@ -7,6 +7,7 @@ import axios from 'axios';
 import { useAuth } from '@/context/AuthContext';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import Swal from 'sweetalert2';
 // --- END: ADDED FOR API INTEGRATION ---
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
@@ -937,6 +938,41 @@ function ProjectReviewPage() {
         }
     };
 
+    // Function to delete project
+    const handleDeleteProject = async (projectId) => {
+        const result = await Swal.fire({
+            title: 'Are you sure?',
+            text: 'This action cannot be undone!',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, delete it!',
+        });
+
+        if (!result.isConfirmed) return; // user cancelled
+
+        try {
+            const token = await currentUser.getIdToken();
+
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/projects/${projectId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            if (!res.ok) throw new Error('Failed to delete project');
+
+            Swal.fire('Deleted!', 'Project has been deleted.', 'success');
+            router.push('/admin/project');
+        } catch (error) {
+            console.error('Delete failed:', error);
+            Swal.fire('Error', 'Failed to delete project', 'error');
+        }
+    };
+
     // --- START: CORRECTED useMemo HOOKS ---
     const eligibleShootTeam = useMemo(() => {
         if (!fullProjectData?.teamMembers) return [];
@@ -1117,7 +1153,7 @@ function ProjectReviewPage() {
                         DetailPairStylishComponent={DetailPairStylish}
                         ContentListItemComponent={ContentListItem}
                         onUpdateShootAssignment={handleUpdateShootAssignment}
-                         onEditCity={openCityModal}
+                        onEditCity={openCityModal}
                     />
                 );
             case TABS.DELIVERABLES:
@@ -1375,6 +1411,25 @@ function ProjectReviewPage() {
                                     Edit Project
                                 </button>
                             )}
+                            {/* Reject (always visible if not completed/rejected) */}
+                            {(fullProjectData.projectStatus === 'pending' || fullProjectData.projectStatus === 'ongoing') && (
+                                <button
+                                    onClick={() => handleStatusChange('rejected')}
+                                    className="px-4 py-2 text-sm font-medium bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors shadow-md"
+                                >
+                                    Reject Project
+                                </button>
+                            )}
+
+                            {/* Delete (only visible in completed or rejected) */}
+                            {(fullProjectData.projectStatus === 'completed' || fullProjectData.projectStatus === 'rejected') && (
+                                <button
+                                    onClick={() => handleDeleteProject(fullProjectData.id)}
+                                    className="px-4 py-2 text-sm font-medium bg-red-700 hover:bg-red-800 text-white rounded-lg transition-colors shadow-md"
+                                >
+                                    Delete Project
+                                </button>
+                            )}
                         </div>
                     </div>
 
@@ -1420,51 +1475,43 @@ function ProjectReviewPage() {
                 </div>
             </div>
 
-              {isCityModalOpen && (
-      <div
-        className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4"
-        onClick={closeCityModal}
-      >
-        <div
-          className="bg-white dark:bg-slate-800 rounded-lg shadow-2xl p-6 w-full max-w-md"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4">
-            Update Shoot Location
-          </h3>
-          <input
-            type="text"
-            value={newCityValue}
-            onChange={(e) => setNewCityValue(e.target.value)}
-            className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 
+            {isCityModalOpen && (
+                <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4" onClick={closeCityModal}>
+                    <div className="bg-white dark:bg-slate-800 rounded-lg shadow-2xl p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+                        <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4">Update Shoot Location</h3>
+                        <input
+                            type="text"
+                            value={newCityValue}
+                            onChange={(e) => setNewCityValue(e.target.value)}
+                            className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 
                        rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 
                        focus:border-indigo-500 bg-white dark:bg-slate-700 
                        text-slate-900 dark:text-slate-100"
-            placeholder="Enter new city"
-          />
-          <div className="mt-6 flex justify-end gap-3">
-            <button
-              onClick={closeCityModal}
-              className="px-4 py-2 text-sm font-medium text-slate-700 
+                            placeholder="Enter new city"
+                        />
+                        <div className="mt-6 flex justify-end gap-3">
+                            <button
+                                onClick={closeCityModal}
+                                className="px-4 py-2 text-sm font-medium text-slate-700 
                          bg-slate-100 dark:bg-slate-600 dark:text-slate-200 
                          rounded-md hover:bg-slate-200 dark:hover:bg-slate-500"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={submitCityChange}
-              disabled={savingCity}
-              className="px-4 py-2 text-sm font-medium text-white 
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={submitCityChange}
+                                disabled={savingCity}
+                                className="px-4 py-2 text-sm font-medium text-white 
                          bg-indigo-600 rounded-md hover:bg-indigo-700 
                          disabled:opacity-50"
-            >
-              {savingCity ? 'Saving...' : 'Save'}
-            </button>
-          </div>
-        </div>
-      </div>
-    )}
-  </>
+                            >
+                                {savingCity ? 'Saving...' : 'Save'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </>
     );
 }
 

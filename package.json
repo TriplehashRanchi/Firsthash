@@ -68,7 +68,7 @@
         "react-voice-visualizer": "^2.0.8",
         "recharts": "^2.15.3",
         "sortablejs": "^1.15.0",
-        "sweetalert2": "^11.7.1",
+        "sweetalert2": "^11.23.0",
         "sweetalert2-react-content": "^5.0.7",
         "swiper": "^11.1.14",
         "typescript": "^5.3.3",

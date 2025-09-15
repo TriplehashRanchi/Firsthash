@@ -1,11 +1,12 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Package, CalendarDays, CheckCircle, XCircle, AlertTriangle, Clock, Eye, Loader2 } from 'lucide-react';
+import { Package, CalendarDays, CheckCircle, XCircle, AlertTriangle, Clock, Eye, Loader2, Trash, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
 import axios from 'axios';
+import Swal from 'sweetalert2';
 
 // --- Constants (Keep these as they are) ---
 const ProjectStatus = {
@@ -16,30 +17,86 @@ const ProjectStatus = {
     COMPLETED: 'completed',
 };
 const statusConfig = {
-    [ProjectStatus.ALL]: { label: 'All', icon: <Package size={14} className="mr-1.5" />, base: 'bg-blue-500 dark:bg-blue-500', hover: 'hover:bg-blue-600 dark:hover:bg-blue-600', text: 'text-white', pillBg: 'bg-blue-100 dark:bg-blue-400/20', pillText: 'text-blue-700 dark:text-blue-300', activePillBg: 'bg-white/20 dark:bg-blue-400/30', activePillText: 'text-white dark:text-blue-100', focusRing: 'focus:ring-blue-400' },
-    [ProjectStatus.ONGOING]: { label: 'Ongoing', icon: <Clock size={14} className="mr-1.5 text-green-300" />, base: 'bg-green-500 dark:bg-green-500', hover: 'hover:bg-green-600 dark:hover:bg-green-600', text: 'text-white', pillBg: 'bg-green-100 dark:bg-green-400/20', pillText: 'text-green-700 dark:text-green-300', activePillBg: 'bg-white/20 dark:bg-green-400/30', activePillText: 'text-white dark:text-green-100', focusRing: 'focus:ring-green-400' },
-    [ProjectStatus.PENDING]: { label: 'Pending', icon: <AlertTriangle size={14} className="mr-1.5 text-yellow-700 dark:text-yellow-600" />, base: 'bg-yellow-400 dark:bg-yellow-500', hover: 'hover:bg-yellow-500 dark:hover:bg-yellow-600', text: 'text-yellow-800 dark:text-yellow-900', pillBg: 'bg-yellow-100 dark:bg-yellow-400/20', pillText: 'text-yellow-700 dark:text-yellow-300', activePillBg: 'bg-black/10 dark:bg-yellow-700/40', activePillText: 'text-yellow-800 dark:text-yellow-100', focusRing: 'focus:ring-yellow-400' },
-    [ProjectStatus.REJECTED]: { label: 'Rejected', icon: <XCircle size={14} className="mr-1.5 text-red-300" />, base: 'bg-red-500 dark:bg-red-500', hover: 'hover:bg-red-600 dark:hover:bg-red-600', text: 'text-white', pillBg: 'bg-red-100 dark:bg-red-400/20', pillText: 'text-red-700 dark:text-red-300', activePillBg: 'bg-white/20 dark:bg-red-400/30', activePillText: 'text-white dark:text-red-100', focusRing: 'focus:ring-red-400' },
-    [ProjectStatus.COMPLETED]: { label: 'Completed', icon: <CheckCircle size={14} className="mr-1.5 text-orange-300" />, base: 'bg-orange-500 dark:bg-orange-500', hover: 'hover:bg-orange-600 dark:hover:bg-orange-600', text: 'text-white', pillBg: 'bg-orange-100 dark:bg-orange-400/20', pillText: 'text-orange-700 dark:text-orange-300', activePillBg: 'bg-white/20 dark:bg-orange-400/30', activePillText: 'text-white dark:text-orange-100', focusRing: 'focus:ring-orange-400' },
+    [ProjectStatus.ALL]: {
+        label: 'All',
+        icon: <Package size={14} className="mr-1.5" />,
+        base: 'bg-blue-500 dark:bg-blue-500',
+        hover: 'hover:bg-blue-600 dark:hover:bg-blue-600',
+        text: 'text-white',
+        pillBg: 'bg-blue-100 dark:bg-blue-400/20',
+        pillText: 'text-blue-700 dark:text-blue-300',
+        activePillBg: 'bg-white/20 dark:bg-blue-400/30',
+        activePillText: 'text-white dark:text-blue-100',
+        focusRing: 'focus:ring-blue-400',
+    },
+    [ProjectStatus.ONGOING]: {
+        label: 'Ongoing',
+        icon: <Clock size={14} className="mr-1.5 text-green-300" />,
+        base: 'bg-green-500 dark:bg-green-500',
+        hover: 'hover:bg-green-600 dark:hover:bg-green-600',
+        text: 'text-white',
+        pillBg: 'bg-green-100 dark:bg-green-400/20',
+        pillText: 'text-green-700 dark:text-green-300',
+        activePillBg: 'bg-white/20 dark:bg-green-400/30',
+        activePillText: 'text-white dark:text-green-100',
+        focusRing: 'focus:ring-green-400',
+    },
+    [ProjectStatus.PENDING]: {
+        label: 'Pending',
+        icon: <AlertTriangle size={14} className="mr-1.5 text-yellow-700 dark:text-yellow-600" />,
+        base: 'bg-yellow-400 dark:bg-yellow-500',
+        hover: 'hover:bg-yellow-500 dark:hover:bg-yellow-600',
+        text: 'text-yellow-800 dark:text-yellow-900',
+        pillBg: 'bg-yellow-100 dark:bg-yellow-400/20',
+        pillText: 'text-yellow-700 dark:text-yellow-300',
+        activePillBg: 'bg-black/10 dark:bg-yellow-700/40',
+        activePillText: 'text-yellow-800 dark:text-yellow-100',
+        focusRing: 'focus:ring-yellow-400',
+    },
+    [ProjectStatus.REJECTED]: {
+        label: 'Rejected',
+        icon: <XCircle size={14} className="mr-1.5 text-red-300" />,
+        base: 'bg-red-500 dark:bg-red-500',
+        hover: 'hover:bg-red-600 dark:hover:bg-red-600',
+        text: 'text-white',
+        pillBg: 'bg-red-100 dark:bg-red-400/20',
+        pillText: 'text-red-700 dark:text-red-300',
+        activePillBg: 'bg-white/20 dark:bg-red-400/30',
+        activePillText: 'text-white dark:text-red-100',
+        focusRing: 'focus:ring-red-400',
+    },
+    [ProjectStatus.COMPLETED]: {
+        label: 'Completed',
+        icon: <CheckCircle size={14} className="mr-1.5 text-orange-300" />,
+        base: 'bg-orange-500 dark:bg-orange-500',
+        hover: 'hover:bg-orange-600 dark:hover:bg-orange-600',
+        text: 'text-white',
+        pillBg: 'bg-orange-100 dark:bg-orange-400/20',
+        pillText: 'text-orange-700 dark:text-orange-300',
+        activePillBg: 'bg-white/20 dark:bg-orange-400/30',
+        activePillText: 'text-white dark:text-orange-100',
+        focusRing: 'focus:ring-orange-400',
+    },
 };
 // --- Style constants (Keep these as they are) ---
-const pageWrapperStyles = "min-h-screen p-4 sm:p-6 lg:p-8 ";
-const headerContainerStyles = "mb-8";
-const pageTitleStyles = "text-2xl sm:text-3xl font-bold text-slate-800 dark:text-slate-100 mb-5";
-const filterTabsContainerStyles = "flex flex-wrap gap-2 items-center bg-slate-200 dark:bg-slate-800/70 p-1.5 rounded-xl shadow-sm";
-const tabButtonBaseStyles = "flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-900";
-const inactiveTabStyles = "bg-transparent hover:bg-slate-300/50 dark:hover:bg-slate-700/50 text-slate-600 dark:text-slate-400";
-const tableWrapperStyles = "overflow-x-auto bg-white dark:bg-slate-800 shadow-lg rounded-lg";
-const tableStyles = "min-w-full";
-const thStyles = "px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap border-b border-slate-200 dark:border-slate-700";
-const tdStyles = "px-6 py-4 whitespace-nowrap text-sm";
-const textDefault = "text-slate-700 dark:text-slate-200";
-const textMuted = "text-slate-500 dark:text-slate-400";
-const rowHoverStyles = "hover:bg-slate-50 dark:hover:bg-slate-700/40";
-const actionButtonStyles = "p-1.5 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 rounded-md hover:bg-blue-100 dark:hover:bg-blue-700/50 transition-colors";
-const breadcrumbLinkStyles = "text-blue-600 hover:underline dark:text-blue-400";
+const pageWrapperStyles = 'min-h-screen p-4 sm:p-6 lg:p-8 ';
+const headerContainerStyles = 'mb-8';
+const pageTitleStyles = 'text-2xl sm:text-3xl font-bold text-slate-800 dark:text-slate-100 mb-5';
+const filterTabsContainerStyles = 'flex flex-wrap gap-2 items-center bg-slate-200 dark:bg-slate-800/70 p-1.5 rounded-xl shadow-sm';
+const tabButtonBaseStyles =
+    'flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-900';
+const inactiveTabStyles = 'bg-transparent hover:bg-slate-300/50 dark:hover:bg-slate-700/50 text-slate-600 dark:text-slate-400';
+const tableWrapperStyles = 'overflow-x-auto bg-white dark:bg-slate-800 shadow-lg rounded-lg';
+const tableStyles = 'min-w-full';
+const thStyles = 'px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap border-b border-slate-200 dark:border-slate-700';
+const tdStyles = 'px-6 py-4 whitespace-nowrap text-sm';
+const textDefault = 'text-slate-700 dark:text-slate-200';
+const textMuted = 'text-slate-500 dark:text-slate-400';
+const rowHoverStyles = 'hover:bg-slate-50 dark:hover:bg-slate-700/40';
+const actionButtonStyles = 'p-1.5 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 rounded-md hover:bg-blue-100 dark:hover:bg-blue-700/50 transition-colors';
+const breadcrumbLinkStyles = 'text-blue-600 hover:underline dark:text-blue-400';
 const breadcrumbSeparatorStyles = "before:content-['/'] ltr:before:mr-2 rtl:before:ml-2 text-gray-500 dark:text-gray-500";
-const breadcrumbCurrentPageStyles = "text-gray-600 dark:text-gray-400";
+const breadcrumbCurrentPageStyles = 'text-gray-600 dark:text-gray-400';
 
 const ProjectListPage = () => {
     const [projects, setProjects] = useState([]);
@@ -61,11 +118,11 @@ const ProjectListPage = () => {
             try {
                 const token = await currentUser.getIdToken();
                 const endpoint = `${API_URL}/api/projects`;
-                
+
                 // Fetch the filtered list for display
                 const response = await axios.get(endpoint, {
                     headers: { Authorization: `Bearer ${token}` },
-                    params: { status: activeFilter }
+                    params: { status: activeFilter },
                 });
                 setProjects(response.data);
 
@@ -76,14 +133,13 @@ const ProjectListPage = () => {
                     // If we load a filtered view first, fetch the 'all' list in the background for accurate counts
                     const allResponse = await axios.get(endpoint, {
                         headers: { Authorization: `Bearer ${token}` },
-                        params: { status: 'all' }
+                        params: { status: 'all' },
                     });
                     setAllProjects(allResponse.data);
                 }
-
             } catch (err) {
-                console.error("Failed to fetch projects:", err);
-                setError("Could not load projects. Please try again later.");
+                console.error('Failed to fetch projects:', err);
+                setError('Could not load projects. Please try again later.');
             } finally {
                 setIsLoading(false);
             }
@@ -93,11 +149,33 @@ const ProjectListPage = () => {
     }, [currentUser, activeFilter]);
 
     // --- Helper function for Pill Counts ---
-    const getStatusPillCount = useCallback((statusValue) => {
-        if (statusValue === ProjectStatus.ALL) return allProjects.length;
-        return allProjects.filter(p => p.status === statusValue).length;
-    }, [allProjects]);
+    const getStatusPillCount = useCallback(
+        (statusValue) => {
+            if (statusValue === ProjectStatus.ALL) return allProjects.length;
+            return allProjects.filter((p) => p.status === statusValue).length;
+        },
+        [allProjects],
+    );
 
+    const handleDeleteProject = async (projectId) => {
+        try {
+            const token = await currentUser.getIdToken();
+
+            const res = await axios.delete(`${API_URL}/api/projects/${projectId}`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+
+            if (res.status === 200) {
+                setProjects((prev) => prev.filter((p) => p.id !== projectId));
+                setAllProjects((prev) => prev.filter((p) => p.id !== projectId));
+
+                Swal.fire('Deleted!', 'Project has been deleted.', 'success');
+            }
+        } catch (error) {
+            console.error('Failed to delete project:', error);
+            Swal.fire('Error', 'Failed to delete project.', 'error');
+        }
+    };
 
     // --- NEW: Intelligent Date Formatting Function ---
     const formatEventDateRange = (minDateStr, maxDateStr) => {
@@ -151,11 +229,11 @@ const ProjectListPage = () => {
         if (error) {
             return (
                 <tr>
-                     <td colSpan="9" className="px-6 py-20 text-center">
+                    <td colSpan="9" className="px-6 py-20 text-center">
                         <div className="flex flex-col items-center text-red-500">
-                             <AlertTriangle size={48} className="mb-4" />
-                             <p className="text-xl font-medium mb-1">An Error Occurred</p>
-                             <p className="text-sm">{error}</p>
+                            <AlertTriangle size={48} className="mb-4" />
+                            <p className="text-xl font-medium mb-1">An Error Occurred</p>
+                            <p className="text-sm">{error}</p>
                         </div>
                     </td>
                 </tr>
@@ -163,7 +241,7 @@ const ProjectListPage = () => {
         }
 
         if (projects.length === 0) {
-             return (
+            return (
                 <tr>
                     <td colSpan="9" className="px-6 py-20 text-center">
                         <div className="flex flex-col items-center">
@@ -181,7 +259,9 @@ const ProjectListPage = () => {
                 <td className={`${tdStyles} font-medium ${textDefault}`}>{project.name}</td>
                 <td className={`${tdStyles} ${textDefault}`}>{formatEventDateRange(project.minDate, project.maxDate)}</td>
                 <td className={`${tdStyles} ${textDefault} text-center`}>{project.shoots}</td>
-                <td className={`${tdStyles} ${textDefault} text-center`}>{project.deliverablesCompleted}/{project.deliverablesTotal}</td>
+                <td className={`${tdStyles} ${textDefault} text-center`}>
+                    {project.deliverablesCompleted}/{project.deliverablesTotal}
+                </td>
                 <td className={`${tdStyles} ${textDefault} text-center`}>{project.tasks}</td>
                 <td className={`${tdStyles} ${textDefault}`}>{project.clientName}</td>
                 <td className={`${tdStyles} font-medium ${textDefault} text-right`}>₹{project.packageCost.toLocaleString()}</td>
@@ -190,21 +270,57 @@ const ProjectListPage = () => {
                     <button onClick={() => handleNavigate(project.id)} className={actionButtonStyles} title="View Project Details">
                         <Eye size={18} />
                     </button>
+
+                    <button
+                        onClick={async () => {
+                            if (project.status === ProjectStatus.ONGOING || project.status === ProjectStatus.PENDING) {
+                                return; // do nothing if disabled
+                            }
+
+                            const result = await Swal.fire({
+                                title: 'Are you sure?',
+                                text: 'This action cannot be undone!',
+                                icon: 'warning',
+                                showCancelButton: true,
+                                confirmButtonColor: '#d33',
+                                cancelButtonColor: '#3085d6',
+                                confirmButtonText: 'Yes, delete it!',
+                            });
+
+                            if (result.isConfirmed) {
+                                handleDeleteProject(project.id);
+                            }
+                        }}
+                        disabled={project.status === ProjectStatus.ONGOING || project.status === ProjectStatus.PENDING}
+                        className={`ml-2 ${actionButtonStyles} ${
+                            project.status === ProjectStatus.ONGOING || project.status === ProjectStatus.PENDING
+                                ? 'opacity-50 cursor-not-allowed'
+                                : 'text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300'
+                        }`}
+                        title={project.status === ProjectStatus.ONGOING || project.status === ProjectStatus.PENDING ? 'Cannot delete ongoing or pending projects' : 'Delete Project'}
+                    >
+                        <Trash2 size={18} />
+                    </button>
                 </td>
             </tr>
         ));
     };
 
-
     return (
         <div className={pageWrapperStyles}>
-             <div className={headerContainerStyles}>
+            <div className={headerContainerStyles}>
                 <ul className="flex space-x-2 rtl:space-x-reverse mb-6">
-                <li><Link href="/dashboard" className={breadcrumbLinkStyles}>Dashboard</Link></li>
-                <li className={breadcrumbSeparatorStyles}><span className={breadcrumbCurrentPageStyles}>Project Overview</span></li>
-            </ul>
+                    <li>
+                        <Link href="/dashboard" className={breadcrumbLinkStyles}>
+                            Dashboard
+                        </Link>
+                    </li>
+                    <li className={breadcrumbSeparatorStyles}>
+                        <span className={breadcrumbCurrentPageStyles}>Project Overview</span>
+                    </li>
+                </ul>
                 <div className={filterTabsContainerStyles}>
-                   {Object.values(ProjectStatus).map(statusValue => {
+                    {Object.values(ProjectStatus).map((statusValue) => {
                         const config = statusConfig[statusValue];
                         const isActive = activeFilter === statusValue;
                         const count = getStatusPillCount(statusValue);
@@ -216,7 +332,9 @@ const ProjectListPage = () => {
                             >
                                 {isActive && config.icon}
                                 {config.label}
-                                 <span className={`ml-2 px-2.5 py-1 rounded-full text-xs font-semibold tracking-wide ${isActive ? `${config.activePillBg} ${config.activePillText}` : `${config.pillBg} ${config.pillText}`}`}>
+                                <span
+                                    className={`ml-2 px-2.5 py-1 rounded-full text-xs font-semibold tracking-wide ${isActive ? `${config.activePillBg} ${config.activePillText}` : `${config.pillBg} ${config.pillText}`}`}
+                                >
                                     {isLoading && allProjects.length === 0 ? '...' : count}
                                 </span>
                             </button>
@@ -229,20 +347,36 @@ const ProjectListPage = () => {
                 <table className={tableStyles}>
                     <thead className="bg-slate-50 dark:bg-slate-800/50">
                         <tr>
-                            <th scope="col" className={thStyles}>Name</th>
-                            <th scope="col" className={thStyles}>Event Dates</th>
-                            <th scope="col" className={`${thStyles} text-center`}>Shoots</th>
-                            <th scope="col" className={`${thStyles} text-center`}>Deliverables</th>
-                            <th scope="col" className={`${thStyles} text-center`}>Tasks</th>
-                            <th scope="col" className={thStyles}>Client</th>
-                            <th scope="col" className={`${thStyles} text-right`}>Package Cost</th>
-                            <th scope="col" className={`${thStyles} text-right`}>Additional Cost</th>
-                            <th scope="col" className={`${thStyles} text-center`}>Actions</th>
+                            <th scope="col" className={thStyles}>
+                                Name
+                            </th>
+                            <th scope="col" className={thStyles}>
+                                Event Dates
+                            </th>
+                            <th scope="col" className={`${thStyles} text-center`}>
+                                Shoots
+                            </th>
+                            <th scope="col" className={`${thStyles} text-center`}>
+                                Deliverables
+                            </th>
+                            <th scope="col" className={`${thStyles} text-center`}>
+                                Tasks
+                            </th>
+                            <th scope="col" className={thStyles}>
+                                Client
+                            </th>
+                            <th scope="col" className={`${thStyles} text-right`}>
+                                Package Cost
+                            </th>
+                            <th scope="col" className={`${thStyles} text-right`}>
+                                Additional Cost
+                            </th>
+                            <th scope="col" className={`${thStyles} text-center`}>
+                                Actions
+                            </th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-                        {renderTableBody()}
-                    </tbody>
+                    <tbody className="divide-y divide-slate-200 dark:divide-slate-700">{renderTableBody()}</tbody>
                 </table>
             </div>
         </div>
