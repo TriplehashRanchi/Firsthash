@@ -33,6 +33,7 @@ import {
     Loader2,
     Download,
     Edit,
+    ReceiptIcon,
 } from 'lucide-react';
 
 // Import your tab components
@@ -933,20 +934,62 @@ function ProjectReviewPage() {
         }
     };
 
-
-      // Function to delete project
-    const handleDeleteProject = async (projectId) => {
+    // Function to delete project
+    const handleRejectProject = async (projectId) => {
         const result = await Swal.fire({
             title: 'Are you sure?',
-            text: 'This action cannot be undone!',
+            text: 'Do you really want to reject this project?',
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#d33',
             cancelButtonColor: '#3085d6',
-            confirmButtonText: 'Yes, delete it!',
+            confirmButtonText: 'Yes, reject it!',
         });
 
-        if (!result.isConfirmed) return; // user cancelled
+        if (!result.isConfirmed) return;
+
+        try {
+            const token = await currentUser.getIdToken();
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/projects/${projectId}/status`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ status: 'rejected' }),
+            });
+
+            if (!res.ok) throw new Error('Failed to reject project');
+
+            Swal.fire('Rejected!', 'The project has been rejected.', 'success');
+            router.refresh();
+        } catch (error) {
+            console.error('Reject failed:', error);
+            Swal.fire('Error', 'Failed to reject project', 'error');
+        }
+    };
+
+    const handleDeleteProject = async (projectId, projectName) => {
+        const result = await Swal.fire({
+            title: 'Confirm Deletion',
+            text: `Type the project name (${projectName}) to confirm deletion.`,
+            input: 'text',
+            inputPlaceholder: 'Enter project name',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Delete Project',
+            preConfirm: (value) => {
+                if (value !== projectName) {
+                    Swal.showValidationMessage('Project name does not match');
+                    return false;
+                }
+                return true;
+            },
+        });
+
+        if (!result.isConfirmed) return;
 
         try {
             const token = await currentUser.getIdToken();
@@ -968,7 +1011,6 @@ function ProjectReviewPage() {
             Swal.fire('Error', 'Failed to delete project', 'error');
         }
     };
-
 
     // --- START: CORRECTED useMemo HOOKS ---
     const eligibleShootTeam = useMemo(() => {
@@ -1076,7 +1118,13 @@ function ProjectReviewPage() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6">
                                 <DetailPairStylish label="Package Cost" value={fullProjectData.projectPackageCost} isCurrency icon={PackageCheck} />
                                 <DetailPairStylish label="Additional Costs" value={fullProjectData.deliverablesAdditionalCost} isCurrency icon={ListChecks} />
-                                <DetailPairStylish label="Total Cost" value={Number(fullProjectData.projectPackageCost) + Number(fullProjectData.deliverablesAdditionalCost)} isCurrency icon={ReceiptIcon} highlight />
+                                <DetailPairStylish
+                                    label="Total Cost"
+                                    value={Number(fullProjectData.projectPackageCost) + Number(fullProjectData.deliverablesAdditionalCost)}
+                                    isCurrency
+                                    icon={ReceiptIcon}
+                                    highlight
+                                />
                                 <DetailPairStylish label="Amount Received" value={totalReceived} isCurrency icon={TrendingUp} />
                                 <DetailPairStylish label="Balance Due" value={fullProjectData.overallTotalCost - totalReceived} isCurrency icon={ReceiptIndianRupee} highlight />
                             </div>
@@ -1151,7 +1199,7 @@ function ProjectReviewPage() {
                         DetailPairStylishComponent={DetailPairStylish}
                         ContentListItemComponent={ContentListItem}
                         onUpdateShootAssignment={handleUpdateShootAssignment}
-                         onEditCity={openCityModal}
+                        onEditCity={openCityModal}
                     />
                 );
             case TABS.DELIVERABLES:
@@ -1410,9 +1458,17 @@ function ProjectReviewPage() {
                                 </button>
                             )}
                             {/* Reject (always visible if not completed/rejected) */}
-                            {(fullProjectData.projectStatus === 'pending' || fullProjectData.projectStatus === 'ongoing') && (
+                            {/* {(fullProjectData.projectStatus === 'pending' || fullProjectData.projectStatus === 'ongoing') && (
                                 <button
                                     onClick={() => handleStatusChange('rejected')}
+                                    className="px-4 py-2 text-sm font-medium bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors shadow-md"
+                                >
+                                    Reject Project
+                                </button>
+                            )} */}
+                            {fullProjectData.projectStatus === 'pending' && (
+                                <button
+                                    onClick={() => handleRejectProject(fullProjectData.id)}
                                     className="px-4 py-2 text-sm font-medium bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors shadow-md"
                                 >
                                     Reject Project
@@ -1422,7 +1478,7 @@ function ProjectReviewPage() {
                             {/* Delete (only visible in completed or rejected) */}
                             {(fullProjectData.projectStatus === 'completed' || fullProjectData.projectStatus === 'rejected') && (
                                 <button
-                                    onClick={() => handleDeleteProject(fullProjectData.id)}
+                                    onClick={() => handleDeleteProject(fullProjectData.id, fullProjectData.projectName)}
                                     className="px-4 py-2 text-sm font-medium bg-red-700 hover:bg-red-800 text-white rounded-lg transition-colors shadow-md"
                                 >
                                     Delete Project
@@ -1473,51 +1529,43 @@ function ProjectReviewPage() {
                 </div>
             </div>
 
-              {isCityModalOpen && (
-      <div
-        className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4"
-        onClick={closeCityModal}
-      >
-        <div
-          className="bg-white dark:bg-slate-800 rounded-lg shadow-2xl p-6 w-full max-w-md"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4">
-            Update Shoot Location
-          </h3>
-          <input
-            type="text"
-            value={newCityValue}
-            onChange={(e) => setNewCityValue(e.target.value)}
-            className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 
+            {isCityModalOpen && (
+                <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4" onClick={closeCityModal}>
+                    <div className="bg-white dark:bg-slate-800 rounded-lg shadow-2xl p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+                        <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4">Update Shoot Location</h3>
+                        <input
+                            type="text"
+                            value={newCityValue}
+                            onChange={(e) => setNewCityValue(e.target.value)}
+                            className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 
                        rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 
                        focus:border-indigo-500 bg-white dark:bg-slate-700 
                        text-slate-900 dark:text-slate-100"
-            placeholder="Enter new city"
-          />
-          <div className="mt-6 flex justify-end gap-3">
-            <button
-              onClick={closeCityModal}
-              className="px-4 py-2 text-sm font-medium text-slate-700 
+                            placeholder="Enter new city"
+                        />
+                        <div className="mt-6 flex justify-end gap-3">
+                            <button
+                                onClick={closeCityModal}
+                                className="px-4 py-2 text-sm font-medium text-slate-700 
                          bg-slate-100 dark:bg-slate-600 dark:text-slate-200 
                          rounded-md hover:bg-slate-200 dark:hover:bg-slate-500"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={submitCityChange}
-              disabled={savingCity}
-              className="px-4 py-2 text-sm font-medium text-white 
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={submitCityChange}
+                                disabled={savingCity}
+                                className="px-4 py-2 text-sm font-medium text-white 
                          bg-indigo-600 rounded-md hover:bg-indigo-700 
                          disabled:opacity-50"
-            >
-              {savingCity ? 'Saving...' : 'Save'}
-            </button>
-          </div>
-        </div>
-      </div>
-    )}
-  </>
+                            >
+                                {savingCity ? 'Saving...' : 'Save'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </>
     );
 }
 

@@ -271,36 +271,50 @@ const ProjectListPage = () => {
                         <Eye size={18} />
                     </button>
 
-                    <button
-                        onClick={async () => {
-                            if (project.status === ProjectStatus.ONGOING || project.status === ProjectStatus.PENDING) {
-                                return; // do nothing if disabled
-                            }
+                   <button
+  onClick={async () => {
+    if (project.status === ProjectStatus.ONGOING || project.status === ProjectStatus.PENDING) {
+      return; // do nothing if disabled
+    }
 
-                            const result = await Swal.fire({
-                                title: 'Are you sure?',
-                                text: 'This action cannot be undone!',
-                                icon: 'warning',
-                                showCancelButton: true,
-                                confirmButtonColor: '#d33',
-                                cancelButtonColor: '#3085d6',
-                                confirmButtonText: 'Yes, delete it!',
-                            });
+    const result = await Swal.fire({
+      title: 'Confirm Deletion',
+      text: `Type the project name (${project.name}) to confirm deletion.`,
+      input: 'text',
+      inputPlaceholder: 'Enter project name',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Delete Project',
+      preConfirm: (value) => {
+        if (value !== project.name) {
+          Swal.showValidationMessage('Project name does not match');
+          return false;
+        }
+        return true;
+      },
+    });
 
-                            if (result.isConfirmed) {
-                                handleDeleteProject(project.id);
-                            }
-                        }}
-                        disabled={project.status === ProjectStatus.ONGOING || project.status === ProjectStatus.PENDING}
-                        className={`ml-2 ${actionButtonStyles} ${
-                            project.status === ProjectStatus.ONGOING || project.status === ProjectStatus.PENDING
-                                ? 'opacity-50 cursor-not-allowed'
-                                : 'text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300'
-                        }`}
-                        title={project.status === ProjectStatus.ONGOING || project.status === ProjectStatus.PENDING ? 'Cannot delete ongoing or pending projects' : 'Delete Project'}
-                    >
-                        <Trash2 size={18} />
-                    </button>
+    if (result.isConfirmed) {
+      handleDeleteProject(project.id);
+    }
+  }}
+  disabled={project.status === ProjectStatus.ONGOING || project.status === ProjectStatus.PENDING}
+  className={`ml-2 ${actionButtonStyles} ${
+    project.status === ProjectStatus.ONGOING || project.status === ProjectStatus.PENDING
+      ? 'opacity-50 cursor-not-allowed'
+      : 'text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300'
+  }`}
+  title={
+    project.status === ProjectStatus.ONGOING || project.status === ProjectStatus.PENDING
+      ? 'Cannot delete ongoing or pending projects'
+      : 'Delete Project'
+  }
+>
+  <Trash2 size={18} />
+</button>
+
                 </td>
             </tr>
         ));
