@@ -33,6 +33,7 @@ import {
     Loader2,
     Download,
     Edit,
+    ReceiptIcon,
 } from 'lucide-react';
 
 // Import your tab components
@@ -1038,7 +1039,7 @@ function ProjectReviewPage() {
     const { clients, projectDetails, shoots: shootsObject, deliverables, receivedAmount, paymentSchedule, quotations } = fullProjectData;
 
     const totalReceived = receivedAmount?.transactions?.reduce((sum, tx) => (tx.type === 'received' ? sum + (tx.amount || 0) : sum), 0) || 0;
-
+    
     const totalCost = Number(fullProjectData?.overallTotalCost || 0);
     const balanceDue = totalCost - totalReceived;
 
@@ -1076,9 +1077,10 @@ function ProjectReviewPage() {
                                 <IndianRupee className="w-5 h-5 mr-2.5 text-indigo-500" />
                                 Quick Financials
                             </h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6">
                                 <DetailPairStylish label="Package Cost" value={fullProjectData.projectPackageCost} isCurrency icon={PackageCheck} />
                                 <DetailPairStylish label="Additional Costs" value={fullProjectData.deliverablesAdditionalCost} isCurrency icon={ListChecks} />
+                                <DetailPairStylish label="Total Cost" value={Number(fullProjectData.projectPackageCost) + Number(fullProjectData.deliverablesAdditionalCost)} isCurrency icon={ReceiptIcon} highlight />
                                 <DetailPairStylish label="Amount Received" value={totalReceived} isCurrency icon={TrendingUp} />
                                 <DetailPairStylish label="Balance Due" value={fullProjectData.overallTotalCost - totalReceived} isCurrency icon={ReceiptIndianRupee} highlight />
                             </div>
