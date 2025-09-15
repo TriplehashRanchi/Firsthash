@@ -1076,6 +1076,7 @@ function ProjectReviewPage() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6">
                                 <DetailPairStylish label="Package Cost" value={fullProjectData.projectPackageCost} isCurrency icon={PackageCheck} />
                                 <DetailPairStylish label="Additional Costs" value={fullProjectData.deliverablesAdditionalCost} isCurrency icon={ListChecks} />
+                                <DetailPairStylish label="Total Cost" value={Number(fullProjectData.projectPackageCost) + Number(fullProjectData.deliverablesAdditionalCost)} isCurrency icon={ReceiptIcon} highlight />
                                 <DetailPairStylish label="Amount Received" value={totalReceived} isCurrency icon={TrendingUp} />
                                 <DetailPairStylish label="Balance Due" value={fullProjectData.overallTotalCost - totalReceived} isCurrency icon={ReceiptIndianRupee} highlight />
                             </div>
