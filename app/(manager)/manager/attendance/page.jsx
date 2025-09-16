@@ -99,8 +99,8 @@ const AttendanceModal = ({ member, onClose, onSave }) => {
     };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-60 dark:bg-opacity-80 flex items-center justify-center z-50">
-            <div className="bg-white dark:bg-gray-800  p-8 w-full max-w-md">
+        <div className="fixed inset-0 bg-black bg-opacity-60  flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-gray-900  p-8 w-full max-w-md">
                 <ul className="flex space-x-2 rtl:space-x-reverse mb-6">
                     <li>
                         <a className="text-blue-600 hover:underline dark:text-blue-400" href="/dashboard">
@@ -111,11 +111,11 @@ const AttendanceModal = ({ member, onClose, onSave }) => {
                         <span className="text-gray-600 dark:text-gray-400">Mark Attendance</span>
                     </li>
                 </ul>
-                <p className="text-gray-600 dark:text-gray-200 mt-1">
+                <p className="text-gray-600 mt-1">
                     For {member.name} on {new Date().toLocaleDateString()}
                 </p>
                 <div className="mt-6 space-y-6">
-                    <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                    <div className="flex items-center dark:bg-gray-900 justify-between bg-gray-50 p-4 rounded-lg">
                         <span className={`font-semibold ${record.a_status === 1 ? 'text-green-700' : 'text-gray-700'}`}>{record.a_status === 1 ? 'Present' : 'Absent'}</span>
                         <label className="relative inline-flex items-center cursor-pointer">
                             <input type="checkbox" checked={record.a_status === 1} onChange={(e) => handleStatusToggle(e.target.checked)} className="sr-only peer" />
@@ -124,23 +124,23 @@ const AttendanceModal = ({ member, onClose, onSave }) => {
                     </div>
                     <div className={`grid grid-cols-1 md:grid-cols-2 gap-4 transition-opacity ${record.a_status === 1 ? 'opacity-100' : 'opacity-50'}`}>
                         <div>
-                            <label className="block mb-1 dark:text-gray-200 font-medium text-gray-700">Clock In</label>
+                            <label className="block dark:text-gray-400 mb-1 font-medium text-gray-700">Clock In</label>
                             <input
                                 type="time"
                                 value={record.in_time || ''}
                                 onChange={(e) => handleChange('in_time', e.target.value)}
                                 disabled={record.a_status !== 1}
-                                className="w-full dark:bg-gray-300 border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 disabled:bg-gray-100"
+                                className="w-full border-gray-300 dark:bg-gray-900 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 disabled:bg-gray-100"
                             />
                         </div>
                         <div>
-                            <label className="block mb-1 dark:text-gray-200 font-medium text-gray-700">Clock Out</label>
+                            <label className="block mb-1 dark:text-gray-400 font-medium text-gray-700">Clock Out</label>
                             <input
                                 type="time"
                                 value={record.out_time || ''}
                                 onChange={(e) => handleChange('out_time', e.target.value)}
                                 disabled={record.a_status !== 1}
-                                className="w-full border-gray-300 dark:bg-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 disabled:bg-gray-100"
+                                className="w-full border-gray-300 dark:bg-gray-900 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 disabled:bg-gray-100"
                             />
                         </div>
                     </div>
@@ -178,6 +178,8 @@ export default function AttendancePage() {
     const [loading, setLoading] = useState(true);
     const [toast, setToast] = useState({ message: '', type: '' });
     const [modalMember, setModalMember] = useState(null);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [statusFilter, setStatusFilter] = useState('all');
     const [toastMsg, setToastMsg] = useState({ message: '', type: '' });
 
     const fetchData = async () => {
@@ -236,19 +238,18 @@ export default function AttendancePage() {
 
     // ===== FIX #3: USE THE HELPER FUNCTION FOR LOOKUP =====
     const processedMembers = useMemo(() => {
-        // Use the same reliable function to get today's date key
         const todayKey = toLocalYYYYMMDD(new Date());
 
         return members.map((member) => {
-            // The lookup will now succeed because both keys are formatted identically
             const todayRecord = attendance[member.id]?.[todayKey];
-
             let status = 'Not Marked';
             let statusColor = 'bg-gray-200 text-gray-800';
+
             if (todayRecord) {
                 status = todayRecord.a_status === 1 ? 'Present' : 'Absent';
-                statusColor = todayRecord.a_status === 1 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
+                statusColor = todayRecord.a_status === 1 ? 'bg-green-100 text-green-800 dark:bg-green-400 dark:text-green-300' : 'bg-red-100 text-red-800 dark:bg-red-400 dark:text-red-300';
             }
+
             return { ...member, todayRecord, status, statusColor };
         });
     }, [members, attendance]);
@@ -259,13 +260,27 @@ export default function AttendancePage() {
         fetchData();
     };
 
+    const filteredMembers = useMemo(() => {
+        return processedMembers.filter((member) => {
+            const matchesSearch = member.name.toLowerCase().includes(searchQuery.toLowerCase());
+
+            const matchesStatus =
+                statusFilter === 'all' ||
+                (statusFilter === 'present' && member.status === 'Present') ||
+                (statusFilter === 'absent' && member.status === 'Absent') ||
+                (statusFilter === 'not_marked' && member.status === 'Not Marked');
+
+            return matchesSearch && matchesStatus;
+        });
+    }, [processedMembers, searchQuery, statusFilter]);
+
     if (loading) {
         return <div className="flex justify-center items-center h-screen">Loading...</div>;
     }
 
     // --- The rest of the return statement is unchanged and will now work ---
     return (
-        <main className="min-h-screen p-6 md:p-8 bg-white dark:bg-gray-900">
+        <main className="min-h-screen p-6 rounded md:p-8 bg-white dark:bg-gray-900">
             <Toast message={toastMsg.message} type={toastMsg.type} onClose={() => setToastMsg({ message: '', type: '' })} />
             {modalMember && <AttendanceModal member={modalMember} onClose={() => setModalMember(null)} onSave={handleSaveSuccess} />}
 
@@ -276,27 +291,50 @@ export default function AttendancePage() {
                     </a>
                 </li>
                 <li className="before:content-['/'] ltr:before:mr-2 rtl:before:ml-2 text-gray-500 dark:text-gray-500">
-                    <span className="text-gray-600 dark:text-gray-400">Attendance Dashboard</span>
+                    <span class="text-gray-600 dark:text-gray-400">Attendance Dashboard</span>
                 </li>
             </ul>
+            <div className="flex flex-col md:flex-row items-center justify-between mb-6 gap-3">
+                {/* Search */}
+                <input
+                    type="text"
+                    placeholder="Search member..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full md:w-1/3 border border-gray-300 dark:border-gray-700 dark:bg-gray-800 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
 
-            <div className="bg-white dark:bg-gray-800 rounded shadow overflow-hidden">
+                {/* Filters */}
+                <div className="flex space-x-2">
+                    {['all', 'present', 'absent', 'not_marked'].map((f) => (
+                        <button
+                            key={f}
+                            onClick={() => setStatusFilter(f)}
+                            className={`px-3 py-1.5 rounded-md text-sm font-medium ${statusFilter === f ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'}`}
+                        >
+                            {f.charAt(0).toUpperCase() + f.slice(1).replace('_', ' ')}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            <div className="bg-white dark:bg-gray-900 overflow-hidden">
                 <table className="min-w-full">
                     <thead className="bg-gray-200 border-b">
                         <tr>
-                            <th className="px-6 py-3 dark:text-gray-200  text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Member</th>
-                            <th className="px-6 py-3 dark:text-gray-200 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Today's Status</th>
-                            <th className="px-6 py-3 dark:text-gray-200 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Member</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Today's Status</th>
+                            <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Actions</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
-                        {processedMembers.map((member) => (
+                        {filteredMembers.map((member) => (
                             <tr key={member.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                                 <td className="px-6 py-4 whitespace-nowrap">
                                     <div className="flex items-center">
                                         <div className="flex-shrink-0 h-10 w-10 bg-black rounded-full flex items-center justify-center text-white font-bold">{member.name.charAt(0)}</div>
                                         <div className="ml-4">
-                                            <div className="text-sm dark:text-gray-200 font-medium text-gray-900">{member.name}</div>
+                                            <div className="text-sm font-medium dark:text-gray-200">{member.name}</div>
                                         </div>
                                     </div>
                                 </td>
@@ -314,9 +352,7 @@ export default function AttendancePage() {
                                                 />
                                             </svg>
                                         </IconButton>
-
-                                        <IconButton onClick={() => setModalMember(member)} text={member.todayRecord ? "Edit Today's Attendance" : "Mark Today's Attendance"}>
-                                            {/* A pencil icon is better, as it implies "editing" the existing record */}
+                                        <IconButton onClick={() => setModalMember(member)} text="Mark / Edit">
                                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
                                                 <path
                                                     strokeLinecap="round"
@@ -332,6 +368,8 @@ export default function AttendancePage() {
                     </tbody>
                 </table>
             </div>
+
+            {modalMember && <AttendanceModal member={modalMember} onClose={() => setModalMember(null)} onSave={fetchData} />}
         </main>
     );
 }
