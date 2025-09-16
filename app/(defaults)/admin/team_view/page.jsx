@@ -5,7 +5,7 @@ import axios from 'axios';
 import { getAuth } from 'firebase/auth';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// --- Icon Components (assuming they exist in your project) ---
+
 const IconEye = () => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-gray-500 hover:text-blue-600">
         <path
@@ -47,7 +47,7 @@ const IconTrash = () => (
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 const TYPE_LABELS = { 0: 'Freelancer', 1: 'In-house', 2: 'Manager' };
 
-// --- Reusable UI Components ---
+
 
 const Toast = ({ message, type, onClose }) => {
     if (!message) return null;
@@ -184,13 +184,11 @@ const RoleDisplay = ({ assignedRoleNames }) => {
 
     return (
         <div className="relative flex flex-wrap items-center gap-2" onMouseEnter={() => setIsPopoverVisible(true)} onMouseLeave={() => setIsPopoverVisible(false)}>
-            {/* First Role Badge */}
+            
             <span className="px-2.5 py-1 text-xs font-semibold leading-none text-gray-800 bg-gray-200 rounded-full">{firstRole}</span>
 
-            {/* Counter Badge (if there are more roles) */}
             {remainingRolesCount > 0 && <span className="px-2.5 py-1 text-xs font-semibold leading-none text-blue-800 bg-blue-100 rounded-full cursor-pointer">+{remainingRolesCount}</span>}
 
-            {/* Popover for all roles (appears on hover) */}
             <AnimatePresence>
                 {isPopoverVisible && assignedRoleNames.length > 1 && (
                     <motion.div
@@ -215,7 +213,6 @@ const RoleDisplay = ({ assignedRoleNames }) => {
     );
 };
 
-// --- Main Page Component ---
 
 export default function TeamViewPage() {
     const [members, setMembers] = useState([]);
@@ -226,6 +223,11 @@ export default function TeamViewPage() {
     const [savingAttendance, setSavingAttendance] = useState(false);
     const [toast, setToast] = useState({ message: '', type: '' });
     const [confirmDelete, setConfirmDelete] = useState({ isOpen: false, uid: null });
+
+    const [searchTerm, setSearchTerm] = useState('');
+    const [filterType, setFilterType] = useState('All');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [membersPerPage] = useState(15);
 
     useEffect(() => {
         const user = getAuth().currentUser;
@@ -329,6 +331,26 @@ export default function TeamViewPage() {
         }
     }
 
+     const filteredMembers = members
+        .filter((member) => {
+            if (filterType === 'All') return true;
+            return TYPE_LABELS[member.employee_type] === filterType;
+        })
+        .filter((member) =>
+            member.name.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+
+    const indexOfLastMember = currentPage * membersPerPage;
+    const indexOfFirstMember = indexOfLastMember - membersPerPage;
+    const currentMembers = filteredMembers.slice(indexOfFirstMember, indexOfLastMember);
+    const totalPages = Math.ceil(filteredMembers.length / membersPerPage);
+
+    const paginate = (pageNumber) => {
+        if (pageNumber > 0 && pageNumber <= totalPages) {
+            setCurrentPage(pageNumber);
+        }
+    };
+
     return (
         <div className="p-8  min-h-screen">
             <Toast message={toast.message} type={toast.type} onClose={() => setToast({ message: '', type: '' })} />
@@ -361,6 +383,32 @@ export default function TeamViewPage() {
                 </Link>
             </div>
 
+             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 mb-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <input
+                        type="text"
+                        placeholder="Search by name..."
+                        className="p-2 border border-gray-300 dark:bg-gray-700 dark:text-gray-200 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                        onChange={(e) => {
+                            setSearchTerm(e.target.value);
+                            setCurrentPage(1); // Reset to first page on search
+                        }}
+                    />
+                    <select
+                        className="p-2 border border-gray-300 dark:bg-gray-700 dark:text-gray-200 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                        onChange={(e) => {
+                            setFilterType(e.target.value);
+                            setCurrentPage(1); // Reset to first page on filter
+                        }}
+                    >
+                        <option value="All">All Types</option>
+                        <option value="Freelancer">Freelancer</option>
+                        <option value="In-house">In-house</option>
+                        <option value="Manager">Manager</option>
+                    </select>
+                </div>
+            </div>
+
             <div className="bg-white rounded-lg shadow-md overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="min-w-full">
@@ -374,61 +422,43 @@ export default function TeamViewPage() {
                             </tr>
                         </thead>
                         <tbody className="divide-y dark:bg-gray-900 dark:divide-gray-700 divide-gray-200">
-                            {members.map((m) => {
-                                // ===== CORRECTED CODE: This block safely handles the 'roles' property =====
+                            {currentMembers.map((m) => {
                                 let assignedRoleNames = [];
                                 let rolesArray = [];
 
                                 try {
-                                    // Step 1: Ensure `rolesArray` is always an array.
+                                   
                                     if (Array.isArray(m.roles)) {
                                         rolesArray = m.roles;
                                     } else if (typeof m.roles === 'string' && m.roles.startsWith('[')) {
-                                        // This handles the case where roles is a JSON string like '[{"role_id": ...}]'
                                         const parsed = JSON.parse(m.roles);
                                         if (Array.isArray(parsed) && parsed[0] !== null) {
                                             rolesArray = parsed;
                                         }
                                     }
 
-                                    // Step 2: Map over the guaranteed array to find the role names.
                                     if (rolesArray.length > 0 && rolesList.length > 0) {
                                         assignedRoleNames = rolesArray
                                             .map((role) => {
                                                 const fullRole = rolesList.find((r) => r.id === role.role_id);
                                                 return fullRole ? fullRole.type_name : null;
                                             })
-                                            .filter(Boolean); // This removes any nulls if a role wasn't found
+                                            .filter(Boolean); 
                                     }
                                 } catch (e) {
                                     console.error('Could not parse roles for member:', m.name, m.roles, e);
-                                    // Leave assignedRoleNames as an empty array on error
+                                   
                                 }
-                                // =======================================================================
+                              
 
                                 return (
                                     <tr key={m.firebase_uid} className="hover:bg-gray-50  dark:hover:bg-gray-700  dark:bg-gray-900  dark:text-gray-200 transition-colors">
                                         <td className="px-6 py-4 whitespace-nowrap text-sm dark:text-gray-200 font-medium text-gray-900">{m.name}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm dark:text-gray-200 text-gray-600">{TYPE_LABELS[m.employee_type] || 'Unknown'}</td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            {/* ======================================================================= */}
-                                            {/* --- REPLACED: The old list of badges is replaced with the new component --- */}
-                                            {/* ======================================================================= */}
                                             <RoleDisplay assignedRoleNames={assignedRoleNames} />
                                         </td>
-                                        {/* <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="flex flex-wrap gap-2">
-                                            {assignedRoleNames.length > 0 ? (
-                                                assignedRoleNames.map((roleName) => (
-                                                    <span key={roleName} className="px-2.5 py-1 text-xs font-semibold leading-none text-gray-800 bg-gray-200 rounded-full">
-                                                        {roleName}
-                                                    </span>
-                                                ))
-                                            ) : (
-                                                <span className="text-sm text-gray-400 italic">Not assigned</span>
-                                            )}
-                                        </div>
-                                    </td> */}
+                                       
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <label className="relative inline-flex items-center cursor-pointer">
                                                 <input type="checkbox" checked={m.status === 'active'} onChange={(e) => toggleAuth(m.firebase_uid, e.target.checked)} className="sr-only peer" />
@@ -456,6 +486,34 @@ export default function TeamViewPage() {
                             })}
                         </tbody>
                     </table>
+                </div>
+                 <div className="p-4 border-t border-gray-200 dark:bg-gray-800 dark:border-gray-700">
+                    <nav className="flex justify-between items-center">
+                        <p className="text-sm text-gray-700 dark:text-gray-200">
+                            Showing <span className="font-medium">{filteredMembers.length > 0 ? indexOfFirstMember + 1 : 0}</span> to <span className="font-medium">{indexOfLastMember > filteredMembers.length ? filteredMembers.length : indexOfLastMember}</span> of <span className="font-medium">{filteredMembers.length}</span> results
+                        </p>
+                        {totalPages > 1 && (
+                            <ul className="flex items-center -space-x-px h-8 text-sm">
+                                <li>
+                                    <button onClick={() => paginate(currentPage - 1)} disabled={currentPage === 1} className="flex items-center justify-center px-3 h-8 ml-0 leading-tight text-gray-500 bg-white border border-gray-300 rounded-l-lg hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                                        Previous
+                                    </button>
+                                </li>
+                                {Array.from({ length: totalPages }, (_, i) => (
+                                    <li key={i}>
+                                        <button onClick={() => paginate(i + 1)} className={`flex items-center justify-center px-3 h-8 leading-tight ${currentPage === i + 1 ? 'text-blue-600 bg-blue-50 border-blue-300' : 'text-gray-500 bg-white border-gray-300'} hover:bg-gray-100 hover:text-gray-700`}>
+                                            {i + 1}
+                                        </button>
+                                    </li>
+                                ))}
+                                <li>
+                                    <button onClick={() => paginate(currentPage + 1)} disabled={currentPage === totalPages} className="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 rounded-r-lg hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                                        Next
+                                    </button>
+                                </li>
+                            </ul>
+                        )}
+                    </nav>
                 </div>
             </div>
         </div>

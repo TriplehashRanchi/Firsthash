@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Package, CalendarDays, CheckCircle, XCircle, AlertTriangle, Clock, Eye, Loader2, Trash2 } from 'lucide-react';
+import { Package, CalendarDays, CheckCircle, XCircle, AlertTriangle, Clock, Eye, Loader2, Trash2, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
@@ -71,6 +71,9 @@ const ProjectListPage = () => {
     const [activeFilter, setActiveFilter] = useState(ProjectStatus.ONGOING);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [projectsPerPage] = useState(15);
     const router = useRouter();
     const { currentUser } = useAuth();
     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
@@ -178,6 +181,22 @@ const ProjectListPage = () => {
         router.push(`/manager/show-details/${projectId}`);
     };
 
+    const filteredProjects = projects.filter(project =>
+      project.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      project.clientName.toLowerCase().includes(searchTerm.toLowerCase()) 
+    );
+
+    const indexOfLastProject = currentPage * projectsPerPage;
+    const indexOfFirstProject = indexOfLastProject - projectsPerPage;
+    const currentProjects = filteredProjects.slice(indexOfFirstProject, indexOfLastProject);
+    const totalPages = Math.ceil(filteredProjects.length / projectsPerPage);
+
+    const paginate = (pageNumber) => {
+        if (pageNumber > 0 && pageNumber <= totalPages) {
+            setCurrentPage(pageNumber);
+        }
+    };
+
     // --- NEW: Refactored Render Logic for Table Body ---
     const renderTableBody = () => {
         if (isLoading) {
@@ -221,7 +240,7 @@ const ProjectListPage = () => {
             );
         }
 
-        return projects.map((project) => (
+        return currentProjects.map((project) => (
             <tr key={project.id} className={`${rowHoverStyles} transition-colors duration-150`}>
                 <td className={`${tdStyles} font-medium ${textDefault}`}>{project.name}</td>
                 <td className={`${tdStyles} ${textDefault}`}>{formatEventDateRange(project.minDate, project.maxDate)}</td>
@@ -320,6 +339,20 @@ const ProjectListPage = () => {
                             </button>
                         );
                     })}
+                    {/* Search section here  */}
+                    <div className="relative flex-grow ml-auto min-w-[200px] mt-2 sm:mt-0">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" size={18} />
+                        <input
+                            type="text"
+                            placeholder="Search by project or client..."
+                            value={searchTerm}
+                            onChange={(e) => {
+                                setSearchTerm(e.target.value);
+                                setCurrentPage(1);
+                            }}
+                            className="w-full pl-10 pr-4 py-2 text-sm bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-500 focus:outline-none text-slate-700 dark:text-slate-200"
+                        />
+                    </div>
                 </div>
             </div>
 
@@ -359,6 +392,24 @@ const ProjectListPage = () => {
                     <tbody className="divide-y divide-slate-200 dark:divide-slate-700">{renderTableBody()}</tbody>
                 </table>
             </div>
+             {totalPages > 1 && (
+                <div className="mt-6 flex justify-between items-center">
+                    <p className="text-sm text-slate-600 dark:text-slate-400">
+                        Showing <span className="font-semibold text-slate-800 dark:text-slate-200">{indexOfFirstProject + 1}</span> to <span className="font-semibold text-slate-800 dark:text-slate-200">{indexOfLastProject > filteredProjects.length ? filteredProjects.length : indexOfLastProject}</span> of <span className="font-semibold text-slate-800 dark:text-slate-200">{filteredProjects.length}</span> results
+                    </p>
+                    <div className="flex items-center gap-2">
+                        <button onClick={() => paginate(currentPage - 1)} disabled={currentPage === 1} className="inline-flex items-center justify-center h-9 w-9 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                            <ChevronLeft size={16} />
+                        </button>
+                        <span className="text-sm text-slate-600 dark:text-slate-400">
+                            Page {currentPage} of {totalPages}
+                        </span>
+                        <button onClick={() => paginate(currentPage + 1)} disabled={currentPage === totalPages} className="inline-flex items-center justify-center h-9 w-9 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                            <ChevronRight size={16} />
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import axios from 'axios';
 import toast, { Toaster } from 'react-hot-toast';
 import { getAuth } from 'firebase/auth';
-import { Trash2, Edit, Save, X, Briefcase, ChevronRight, ChevronDown, Mic, PlayCircle, PlusCircle, Loader2, Users } from 'lucide-react';
+import { Trash2, Edit, Save, X, Briefcase, ChevronRight, ChevronDown, Mic, PlayCircle, PlusCircle, Loader2, Users, Search, ChevronLeft } from 'lucide-react';
 
 import Select from 'react-select';
 
@@ -114,9 +114,9 @@ const AddTaskForm = ({ onAddTask, projects, deliverables, members, parentTasks, 
             deliverable_id: linkedDeliverableId || null,
             assigneeIds: assignedToIds,
         };
-         try {
+        try {
             const ok = await onAddTask(taskData);
-            if(ok !== false) {
+            if (ok !== false) {
                 toast.success('Task Added!');
                 resetForm();
                 onClose();
@@ -151,8 +151,7 @@ const AddTaskForm = ({ onAddTask, projects, deliverables, members, parentTasks, 
     // --- NEW COMPACT LAYOUT ---
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
-           
-           <div>
+            <div>
                 <label htmlFor="task-title" className="block dark:text-gray-200  text-sm font-medium text-gray-600 mb-1.5">
                     Task Title
                 </label>
@@ -347,6 +346,14 @@ const AssigneeModal = ({ isOpen, onClose, task, members, onAssigneeChange }) => 
     );
 };
 
+const STATUS_FILTERS = [
+    { label: 'All', value: 'all' },
+    { label: 'To Do', value: 'to_do' },
+    { label: 'In Progress', value: 'in_progress' },
+    { label: 'Completed', value: 'completed' },
+    { label: 'Finalize', value: 'finalize' },
+];
+
 // --- The Main Task Dashboard Page ---
 export default function ProjectTaskDashboardPage() {
     // Data states
@@ -377,6 +384,11 @@ export default function ProjectTaskDashboardPage() {
         isOpen: false,
         task: null,
     });
+
+    const [searchTerm, setSearchTerm] = useState('');
+    const [statusFilter, setStatusFilter] = useState('all');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [tasksPerPage] = useState(15);
 
     useEffect(() => {
         const auth = getAuth();
@@ -478,7 +490,7 @@ export default function ProjectTaskDashboardPage() {
             }
 
             const assignees = assigneeIdArray.map((id) => memberMap.get(id.trim())).filter(Boolean);
-            
+
             const finalAssignees = assignees.length > 0 ? assignees : [{ name: 'Unassigned', firebase_uid: 'unassigned', primaryRole: '' }];
 
             taskMap.set(task.id, {
@@ -491,7 +503,7 @@ export default function ProjectTaskDashboardPage() {
             });
         });
 
-        console.log("TASK MAP", taskMap);
+        console.log('TASK MAP', taskMap);
 
         const roots = [];
         taskMap.forEach((task) => {
@@ -505,6 +517,42 @@ export default function ProjectTaskDashboardPage() {
         return roots;
     }, [tasks, projects, members, deliverables]);
 
+    const filteredAndSearchedTasks = useMemo(() => {
+        const lowercasedSearchTerm = searchTerm.toLowerCase().trim();
+
+        if (statusFilter === 'all' && !lowercasedSearchTerm) {
+            return processedTasks;
+        }
+
+        const filterAndSearch = (tasksToFilter) => {
+            return tasksToFilter.reduce((acc, task) => {
+                const filteredChildren = task.children ? filterAndSearch(task.children) : [];
+                const matchesStatus = statusFilter === 'all' || (task.status || 'to_do').toLowerCase() === statusFilter;
+                const matchesSearch =
+                    lowercasedSearchTerm === '' ||
+                    task.taskTitle.toLowerCase().includes(lowercasedSearchTerm) ||
+                    (task.assignees && task.assignees.some((a) => a.name.toLowerCase().includes(lowercasedSearchTerm)));
+
+                if ((matchesStatus && matchesSearch) || filteredChildren.length > 0) {
+                    acc.push({ ...task, children: filteredChildren });
+                }
+                return acc;
+            }, []);
+        };
+
+        return filterAndSearch(processedTasks);
+    }, [processedTasks, statusFilter, searchTerm]);
+
+    const indexOfLastTask = currentPage * tasksPerPage;
+    const indexOfFirstTask = indexOfLastTask - tasksPerPage;
+    const currentTasks = filteredAndSearchedTasks.slice(indexOfFirstTask, indexOfLastTask);
+    const totalPages = Math.ceil(filteredAndSearchedTasks.length / tasksPerPage);
+
+    const paginate = (pageNumber) => {
+        if (pageNumber > 0 && pageNumber <= totalPages) {
+            setCurrentPage(pageNumber);
+        }
+    };
 
     // --- Event Handlers ---
     const handleToggleRow = (taskId) => {
@@ -787,6 +835,42 @@ export default function ProjectTaskDashboardPage() {
                     </button>
                 </div>
 
+                <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
+                    <div className="flex flex-col sm:flex-row gap-4">
+                        <div className="relative flex-grow">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                            <input
+                                type="text"
+                                placeholder="Search by task name or assignee..."
+                                value={searchTerm}
+                                onChange={(e) => {
+                                    setSearchTerm(e.target.value);
+                                    setCurrentPage(1); // Reset page on new search
+                                }}
+                                className="w-full pl-10 pr-4 py-2 text-sm bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none text-gray-700 dark:text-gray-200"
+                            />
+                        </div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                            {STATUS_FILTERS.map((filter) => (
+                                <button
+                                    key={filter.value}
+                                    onClick={() => {
+                                        setStatusFilter(filter.value);
+                                        setCurrentPage(1); // Reset page on filter change
+                                    }}
+                                    className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                                        statusFilter === filter.value
+                                            ? 'bg-indigo-600 text-white'
+                                            : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                                    }`}
+                                >
+                                    {filter.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
                 <div className="bg-white dark:bg-gray-800 dark:text-gray-200 border border-gray-200 rounded-lg shadow-sm overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="min-w-full  divide-y divide-gray-200">
@@ -810,7 +894,7 @@ export default function ProjectTaskDashboardPage() {
                                 </tr>
                             </thead>
                             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200">
-                                {processedTasks.map((task) => (
+                                {currentTasks.map((task) => (
                                     <TaskRow
                                         key={task.id}
                                         task={task}
@@ -846,17 +930,45 @@ export default function ProjectTaskDashboardPage() {
                                 ))}
                             </tbody>
                         </table>
-                        {processedTasks.length === 0 && !loading && (
-                            <div className="text-center py-20 text-gray-500 dark:text-gray-200">
-                                <Briefcase size={48} className="mx-auto text-gray-400 dark:text-gray-200" />
-                                <h3 className="mt-2 text-lg font-medium text-gray-900 dark:text-gray-200">No tasks found</h3>
-                                <p className="mt-1 text-sm text-gray-500 dark:text-gray-200">Get started by creating a new task.</p>
+                        {filteredAndSearchedTasks.length === 0 && !loading && (
+                            <div className="text-center py-20 text-gray-500">
+                                <Briefcase size={48} className="mx-auto text-gray-400" />
+                                <h3 className="mt-2 text-lg font-medium text-gray-900">No tasks match your criteria</h3>
+                                <p className="mt-1 text-sm text-gray-500">Try adjusting your search or status filter.</p>
                             </div>
                         )}
                     </div>
                 </div>
-            </div>
-        </main>
+             {totalPages > 1 && (
+                <div className="mt-6 flex flex-col sm:flex-row justify-between items-center gap-4">
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Showing <span className="font-semibold text-gray-800 dark:text-gray-200">{indexOfFirstTask + 1}</span> 
+                        to <span className="font-semibold text-gray-800 dark:text-gray-200">{indexOfLastTask > filteredAndSearchedTasks.length ? filteredAndSearchedTasks.length : indexOfLastTask}</span> 
+                        of <span className="font-semibold text-gray-800 dark:text-gray-200">{filteredAndSearchedTasks.length}</span> results
+                    </p>
+                    <div className="flex items-center gap-2">
+                        <button 
+                            onClick={() => paginate(currentPage - 1)} 
+                            disabled={currentPage === 1} 
+                            className="inline-flex items-center justify-center h-9 w-9 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                            <ChevronLeft size={16} />
+                        </button>
+                        <span className="text-sm text-gray-600 dark:text-gray-400">
+                            Page {currentPage} of {totalPages}
+                        </span>
+                        <button 
+                            onClick={() => paginate(currentPage + 1)} 
+                            disabled={currentPage === totalPages} 
+                            className="inline-flex items-center justify-center h-9 w-9 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                            <ChevronRight size={16} />
+                        </button>
+                    </div>
+                </div>
+            )}
+        </div>
+    </main>
     );
 }
 
@@ -917,24 +1029,15 @@ const AdminStatusToggle = ({ task, onStatusComplete }) => {
             <StatusBadge status={status} />
             <label htmlFor={`toggle-${task.id}`} className="flex items-center cursor-pointer ml-4">
                 <div className="relative">
-                    <input
-                        type="checkbox"
-                        id={`toggle-${task.id}`}
-                        className="sr-only"
-                        checked={isCompleted}
-                        onChange={() => onStatusComplete(task, nextStatus)}
-                    />
+                    <input type="checkbox" id={`toggle-${task.id}`} className="sr-only" checked={isCompleted} onChange={() => onStatusComplete(task, nextStatus)} />
                     <div className={`block w-12 h-7 rounded-full transition-colors ${isCompleted ? 'bg-green-500' : 'bg-gray-300'}`}></div>
                     <div className={`dot absolute left-1 top-1 bg-white w-5 h-5 rounded-full transition-transform ${isCompleted ? 'translate-x-5' : 'translate-x-0'}`}></div>
                 </div>
-                <div className="ml-2 text-xs text-gray-600 font-medium select-none">
-                    {status === 'finalize' ? 'Finalized' : isCompleted ? 'Completed' : 'Mark Complete'}
-                </div>
+                <div className="ml-2 text-xs text-gray-600 font-medium select-none">{status === 'finalize' ? 'Finalized' : isCompleted ? 'Completed' : 'Mark Complete'}</div>
             </label>
         </div>
     );
 };
-
 
 const TaskRow = ({ task, level, isExpanded, expandedRows, onToggle, members, isAdmin, fullyShownTasks, onToggleFullText, ...handlers }) => {
     const isEditing = handlers.editingTaskId === task.id;
@@ -994,7 +1097,10 @@ const TaskRow = ({ task, level, isExpanded, expandedRows, onToggle, members, isA
                                     <div className="flex items-center flex-wrap">
                                         <span className="font-semibold text-gray-900 dark:text-gray-200">{displayText}</span>
                                         {isLong && !isFullyShown && (
-                                            <button onClick={() => onToggleFullText(task.id)} className="ml-2 text-indigo-600 dark:text-indigo-200 hover:underline dark:hover:underline font-bold flex-shrink-0">
+                                            <button
+                                                onClick={() => onToggleFullText(task.id)}
+                                                className="ml-2 text-indigo-600 dark:text-indigo-200 hover:underline dark:hover:underline font-bold flex-shrink-0"
+                                            >
                                                 ...
                                             </button>
                                         )}
