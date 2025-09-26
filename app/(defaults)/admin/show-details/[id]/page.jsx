@@ -1453,7 +1453,7 @@ const handleDeleteProject = async (projectId, projectName) => {
                                 </button>
                             )}
                             {/* --- NEW EDIT BUTTON --- */}
-                            {fullProjectData.projectStatus === 'pending' && (
+                            { fullProjectData.projectStatus !== 'completed' && (
                                 <button
                                     onClick={handleEditProject}
                                     className="flex items-center px-4 py-2 text-sm font-medium bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors shadow-md"

@@ -313,7 +313,7 @@ const AdminDashboard = () => {
       labels: { formatter: (value) => `${Math.round(value / 1000)}K` },
     },
     tooltip: {
-      y: { formatter: (value) => `$${value ? value.toFixed(2) : '0.00'}` },
+      y: { formatter: (value) => `₹${value ? value.toFixed(2) : '0.00'}` },
     },
   });
 

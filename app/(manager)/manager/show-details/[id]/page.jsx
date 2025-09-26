@@ -1466,7 +1466,7 @@ function ProjectReviewPage() {
                                     Reject Project
                                 </button>
                             )} */}
-                            {fullProjectData.projectStatus === 'pending' && (
+                            {fullProjectData.projectStatus !== 'completed' && (
                                 <button
                                     onClick={() => handleRejectProject(fullProjectData.id)}
                                     className="px-4 py-2 text-sm font-medium bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors shadow-md"
