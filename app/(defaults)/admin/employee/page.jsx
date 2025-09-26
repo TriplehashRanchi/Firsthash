@@ -4,6 +4,7 @@ import { PlusCircle, Edit, Trash2, Save, X, ShieldCheck, Loader, FileText, Tag }
 import { getAuth } from 'firebase/auth';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '@/context/AuthContext';
 
 const CreateRoleModal = ({ isOpen, onClose, companyId, onRoleCreated }) => {
     const [newName, setNewName] = useState('');
@@ -158,8 +159,11 @@ const CreateRoleModal = ({ isOpen, onClose, companyId, onRoleCreated }) => {
 // --- Main Page Component ---
 export default function EmployeeRolesPage({ searchParams }) {
   const GLOBAL_ID = '00000000-0000-0000-0000-000000000000';
+  const {company} = useAuth()
   const PREDEFINED_ROLE_IDS_MAX = 13;
-  const companyId = searchParams.company_id || GLOBAL_ID;
+  const companyId = company.id || GLOBAL_ID;
+
+
 
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true); // Set initial loading to true
