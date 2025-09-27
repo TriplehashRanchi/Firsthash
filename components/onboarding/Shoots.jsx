@@ -283,13 +283,14 @@ const Shoots = ({company, onValidChange, onDataChange, initialData }) => {
         }
     }, [initialData, masterRoles]);
 
+    // *** THIS IS THE MODIFIED SECTION ***
     useEffect(() => {
         const fetchMasterData = async () => {
             if (!company?.id) return;
             try {
                 const [eventRes, roleRes] = await Promise.all([
                     fetchWithAuth(`${API_URL}/api/events?company_id=${company.id}`),
-                    // CHANGE 1: Fetch ALL roles from the API
+                    // 1. Fetch ALL roles, not filtering by role_code here
                     fetchWithAuth(`${API_URL}/api/roles?company_id=${company.id}`) 
                 ]);
 
@@ -300,7 +301,7 @@ const Shoots = ({company, onValidChange, onDataChange, initialData }) => {
                 const eventTitles = await eventRes.json();
                 const allRoles = await roleRes.json();
 
-                // CHANGE 2: Filter the roles on the frontend
+                // 2. Filter the roles on the frontend to only keep "On Production"
                 const onProductionRoles = allRoles.filter(role => role.role_code === 1);
 
                 setMasterEventTitles(eventTitles.map(e => e.title));
@@ -341,6 +342,7 @@ const Shoots = ({company, onValidChange, onDataChange, initialData }) => {
         }
     }, [company]);
 
+    // *** THIS FUNCTION IS NOW CORRECT AND COMPLETE ***
     const handleAddMasterRole = useCallback(async (newRoleName) => {
         const trimmed = newRoleName.trim();
         if (!trimmed || masterRoles.some(r => r.type_name.toLowerCase() === trimmed.toLowerCase())) {
@@ -355,13 +357,19 @@ const Shoots = ({company, onValidChange, onDataChange, initialData }) => {
                     body: JSON.stringify({ 
                         type_name: trimmed, 
                         company_id: company.id,
-                        role_code: 1
+                        role_code: 1 // Automatically set to "On Production"
                     })
                 });
-                if (!response.ok) throw new Error("Failed to create role");
+                if (!response.ok) {
+                    const errData = await response.json().catch(() => ({}));
+                    throw new Error(errData.error || "Failed to create role");
+                }
                 const newRole = await response.json();
                 setMasterRoles(prev => [...prev, newRole].sort((a,b) => a.type_name.localeCompare(b.type_name)));
-            } catch (err) { console.error('Failed to add role:', err); }
+            } catch (err) { 
+                console.error('Failed to add role:', err);
+                alert(`Error: ${err.message}`);
+            }
         }
     }, [masterRoles, company]);
 
@@ -481,4 +489,4 @@ const Shoots = ({company, onValidChange, onDataChange, initialData }) => {
     );
 };
 
-export default Shoots;      
+export default Shoots;

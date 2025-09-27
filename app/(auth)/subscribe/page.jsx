@@ -64,72 +64,93 @@ export default function SubscribePage() {
   };
 
   const handleSubscribe = async () => {
-    if (!currentUser || !company?.id || !selectedPlanId) {
-      return toast.error('Missing user data');
+  if (!currentUser || !company?.id || !selectedPlanId) {
+    return toast.error('Missing user data');
+  }
+
+  setLoading(true);
+
+  const selectedPlan = plans.find((p) => p.id === selectedPlanId);
+  if (!selectedPlan) {
+    setLoading(false);
+    return toast.error('Plan not found');
+  }
+
+  let res;
+
+  try {
+    const res = await axios.post(`${API_URL}/api/subscribe/create-order`, {
+      firebase_uid: currentUser.uid,
+      plan: selectedPlan.name,
+      coupon,
+    });
+    
+    // Check for free checkout response
+    if (res.data.free_checkout) {
+      toast.success('Subscription activated successfully!');
+      router.push('/admin/dashboard');
+      return; // Stop execution to prevent Razorpay script loading
     }
 
-    setLoading(true);
+    const { order_id, amount, razorpay_key_id } = res.data;
 
-    const selectedPlan = plans.find((p) => p.id === selectedPlanId);
-    if (!selectedPlan) return toast.error('Plan not found');
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.async = true;
 
-    try {
-      const res = await axios.post(`${API_URL}/api/subscribe/create-order`, {
-        firebase_uid: currentUser.uid,
-        plan: selectedPlan.name,
-        coupon,
+    script.onload = () => {
+      const rzp = new window.Razorpay({
+        key: razorpay_key_id,
+        amount: amount.toString(),
+        currency: 'INR',
+        name: 'FirstHash',
+        description: `Plan: ${selectedPlan.name}`,
+        order_id,
+        handler: async function (response) {
+          toast.success('Payment successful!');
+          try {
+            await axios.post(`${API_URL}/api/subscribe/verify`, {
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+              firebase_uid: currentUser.uid,
+              plan: selectedPlan.name,
+            });
+            toast.success('Subscription activated!');
+            router.push('/admin/dashboard');
+          } catch (err) {
+            toast.error('Verification failed');
+            console.error(err);
+          }
+        },
+        prefill: {
+          email: currentUser.email,
+        },
+        theme: { color: '#000000' },
+        modal: {
+          ondismiss: () => toast.error('Payment cancelled.'),
+        },
       });
-
-      const { order_id, amount, razorpay_key_id } = res.data;
-
-      const script = document.createElement('script');
-      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-      script.async = true;
-
-      script.onload = () => {
-        const rzp = new window.Razorpay({
-          key: razorpay_key_id,
-          amount: amount.toString(),
-          currency: 'INR',
-          name: 'FirstHash',
-          description: `Plan: ${selectedPlan.name}`,
-          order_id,
-          handler: async function (response) {
-            toast.success('Payment successful!');
-            try {
-              await axios.post(`${API_URL}/api/subscribe/verify`, {
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature,
-                firebase_uid: currentUser.uid,
-                plan: selectedPlan.name,
-              });
-              toast.success('Subscription activated!');
-              router.push('/admin/dashboard');
-            } catch (err) {
-              toast.error('Verification failed');
-              console.error(err);
-            }
-          },
-          prefill: {
-            email: currentUser.email,
-          },
-          theme: { color: '#000000' },
-          modal: {
-            ondismiss: () => toast.error('Payment cancelled.'),
-          },
-        });
-        rzp.open();
-      };
-
-      document.body.appendChild(script);
-    } catch (err) {
-      console.error(err);
-      toast.error('Subscription failed.');
-    } finally {
+      rzp.open();
+    };
+    
+    script.onerror = () => {
+      toast.error('Failed to load payment gateway. Please try again.');
       setLoading(false);
     }
-  };
+
+    document.body.appendChild(script);
+  } catch (err) {
+    console.error(err);
+    const errorMessage = err.response?.data?.error || 'Subscription failed.';
+    toast.error(errorMessage);
+  } finally {
+    // Only set loading to false if it's not a free checkout redirect
+    if (!res?.data?.free_checkout) {
+      setLoading(false);
+    }
+  }
+};
 
   if (authLoading) return <div className="text-center mt-10">Loading...</div>;
 
