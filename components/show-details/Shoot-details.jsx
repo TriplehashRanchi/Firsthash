@@ -1,7 +1,9 @@
 'use client';
 import React, { useState } from 'react';
 import { Camera, CalendarDays, Clock, MapPin, Edit3, X, UserPlus, Users as UsersIcon, CheckCircle } from 'lucide-react';
-
+import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
 // --- MODAL COMPONENT (with corrected prop name) ---
 const AssignmentModalContent = ({
     onClose,
@@ -137,9 +139,12 @@ const AssignmentModalContent = ({
 };
 
 // --- MAIN COMPONENT (with corrected props and logic) ---
-const ShootsTab = ({ isReadOnly, shoots, eligibleTeamMembers, sectionTitleStyles, DetailPairStylishComponent, ContentListItemComponent, onUpdateShootAssignment, onEditCity, }) => {
+const ShootsTab = ({ projectId, isReadOnly, shoots, eligibleTeamMembers, sectionTitleStyles, DetailPairStylishComponent, ContentListItemComponent, onUpdateShootAssignment, onEditCity }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [assignmentContext, setAssignmentContext] = useState(null);
+    const searchParams = useSearchParams();
+    const { role } = useAuth();
+    console.log('role', role);
 
     if (!Array.isArray(shoots) || shoots.length === 0) {
         return (
@@ -255,18 +260,32 @@ const ShootsTab = ({ isReadOnly, shoots, eligibleTeamMembers, sectionTitleStyles
 
     return (
         <>
-            <div>
+            <div id="section-shoots">
                 <div className="mb-4">
-                    <h3 className={sectionTitleStyles}>
+                    {/* Heading */}
+                    <h3 className={`${sectionTitleStyles} flex items-center`}>
                         <Camera className="w-5 h-5 mr-2.5 text-indigo-600" />
                         Shoot Schedule
                     </h3>
-                    {dateRangeDisplay && (
-                        <p className="flex items-center text-sm text-slate-500 mt-1 pl-1">
-                            <CalendarDays size={14} className="mr-2" />
-                            Event Dates: {dateRangeDisplay}
-                        </p>
-                    )}
+
+                    {/* Date + Button in same row */}
+                    <div className="flex items-center justify-between mt-2">
+                        {dateRangeDisplay && (
+                            <p className="flex items-center text-sm text-slate-500">
+                                <CalendarDays size={14} className="mr-2" />
+                                Event Dates: {dateRangeDisplay}
+                            </p>
+                        )}
+
+                        {!isReadOnly && (
+                            <Link href={`/${role === 'manager' ? 'manager' : 'admin'}/gopo?projectId=${projectId}&focus=shoots`}>
+                                <button className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-indigo-600 text-white rounded-md shadow-sm hover:bg-indigo-700 transition-colors">
+                                    <Edit3 size={16} />
+                                    Edit
+                                </button>
+                            </Link>
+                        )}
+                    </div>
                 </div>
 
                 <div>

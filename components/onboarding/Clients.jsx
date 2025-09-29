@@ -188,6 +188,7 @@ const Clients = ({ company, onValidChange, onDataChange, initialData }) => {
                 onChange={(e) => setRelation(e.target.value)}
               >
                 <option value="">Select Relation*</option>
+                <option value="Relation">Relation</option>
                 <option value="Bride">Bride</option>
                 <option value="Groom">Groom</option>
                 <option value="Father">Father</option>

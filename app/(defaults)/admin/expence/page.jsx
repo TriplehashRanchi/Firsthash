@@ -180,10 +180,6 @@ const MonthlySalaryModal = ({ isOpen, record, onSave, onCancel }) => {
     );
 };
 
-
-// =======================================================================
-// --- NEW DEDICATED COMPONENT FOR DISPLAYING ROLES ---
-// =======================================================================
 const RoleDisplay = ({ assignedRoleNames }) => {
     const [isPopoverVisible, setIsPopoverVisible] = useState(false);
 
@@ -227,9 +223,6 @@ const RoleDisplay = ({ assignedRoleNames }) => {
     );
 };
 
-
-// --- NEW: FreelancerHistoryModal ---
-// --- NEW MODAL 1: BillAssignmentModal ---
 const BillAssignmentModal = ({ isOpen, freelancer, onSave, onCancel }) => {
     const [unbilledAssignments, setUnbilledAssignments] = useState([]);
     const [selectedAssignment, setSelectedAssignment] = useState('');
@@ -371,7 +364,6 @@ const FreelancerHistoryModal = ({ isOpen, freelancer, onClose }) => {
         </AnimatePresence>
     );
 };
-
 
 const MakePaymentModal = ({ isOpen, freelancer, onSave, onCancel }) => {
     const [paymentAmount, setPaymentAmount] = useState('');
@@ -619,22 +611,6 @@ const PaymentHistoryModal = ({ isOpen, employee, onClose }) => {
     );
 };
 
-// const parseAndFormatRoles = (rolesString) => {
-//     if (!rolesString || typeof rolesString !== 'string') {
-//         return 'No role assigned';
-//     }
-//     try {
-//         const rolesArray = JSON.parse(rolesString);
-//         if (Array.isArray(rolesArray) && rolesArray.length > 0) {
-//             return rolesArray.map((r) => r.role_name).join(', ');
-//         }
-//         return 'No role assigned';
-//     } catch (error) {
-//         console.error('Failed to parse roles JSON string:', rolesString, error);
-//         return 'Invalid role format';
-//     }
-// };
-
 // --- Main Page Component ---
 function PayrollManagementPage() {
     const [activeTab, setActiveTab] = useState('salaried');
@@ -719,8 +695,7 @@ function PayrollManagementPage() {
         }
     };
 
-
-      const handleGenerate = async (month, year) => {
+    const handleGenerate = async (month, year) => {
         // CHANGED: Updated the confirmation message to be more accurate.
         if (!window.confirm(`Generate/update salary records for ${monthName(month)}, ${year}? This will affect In-House and Manager employees.`)) return;
         try {
@@ -778,31 +753,36 @@ function PayrollManagementPage() {
         axios
             .post(`${API_URL}/api/members/freelancers/billings`, data, { headers: { Authorization: `Bearer ${token}` } })
             .then(() => {
-                setIsBillAssignmentModalOpen(false);
+                setIsBillAssignmentModalOpen(false); // ✅ correct name
                 fetchData();
             })
             .catch((err) => alert(err.response?.data?.error || 'Failed to bill assignment.'));
     };
 
-
-
     const handleMakePayment = async (freelancer_uid, paymentData) => {
         const freelancer = freelancerSummaries.find((f) => f.firebase_uid === freelancer_uid);
-        // --- VALIDATION EDGE CASE ---
         if (parseFloat(paymentData.payment_amount) > parseFloat(freelancer.remaining_balance)) {
             alert('Error: Payment amount cannot be greater than the balance due.');
             return;
         }
 
-        const auth = getAuth();
-        const token = await auth.currentUser.getIdToken();
-        axios
-            .post(`${API_URL}/api/members/freelancers/payments`, { ...paymentData, freelancer_uid }, { headers: { Authorization: `Bearer ${token}` } })
-            .then(() => {
-                setMakePaymentModalOpen(false);
-                fetchData();
-            })
-            .catch((err) => alert(err.response?.data?.error || 'Failed to record payment.'));
+        try {
+            const auth = getAuth();
+            const token = await auth.currentUser.getIdToken();
+
+            await axios.post(`${API_URL}/api/members/freelancers/payments`, { ...paymentData, freelancer_uid }, { headers: { Authorization: `Bearer ${token}` } });
+
+            // ✅ Correct state name
+            setIsMakePaymentModalOpen(false);
+
+            // Refresh data
+            fetchData();
+
+            // Optional: success feedback
+            alert('Payment saved successfully ✅');
+        } catch (err) {
+            alert(err.response?.data?.error || 'Failed to record payment.');
+        }
     };
 
     const openModal = (freelancer, modalType) => {
@@ -824,39 +804,6 @@ function PayrollManagementPage() {
     }, [freelancerSummaries, searchQuery]);
 
     const salariedEmployees = filteredEmployees.filter((emp) => emp.employee_type === 1 || emp.employee_type === 2);
-    const freelancerEmployees = filteredEmployees.filter((emp) => emp.employee_type === 0);
-
-    const monthlyDisplayRecords = useMemo(() => {
-        // Create a Map for instant lookups of salary records
-        const salaryMap = new Map(monthlyRecords.map((rec) => [rec.firebase_uid, rec]));
-
-        // Use the filtered list of ALL employees as the source of truth
-        return filteredEmployees.map((employee) => {
-            const salaryRecord = salaryMap.get(employee.firebase_uid);
-
-            if (salaryRecord) {
-                // If a salary record exists, combine it with employee data
-                return {
-                    ...employee, // contains name, roles, employee_type
-                    ...salaryRecord, // contains amount_due, amount_paid, status, etc.
-                    id: salaryRecord.id, // ensure salary record id is primary
-                };
-            } else {
-                // If no salary record exists, create a placeholder row.
-                // This is crucial for employees who haven't been generated a salary yet.
-                return {
-                    ...employee,
-                    id: employee.firebase_uid, // Use firebase_uid as a fallback key
-                    amount_due: '0.00',
-                    amount_paid: '0.00',
-                    status: 'N/A',
-                    period_month: month,
-                    period_year: year,
-                    employee_name: employee.name, // ensure name is present
-                };
-            }
-        });
-    }, [filteredEmployees, monthlyRecords, month, year]);
 
     const enrichedMonthlyRecords = useMemo(() => {
         const employeeMap = new Map(employees.map((emp) => [emp.firebase_uid, emp]));
@@ -1095,11 +1042,6 @@ function PayrollManagementPage() {
                                                                     className="relative p-2 text-slate-500 hover:text-indigo-600"
                                                                 >
                                                                     <FilePlus size={18} />
-                                                                    {/* {emp.unbilled_assignments_count > 0 && (
-                                                                        <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-indigo-500 text-xs text-white">
-                                                                            {emp.unbilled_assignments_count}
-                                                                        </span>
-                                                                    )} */}
                                                                 </button>
                                                                 <button
                                                                     onClick={() => openModal(emp, 'payment')}
@@ -1150,7 +1092,7 @@ function PayrollManagementPage() {
                                         </button>
                                     </div>
                                 </div>
-                                
+
                                 {isMonthlyLoading ? (
                                     <p>Loading...</p>
                                 ) : monthlyError ? (

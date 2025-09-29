@@ -41,7 +41,6 @@ function Page() {
     const isEditMode = Boolean(projectId); // <-- Determine if we are in edit mode
     const { currentUser, company, loading } = useAuth();
 
-
     const [projectName, setProjectName] = useState('');
     const [projectPackageCost, setProjectPackageCost] = useState(''); // Will hold string from input
     const [deliverablesTotalCost, setDeliverablesTotalCost] = useState(0);
@@ -61,9 +60,8 @@ function Page() {
     const [isReceivedValid, setIsReceivedValid] = useState(false);
     // const [isScheduleValid, setIsScheduleValid] = useState(false);
     const [isLoadingData, setIsLoadingData] = useState(isEditMode);
-     const [isScheduleValid, setIsScheduleValid] = useState(false); 
+    const [isScheduleValid, setIsScheduleValid] = useState(false);
 
-    
     // --- NEW: useEffect to fetch data in Edit Mode ---
     useEffect(() => {
         if (isEditMode && currentUser) {
@@ -125,163 +123,175 @@ function Page() {
                     clientDetails: {
                         name: leadName || '',
                         phone: leadPhone || '',
-                        relation: '', 
+                        relation: '',
                         email: leadEmail || '',
                     },
-                   
+
                     rawPhoneNumberInput: leadPhone || '',
-                    currentStep: 'existing_found', 
-                    isPhoneNumberValid: true, 
+                    currentStep: 'existing_found',
+                    isPhoneNumberValid: true,
                 };
-                setClientsData(clientInitialData); 
+                setClientsData(clientInitialData);
             }
 
-            if(leadEventLocation) {
-                const initialShootsData = [{
-                id: `shoot-${Date.now()}`, 
-                shootName: 'Main Event',     
-                date: null,                  
-                startTime: '',               
-                endTime: '',                 // Default to empty
-                location: leadEventLocation, // Here is where we use the data from the URL!
-            }];
-            setShootsData(initialShootsData);
+            if (leadEventLocation) {
+                const initialShootsData = [
+                    {
+                        id: `shoot-${Date.now()}`,
+                        shootName: 'Main Event',
+                        date: null,
+                        startTime: '',
+                        endTime: '', // Default to empty
+                        location: leadEventLocation, // Here is where we use the data from the URL!
+                    },
+                ];
+                setShootsData(initialShootsData);
             }
         }
-       
     }, [isEditMode]); // Dependency array ensures it runs when these values are determined.
+
+    useEffect(() => {
+    const focus = searchParams.get('focus');
+    if (!isLoadingData && focus) {
+        const el = document.getElementById(`section-${focus}`);
+        if (el) {
+            // Scroll into view
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            // Add highlight for 2 seconds
+            el.classList.add('ring-2', 'ring-indigo-500');
+            setTimeout(() => el.classList.remove('ring-2', 'ring-indigo-500'), 2000);
+        }
+    }
+}, [isLoadingData, searchParams]);
 
 
     const handleSave = async () => {
-    console.log('🟡 handleSave triggered');
-    if (!projectName.trim()) {
-        toast.error('Project name cannot be empty.');
-        return;
-    }
+        console.log('🟡 handleSave triggered');
+        if (!projectName.trim()) {
+            toast.error('Project name cannot be empty.');
+            return;
+        }
 
-    console.log('🔍 Validation States:', {
-        isClientsValid,
-        isProjectDetailsValid,
-        isShootsValid,
-        isDeliverablesValid,
-        isReceivedValid,
-    });
+        console.log('🔍 Validation States:', {
+            isClientsValid,
+            isProjectDetailsValid,
+            isShootsValid,
+            isDeliverablesValid,
+            isReceivedValid,
+        });
 
-    if (!currentUser) {
-        toast.error('User not authenticated');
-        return;
-    }
+        if (!currentUser) {
+            toast.error('User not authenticated');
+            return;
+        }
 
-    const validationChecks = [
-        { isValid: isClientsValid, name: 'Clients' },
-        { isValid: isProjectDetailsValid, name: 'Project Details' },
-        { isValid: isShootsValid, name: 'Shoots' },
-        { isValid: isDeliverablesValid, name: 'Deliverables' },
-        { isValid: isReceivedValid, name: 'Received Amount' },
-    ];
+        const validationChecks = [
+            { isValid: isClientsValid, name: 'Clients' },
+            { isValid: isProjectDetailsValid, name: 'Project Details' },
+            { isValid: isShootsValid, name: 'Shoots' },
+            { isValid: isDeliverablesValid, name: 'Deliverables' },
+            { isValid: isReceivedValid, name: 'Received Amount' },
+        ];
 
-    const invalidSections = validationChecks.filter((check) => !check.isValid).map((check) => check.name);
+        const invalidSections = validationChecks.filter((check) => !check.isValid).map((check) => check.name);
 
-    if (invalidSections.length === 0) {
-        const numericPackageCostValue = parseFloat(projectPackageCost) || 0;
-        const currentOverallTotalCost = numericPackageCostValue + deliverablesTotalCost;
+        if (invalidSections.length === 0) {
+            const numericPackageCostValue = parseFloat(projectPackageCost) || 0;
+            const currentOverallTotalCost = numericPackageCostValue + deliverablesTotalCost;
 
-        const fullProjectData = {
-            projectName,
-            projectPackageCost: numericPackageCostValue,
-            deliverablesAdditionalCost: deliverablesTotalCost,
-            overallTotalCost: currentOverallTotalCost,
-            clients: clientsData,
-            shoots: shootsData,
-            deliverables: deliverablesData,
-            receivedAmount: receivedAmountData,
-            paymentSchedule: paymentScheduleData,
-        };
-        console.log('🟡 fullProjectData:', fullProjectData);
+            const fullProjectData = {
+                projectName,
+                projectPackageCost: numericPackageCostValue,
+                deliverablesAdditionalCost: deliverablesTotalCost,
+                overallTotalCost: currentOverallTotalCost,
+                clients: clientsData,
+                shoots: shootsData,
+                deliverables: deliverablesData,
+                receivedAmount: receivedAmountData,
+                paymentSchedule: paymentScheduleData,
+            };
+            console.log('🟡 fullProjectData:', fullProjectData);
 
-        const toastId = toast.loading(isEditMode ? 'Updating project...' : 'Saving project...');
+            const toastId = toast.loading(isEditMode ? 'Updating project...' : 'Saving project...');
 
-        try {
-            const token = await currentUser.getIdToken();
+            try {
+                const token = await currentUser.getIdToken();
 
-            // --- START: CORE LOGIC FOR CREATE VS. UPDATE ---
+                // --- START: CORE LOGIC FOR CREATE VS. UPDATE ---
 
-            if (isEditMode) {
-                // --- ACTION: UPDATE an existing project ---
-                await axios.put(`${API_URL}/api/projects/${projectId}`, fullProjectData, {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
+                if (isEditMode) {
+                    // --- ACTION: UPDATE an existing project ---
+                    await axios.put(`${API_URL}/api/projects/${projectId}`, fullProjectData, {
+                        headers: { Authorization: `Bearer ${token}` },
+                    });
 
-                toast.update(toastId, {
-                    render: 'Project Updated Successfully!',
-                    type: 'success',
-                    isLoading: false,
-                    autoClose: 3000,
-                });
+                    toast.update(toastId, {
+                        render: 'Project Updated Successfully!',
+                        type: 'success',
+                        isLoading: false,
+                        autoClose: 3000,
+                    });
 
-                // Redirect back to the project details page after a short delay
-                setTimeout(() => {
-                    router.push(`/admin/show-details/${projectId}`);
-                }, 1500);
+                    // Redirect back to the project details page after a short delay
+                    setTimeout(() => {
+                        router.push(`/admin/show-details/${projectId}`);
+                    }, 1500);
+                } else {
+                    // --- ACTION: CREATE a new project (Your original logic) ---
+                    const createProjectResponse = await axios.post(`${API_URL}/api/projects`, fullProjectData, {
+                        headers: { Authorization: `Bearer ${token}` },
+                    });
 
-            } else {
-                // --- ACTION: CREATE a new project (Your original logic) ---
-                const createProjectResponse = await axios.post(`${API_URL}/api/projects`, fullProjectData, {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
+                    console.log('🟡 createProjectResponse:', createProjectResponse);
 
-                console.log('🟡 createProjectResponse:', createProjectResponse);
+                    if (!createProjectResponse.data.success) {
+                        throw new Error('Failed to save the project details.');
+                    }
 
-                if (!createProjectResponse.data.success) {
-                    throw new Error('Failed to save the project details.');
+                    const newProjectId = createProjectResponse.data.project_id;
+                    toast.update(toastId, { render: 'Generating quotation...', type: 'info' });
+
+                    // Automatically Generate the Quotation
+                    const createQuoteResponse = await axios.post(
+                        `${API_URL}/api/projects/${newProjectId}/quotations`,
+                        {}, // Empty body
+                        { headers: { Authorization: `Bearer ${token}` } },
+                    );
+
+                    const quoteUrl = createQuoteResponse.data.url;
+
+                    toast.update(toastId, {
+                        render: () => (
+                            <SuccessToast
+                                quoteUrl={quoteUrl}
+                                newProjectId={newProjectId}
+                                onNavigate={() => {
+                                    toast.dismiss(toastId);
+                                    router.push(`/admin/show-details/${newProjectId}`);
+                                }}
+                            />
+                        ),
+                        type: 'success',
+                        isLoading: false,
+                        autoClose: false,
+                        closeOnClick: false,
+                        closeButton: true,
+                    });
                 }
-
-                const newProjectId = createProjectResponse.data.project_id;
-                toast.update(toastId, { render: 'Generating quotation...', type: 'info' });
-
-                // Automatically Generate the Quotation
-                const createQuoteResponse = await axios.post(
-                    `${API_URL}/api/projects/${newProjectId}/quotations`,
-                    {}, // Empty body
-                    { headers: { Authorization: `Bearer ${token}` } }
-                );
-
-                const quoteUrl = createQuoteResponse.data.url;
-
+                // --- END: CORE LOGIC FOR CREATE VS. UPDATE ---
+            } catch (err) {
+                console.error('❌ Save/Update process failed:', err?.response?.data || err.message);
                 toast.update(toastId, {
-                    render: () => (
-                        <SuccessToast
-                            quoteUrl={quoteUrl}
-                            newProjectId={newProjectId}
-                            onNavigate={() => {
-                                toast.dismiss(toastId);
-                                router.push(`/admin/show-details/${newProjectId}`);
-                            }}
-                        />
-                    ),
-                    type: 'success',
+                    render: 'An error occurred. Please try again.',
+                    type: 'error',
                     isLoading: false,
-                    autoClose: false,
-                    closeOnClick: false,
-                    closeButton: true,
+                    autoClose: 5000,
                 });
             }
-            // --- END: CORE LOGIC FOR CREATE VS. UPDATE ---
-
-        } catch (err) {
-            console.error('❌ Save/Update process failed:', err?.response?.data || err.message);
-            toast.update(toastId, {
-                render: 'An error occurred. Please try again.',
-                type: 'error',
-                isLoading: false,
-                autoClose: 5000,
-            });
+        } else {
+            toast.error(`Please fill all required sections: ${invalidSections.join(', ')}`);
         }
-    } else {
-        toast.error(`Please fill all required sections: ${invalidSections.join(', ')}`);
-    }
-};
-
+    };
 
     if (isLoadingData) {
         return (
@@ -339,8 +349,19 @@ function Page() {
                     />
                 </div>
                 <div>
-                    <Shoots company={company} onValidChange={setIsShootsValid} onDataChange={setShootsData} initialData={shootsData} />
-                    <Deliverables company={company} onValidChange={setIsDeliverablesValid} onDeliverablesCostChange={setDeliverablesTotalCost} onDataChange={setDeliverablesData} initialData={deliverablesData} />
+                    <div id="section-shoots">
+                        <Shoots company={company} onValidChange={setIsShootsValid} onDataChange={setShootsData} initialData={shootsData} />
+                    </div>
+
+                    <div id="section-deliverables">
+                        <Deliverables
+                            company={company}
+                            onValidChange={setIsDeliverablesValid}
+                            onDeliverablesCostChange={setDeliverablesTotalCost}
+                            onDataChange={setDeliverablesData}
+                            initialData={deliverablesData}
+                        />
+                    </div>
                     <ReceivedAmount onValidChange={setIsReceivedValid} onDataChange={setReceivedAmountData} initialData={receivedAmountData} />
                     {/* <PaymentSchedule 
                         onValidChange={setIsScheduleValid} 
@@ -354,9 +375,9 @@ function Page() {
                     <span className={totalCostLabelStyles}>Overall Total:</span>
                     <span className={totalCostValueStyles}>₹{overallTotalCostForDisplay.toLocaleString()}</span>
                 </div>
-                 <button onClick={handleSave} className={successButtonStyles}>
-                {isEditMode ? 'Update Project' : 'Save Project'}
-            </button>
+                <button onClick={handleSave} className={successButtonStyles}>
+                    {isEditMode ? 'Update Project' : 'Save Project'}
+                </button>
             </div>
         </div>
     );

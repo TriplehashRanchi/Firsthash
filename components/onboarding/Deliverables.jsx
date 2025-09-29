@@ -206,8 +206,8 @@ const Deliverables = ({ company, onValidChange, onDeliverablesCostChange, onData
     };
 
     const handleChange = (id, field, value) => {
-        setItems((prevItems) =>
-            prevItems.map((item) => {
+        setItems((prevItems) => {
+            const updatedItems = prevItems.map((item) => {
                 if (item.id !== id) return item;
                 const updatedItem = { ...item };
                 switch (field) {
@@ -226,8 +226,18 @@ const Deliverables = ({ company, onValidChange, onDeliverablesCostChange, onData
                         break;
                 }
                 return updatedItem;
-            }),
-        );
+            });
+
+            // Check if last row is filled → add new empty row
+            const lastItem = updatedItems[updatedItems.length - 1];
+            const isFilled = (lastItem.title && lastItem.title.trim() !== '') || (lastItem.isAdditionalCharge && lastItem.additionalChargeAmount > 0) || (lastItem.date && lastItem.date.trim() !== '');
+
+            if (isFilled) {
+                return [...updatedItems, createNewDeliverableItem()];
+            }
+
+            return updatedItems;
+        });
     };
 
     const handleRemove = (idToRemove) => {

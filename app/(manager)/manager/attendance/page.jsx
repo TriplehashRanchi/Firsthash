@@ -90,6 +90,7 @@ const AttendanceModal = ({ member, onClose, onSave }) => {
                 },
             });
             onSave();
+            onClose();
         } catch (err) {
             console.error('Failed to save attendance', err);
             toast.error(err.response?.data?.error || 'Error saving attendance');

@@ -288,7 +288,7 @@ export default function EmployeeRolesPage({ searchParams }) {
                                     <select className="w-full p-2 border-gray-300  rounded-md" value={editCode} onChange={e => setEditCode(e.target.value)}>
                                         <option value={1}>On Production (1)</option>
                                         <option value={2}>Post Production (2)</option>
-                                        <option value={0}>Manager (0)</option>
+                                        {/* <option value={0}>Manager (0)</option> */}
                                     </select>
                                 </td>
                                 <td className="px-4 py-3 text-right">

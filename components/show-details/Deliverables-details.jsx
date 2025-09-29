@@ -1,16 +1,24 @@
 'use client';
 import React from 'react';
 import { PackageCheck, CalendarClock, ListTodo } from 'lucide-react';
+import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
 
 // --- This component is now a pure "dumb" component. ---
 // It receives all necessary data as props and has no internal state or complex logic.
 
 const DeliverablesDetails = ({
+    projectId,
     deliverables,
     tasks, // <-- Receives the full list of tasks for the project
     sectionTitleStyles,
     onManageTasks, // This would be the prop for future functionality to open a task modal
 }) => {
+    const searchParams = useSearchParams();
+    const { role } = useAuth();
+       console.log('role', role);
+
     // If there are no deliverables, show a message.
     if (!deliverables || deliverables.length === 0) {
         return <p className="text-slate-500 dark:text-slate-400 p-2">No deliverables specified for this project.</p>;
@@ -31,11 +39,17 @@ const DeliverablesDetails = ({
     };
 
     return (
-        <div>
+        <div id="section-deliverables">
+            <div className='md:flex justify-between items-center mb-8'>
             <h3 className={sectionTitleStyles}>
                 <PackageCheck className="w-5 h-5 mr-2.5 text-indigo-500 dark:text-indigo-400" />
                 Project Deliverables
             </h3>
+
+            <Link href={`/${role === 'manager' ? 'manager' : 'admin'}/gopo?projectId=${projectId}&focus=deliverables`}>
+                <button className="px-3 py-1 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Edit Deliverables</button>
+            </Link>
+            </div>
 
             <div className="mt-4 border-t border-slate-200 dark:border-slate-700/60">
                 <div className="grid grid-cols-2 gap-x-4 mb-2 mt-4 px-2">

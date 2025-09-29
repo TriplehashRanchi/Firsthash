@@ -392,26 +392,41 @@ function ProjectReviewPage() {
         if (!currentUser || !cityModalShoot?.id) return;
         setSavingCity(true);
 
-        // Optimistic UI update
+        // Keep backup for rollback
         const prevShoots = fullProjectData.shoots.shootList;
-        setFullProjectData((prev) => ({
-            ...prev,
-            shoots: {
-                ...prev.shoots,
-                shootList: prev.shoots.shootList.map((s) => (s.id === cityModalShoot.id ? { ...s, city: newCityValue.trim() } : s)),
-            },
-        }));
 
         try {
             const token = await currentUser.getIdToken();
-            await axios.patch(`${API_URL}/api/shoots/${cityModalShoot.id}/city`, { city: newCityValue.trim() }, { headers: { Authorization: `Bearer ${token}` } });
-            toast.success('Location updated');
+
+            // 🔥 1. Call backend and get updated shoot back
+            const { data } = await axios.patch(
+                `${API_URL}/api/shoots/${cityModalShoot.id}/details`,
+                { city: newCityValue.trim(), date: newDateValue, time: newTimeValue },
+                { headers: { Authorization: `Bearer ${token}` } },
+            );
+
+            // 🔥 2. Use backend’s response (raw DB values) for state update
+            const updatedShoot = data.shoot;
+
+            setFullProjectData((prev) => ({
+                ...prev,
+                shoots: {
+                    ...prev.shoots,
+                    shootList: prev.shoots.shootList.map((s) => (s.id === cityModalShoot.id ? { ...s, ...updatedShoot } : s)),
+                },
+            }));
+
+            toast.success('Shoot updated');
             closeCityModal();
         } catch (err) {
-            console.error('Failed to update city:', err);
-            toast.error('Could not update location. Reverting.');
+            console.error('Failed to update shoot details:', err);
+            toast.error('Could not update. Reverting.');
+
             // Roll back
-            setFullProjectData((prev) => ({ ...prev, shoots: { ...prev.shoots, shootList: prevShoots } }));
+            setFullProjectData((prev) => ({
+                ...prev,
+                shoots: { ...prev.shoots, shootList: prevShoots },
+            }));
         } finally {
             setSavingCity(false);
         }
@@ -1192,6 +1207,7 @@ function ProjectReviewPage() {
             case TABS.SHOOTS:
                 return (
                     <Shoots
+                        projectId={projectId}
                         shoots={shootsObject?.shootList?.length ? shootsObject.shootList : fullProjectData.shootList}
                         isReadOnly={isReadOnly}
                         eligibleTeamMembers={eligibleShootTeam || []}
@@ -1205,6 +1221,7 @@ function ProjectReviewPage() {
             case TABS.DELIVERABLES:
                 return (
                     <DeliverablesDetails
+                        projectId={projectId}
                         isReadOnly={isReadOnly}
                         deliverables={fullProjectData.deliverables.deliverableItems}
                         tasks={fullProjectData.tasks || []}

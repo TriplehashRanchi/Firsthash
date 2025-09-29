@@ -166,7 +166,7 @@ export default function RoleDetailPage({ params }) {
               onChange={e => setCode(e.target.value)}
               disabled={isPredefined}
             >
-              <option value={0}>Manager (0)</option>
+              {/* <option value={0}>Manager (0)</option> */}
               <option value={1}>On Production (1)</option>
               <option value={2}>Post Production (2)</option>
               <option value={3}>VFX Artist (3)</option>

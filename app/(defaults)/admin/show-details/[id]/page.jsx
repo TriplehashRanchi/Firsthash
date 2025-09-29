@@ -375,10 +375,14 @@ function ProjectReviewPage() {
     const [cityModalShoot, setCityModalShoot] = useState(null);
     const [newCityValue, setNewCityValue] = useState('');
     const [savingCity, setSavingCity] = useState(false);
+    const [newDateValue, setNewDateValue] = useState('');
+    const [newTimeValue, setNewTimeValue] = useState('');
 
     const openCityModal = (shoot) => {
         setCityModalShoot(shoot);
         setNewCityValue(shoot?.city || '');
+        setNewDateValue(shoot?.date || '');
+        setNewTimeValue(shoot?.time || '');
         setIsCityModalOpen(true);
     };
 
@@ -388,30 +392,39 @@ function ProjectReviewPage() {
         setNewCityValue('');
     };
 
-    const submitCityChange = async () => {
+
+    
+    const submitShootDetailsChange = async () => {
         if (!currentUser || !cityModalShoot?.id) return;
         setSavingCity(true);
 
-        // Optimistic UI update
         const prevShoots = fullProjectData.shoots.shootList;
+
+        // Optimistic UI update
         setFullProjectData((prev) => ({
             ...prev,
             shoots: {
                 ...prev.shoots,
-                shootList: prev.shoots.shootList.map((s) => (s.id === cityModalShoot.id ? { ...s, city: newCityValue.trim() } : s)),
+                shootList: prev.shoots.shootList.map((s) => (s.id === cityModalShoot.id ? { ...s, city: newCityValue.trim(), date: newDateValue, time: newTimeValue } : s)),
             },
         }));
 
         try {
             const token = await currentUser.getIdToken();
-            await axios.patch(`${API_URL}/api/shoots/${cityModalShoot.id}/city`, { city: newCityValue.trim() }, { headers: { Authorization: `Bearer ${token}` } });
-            toast.success('Location updated');
+            await axios.patch(
+                `${API_URL}/api/shoots/${cityModalShoot.id}/details`,
+                { city: newCityValue.trim(), date: newDateValue, time: newTimeValue },
+                { headers: { Authorization: `Bearer ${token}` } },
+            );
+            toast.success('Shoot updated');
             closeCityModal();
         } catch (err) {
-            console.error('Failed to update city:', err);
-            toast.error('Could not update location. Reverting.');
-            // Roll back
-            setFullProjectData((prev) => ({ ...prev, shoots: { ...prev.shoots, shootList: prevShoots } }));
+            console.error('Failed to update shoot details:', err);
+            toast.error('Could not update. Reverting.');
+            setFullProjectData((prev) => ({
+                ...prev,
+                shoots: { ...prev.shoots, shootList: prevShoots },
+            }));
         } finally {
             setSavingCity(false);
         }
@@ -460,12 +473,6 @@ function ProjectReviewPage() {
     };
     console.log('EDIT', handleEditProject);
 
-    // --- NEW: Handler to create a task via API ---
-    // File: ProjectReviewPage.jsx
-
-    // --- START: COMPLETE TASK HANDLER FUNCTIONS ---
-
-    // --- START: ADD THE NEW HANDLER for generating a quote ---
     const handleGenerateQuotation = async () => {
         if (!projectId || !currentUser) return;
 
@@ -939,89 +946,82 @@ function ProjectReviewPage() {
         }
     };
 
-   const handleRejectProject = async (projectId) => {
-  const result = await Swal.fire({
-    title: 'Are you sure?',
-    text: 'Do you really want to reject this project?',
-    icon: 'warning',
-    showCancelButton: true,
-    confirmButtonColor: '#d33',
-    cancelButtonColor: '#3085d6',
-    confirmButtonText: 'Yes, reject it!',
-  });
+    const handleRejectProject = async (projectId) => {
+        const result = await Swal.fire({
+            title: 'Are you sure?',
+            text: 'Do you really want to reject this project?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, reject it!',
+        });
 
-  if (!result.isConfirmed) return;
+        if (!result.isConfirmed) return;
 
-  try {
-    const token = await currentUser.getIdToken();
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/projects/${projectId}/status`,
-      {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ status: 'rejected' }),
-      }
-    );
+        try {
+            const token = await currentUser.getIdToken();
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/projects/${projectId}/status`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ status: 'rejected' }),
+            });
 
-    if (!res.ok) throw new Error('Failed to reject project');
+            if (!res.ok) throw new Error('Failed to reject project');
 
-    Swal.fire('Rejected!', 'The project has been rejected.', 'success');
-    router.refresh();
-  } catch (error) {
-    console.error('Reject failed:', error);
-    Swal.fire('Error', 'Failed to reject project', 'error');
-  }
-};
+            Swal.fire('Rejected!', 'The project has been rejected.', 'success');
+            router.refresh();
+        } catch (error) {
+            console.error('Reject failed:', error);
+            Swal.fire('Error', 'Failed to reject project', 'error');
+        }
+    };
 
-const handleDeleteProject = async (projectId, projectName) => {
-  const result = await Swal.fire({
-    title: 'Confirm Deletion',
-    text: `Type the project name (${projectName}) to confirm deletion.`,
-    input: 'text',
-    inputPlaceholder: 'Enter project name',
-    icon: 'warning',
-    showCancelButton: true,
-    confirmButtonColor: '#d33',
-    cancelButtonColor: '#3085d6',
-    confirmButtonText: 'Delete Project',
-    preConfirm: (value) => {
-      if (value !== projectName) {
-        Swal.showValidationMessage('Project name does not match');
-        return false;
-      }
-      return true;
-    },
-  });
+    const handleDeleteProject = async (projectId, projectName) => {
+        const result = await Swal.fire({
+            title: 'Confirm Deletion',
+            text: `Type the project name (${projectName}) to confirm deletion.`,
+            input: 'text',
+            inputPlaceholder: 'Enter project name',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Delete Project',
+            preConfirm: (value) => {
+                if (value !== projectName) {
+                    Swal.showValidationMessage('Project name does not match');
+                    return false;
+                }
+                return true;
+            },
+        });
 
-  if (!result.isConfirmed) return;
+        if (!result.isConfirmed) return;
 
-  try {
-    const token = await currentUser.getIdToken();
+        try {
+            const token = await currentUser.getIdToken();
 
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/projects/${projectId}`,
-      {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/projects/${projectId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
+            });
 
-    if (!res.ok) throw new Error('Failed to delete project');
+            if (!res.ok) throw new Error('Failed to delete project');
 
-    Swal.fire('Deleted!', 'Project has been deleted.', 'success');
-    router.push('/admin/project');
-  } catch (error) {
-    console.error('Delete failed:', error);
-    Swal.fire('Error', 'Failed to delete project', 'error');
-  }
-};
-
+            Swal.fire('Deleted!', 'Project has been deleted.', 'success');
+            router.push('/admin/project');
+        } catch (error) {
+            console.error('Delete failed:', error);
+            Swal.fire('Error', 'Failed to delete project', 'error');
+        }
+    };
 
     // --- START: CORRECTED useMemo HOOKS ---
     const eligibleShootTeam = useMemo(() => {
@@ -1088,7 +1088,7 @@ const handleDeleteProject = async (projectId, projectName) => {
     const { clients, projectDetails, shoots: shootsObject, deliverables, receivedAmount, paymentSchedule, quotations } = fullProjectData;
 
     const totalReceived = receivedAmount?.transactions?.reduce((sum, tx) => (tx.type === 'received' ? sum + (tx.amount || 0) : sum), 0) || 0;
-    
+
     const totalCost = Number(fullProjectData?.overallTotalCost || 0);
     const balanceDue = totalCost - totalReceived;
 
@@ -1129,7 +1129,13 @@ const handleDeleteProject = async (projectId, projectName) => {
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6">
                                 <DetailPairStylish label="Package Cost" value={fullProjectData.projectPackageCost} isCurrency icon={PackageCheck} />
                                 <DetailPairStylish label="Additional Costs" value={fullProjectData.deliverablesAdditionalCost} isCurrency icon={ListChecks} />
-                                <DetailPairStylish label="Total Cost" value={Number(fullProjectData.projectPackageCost) + Number(fullProjectData.deliverablesAdditionalCost)} isCurrency icon={ReceiptIcon} highlight />
+                                <DetailPairStylish
+                                    label="Total Cost"
+                                    value={Number(fullProjectData.projectPackageCost) + Number(fullProjectData.deliverablesAdditionalCost)}
+                                    isCurrency
+                                    icon={ReceiptIcon}
+                                    highlight
+                                />
                                 <DetailPairStylish label="Amount Received" value={totalReceived} isCurrency icon={TrendingUp} />
                                 <DetailPairStylish label="Balance Due" value={fullProjectData.overallTotalCost - totalReceived} isCurrency icon={ReceiptIndianRupee} highlight />
                             </div>
@@ -1197,6 +1203,7 @@ const handleDeleteProject = async (projectId, projectName) => {
             case TABS.SHOOTS:
                 return (
                     <Shoots
+                        projectId={projectId}
                         shoots={shootsObject?.shootList?.length ? shootsObject.shootList : fullProjectData.shootList}
                         isReadOnly={isReadOnly}
                         eligibleTeamMembers={eligibleShootTeam || []}
@@ -1210,6 +1217,7 @@ const handleDeleteProject = async (projectId, projectName) => {
             case TABS.DELIVERABLES:
                 return (
                     <DeliverablesDetails
+                        projectId={projectId}
                         isReadOnly={isReadOnly}
                         deliverables={fullProjectData.deliverables.deliverableItems}
                         tasks={fullProjectData.tasks || []}
@@ -1221,6 +1229,7 @@ const handleDeleteProject = async (projectId, projectName) => {
             case TABS.EXPENES:
                 return (
                     <Expence
+                        projectId={projectId}
                         isReadOnly={isReadOnly}
                         expenses={fullProjectData.expenses || []}
                         onAddExpense={handleAddExpense}
@@ -1453,7 +1462,7 @@ const handleDeleteProject = async (projectId, projectName) => {
                                 </button>
                             )}
                             {/* --- NEW EDIT BUTTON --- */}
-                            { fullProjectData.projectStatus !== 'completed' && (
+                            {fullProjectData.projectStatus !== 'completed' && (
                                 <button
                                     onClick={handleEditProject}
                                     className="flex items-center px-4 py-2 text-sm font-medium bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors shadow-md"
@@ -1463,29 +1472,24 @@ const handleDeleteProject = async (projectId, projectName) => {
                                 </button>
                             )}
                             {/* Reject (always visible if not completed/rejected) */}
-                           {fullProjectData.projectStatus === 'pending' && (
-  <button
-    onClick={() => handleRejectProject(fullProjectData.id)}
-    className="px-4 py-2 text-sm font-medium bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors shadow-md"
-  >
-    Reject Project
-  </button>
-)}
-
+                            {fullProjectData.projectStatus === 'pending' && (
+                                <button
+                                    onClick={() => handleRejectProject(fullProjectData.id)}
+                                    className="px-4 py-2 text-sm font-medium bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors shadow-md"
+                                >
+                                    Reject Project
+                                </button>
+                            )}
 
                             {/* Delete (only visible in completed or rejected) */}
-                           {(fullProjectData.projectStatus === 'completed' ||
-  fullProjectData.projectStatus === 'rejected') && (
-  <button
-    onClick={() =>
-      handleDeleteProject(fullProjectData.id, fullProjectData.projectName)
-    }
-    className="px-4 py-2 text-sm font-medium bg-red-700 hover:bg-red-800 text-white rounded-lg transition-colors shadow-md"
-  >
-    Delete Project
-  </button>
-)}
-
+                            {(fullProjectData.projectStatus === 'completed' || fullProjectData.projectStatus === 'rejected') && (
+                                <button
+                                    onClick={() => handleDeleteProject(fullProjectData.id, fullProjectData.projectName)}
+                                    className="px-4 py-2 text-sm font-medium bg-red-700 hover:bg-red-800 text-white rounded-lg transition-colors shadow-md"
+                                >
+                                    Delete Project
+                                </button>
+                            )}
                         </div>
                     </div>
 
@@ -1534,32 +1538,50 @@ const handleDeleteProject = async (projectId, projectName) => {
             {isCityModalOpen && (
                 <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4" onClick={closeCityModal}>
                     <div className="bg-white dark:bg-slate-800 rounded-lg shadow-2xl p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-                        <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4">Update Shoot Location</h3>
+                        <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4">Update Shoot Details</h3>
+
+                        {/* City Input */}
                         <input
                             type="text"
                             value={newCityValue}
                             onChange={(e) => setNewCityValue(e.target.value)}
-                            className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 
-                       rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 
-                       focus:border-indigo-500 bg-white dark:bg-slate-700 
-                       text-slate-900 dark:text-slate-100"
+                            className="w-full px-3 py-2 mb-3 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm 
+          focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-slate-700 
+          text-slate-900 dark:text-slate-100"
                             placeholder="Enter new city"
                         />
+
+                        {/* Date Input */}
+                        <input
+                            type="date"
+                            value={newDateValue}
+                            onChange={(e) => setNewDateValue(e.target.value)}
+                            className="w-full px-3 py-2 mb-3 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm 
+          focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-slate-700 
+          text-slate-900 dark:text-slate-100"
+                        />
+
+                        {/* Time Input */}
+                        <input
+                            type="time"
+                            value={newTimeValue}
+                            onChange={(e) => setNewTimeValue(e.target.value)}
+                            className="w-full px-3 py-2 mb-3 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm 
+          focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-slate-700 
+          text-slate-900 dark:text-slate-100"
+                        />
+
                         <div className="mt-6 flex justify-end gap-3">
                             <button
                                 onClick={closeCityModal}
-                                className="px-4 py-2 text-sm font-medium text-slate-700 
-                         bg-slate-100 dark:bg-slate-600 dark:text-slate-200 
-                         rounded-md hover:bg-slate-200 dark:hover:bg-slate-500"
+                                className="px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 dark:bg-slate-600 dark:text-slate-200 rounded-md hover:bg-slate-200 dark:hover:bg-slate-500"
                             >
                                 Cancel
                             </button>
                             <button
-                                onClick={submitCityChange}
+                                onClick={submitShootDetailsChange}
                                 disabled={savingCity}
-                                className="px-4 py-2 text-sm font-medium text-white 
-                         bg-indigo-600 rounded-md hover:bg-indigo-700 
-                         disabled:opacity-50"
+                                className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:opacity-50"
                             >
                                 {savingCity ? 'Saving...' : 'Save'}
                             </button>
