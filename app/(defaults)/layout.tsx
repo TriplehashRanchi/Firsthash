@@ -89,6 +89,7 @@ import ScrollToTop from '@/components/layouts/scroll-to-top';
 import Setting from '@/components/layouts/setting';
 import Portals from '@/components/portals';
 import AdminSidebar from '@/components/layouts/adminSidebar';
+import '@/styles/calendar.css'
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { currentUser, isAdmin, isSubscribedUser, loading } = useAuth();
