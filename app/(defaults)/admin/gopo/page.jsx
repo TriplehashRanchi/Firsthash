@@ -151,19 +151,18 @@ function Page() {
     }, [isEditMode]); // Dependency array ensures it runs when these values are determined.
 
     useEffect(() => {
-    const focus = searchParams.get('focus');
-    if (!isLoadingData && focus) {
-        const el = document.getElementById(`section-${focus}`);
-        if (el) {
-            // Scroll into view
-            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            // Add highlight for 2 seconds
-            el.classList.add('ring-2', 'ring-indigo-500');
-            setTimeout(() => el.classList.remove('ring-2', 'ring-indigo-500'), 2000);
+        const focus = searchParams.get('focus');
+        if (!isLoadingData && focus) {
+            const el = document.getElementById(`section-${focus}`);
+            if (el) {
+                // Scroll into view
+                el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                // Add highlight for 2 seconds
+                el.classList.add('ring-2', 'ring-indigo-500');
+                setTimeout(() => el.classList.remove('ring-2', 'ring-indigo-500'), 2000);
+            }
         }
-    }
-}, [isLoadingData, searchParams]);
-
+    }, [isLoadingData, searchParams]);
 
     const handleSave = async () => {
         console.log('🟡 handleSave triggered');
@@ -337,16 +336,10 @@ function Page() {
                 </div>
             </div>
 
-            <div className="grid gap-8 pt-5">
+            <div className="grid mt-6 pt-5">
                 <div>
                     {/* --- PASS onDataChange TO EACH CHILD --- */}
                     <Clients company={company} onValidChange={setIsClientsValid} onDataChange={setClientsData} initialData={clientsData} />
-                    <ProjectDetails
-                        onValidChange={setIsProjectDetailsValid}
-                        packageCost={projectPackageCost}
-                        onPackageCostChange={setProjectPackageCost}
-                        // onDataChange={setProjectDetailsData}
-                    />
                 </div>
                 <div>
                     <div id="section-shoots">
@@ -362,11 +355,21 @@ function Page() {
                             initialData={deliverablesData}
                         />
                     </div>
-                    <ReceivedAmount onValidChange={setIsReceivedValid} onDataChange={setReceivedAmountData} initialData={receivedAmountData} />
-                    {/* <PaymentSchedule 
+                    <div>
+                        <ProjectDetails
+                            onValidChange={setIsProjectDetailsValid}
+                            packageCost={projectPackageCost}
+                            onPackageCostChange={setProjectPackageCost}
+                            // onDataChange={setProjectDetailsData}
+                        />
+                    </div>
+                    <div id="section-received-amount" className="mt-6">
+                        <ReceivedAmount onValidChange={setIsReceivedValid} onDataChange={setReceivedAmountData} initialData={receivedAmountData} />
+                        {/* <PaymentSchedule 
                         onValidChange={setIsScheduleValid} 
                         onDataChange={setPaymentScheduleData} 
                     /> */}
+                    </div>
                 </div>
             </div>
 

@@ -298,14 +298,14 @@ const ShootRow = ({
                         className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-[5000] p-4 md:p-6 rounded-lg shadow-2xl w-[90vw] max-w-2xl bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 max-h-[85vh] flex flex-col"
                     >
                         <div className="flex justify-between items-center mb-4 pb-3 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
-                            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Manage & Select Roles</h3>
+                            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Manage Requirements</h3>
                             <button onClick={() => setShowRoleOptions()} className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
                                 <X size={20} />
                             </button>
                         </div>
                         <div className="flex-grow overflow-y-auto pr-1 space-y-6 custom-scrollbar-thin">
                             <section>
-                                <h4 className="text-md font-medium text-gray-700 dark:text-gray-300 mb-3">Available Roles (Master List)</h4>
+                                <h4 className="text-md font-medium text-gray-700 dark:text-gray-300 mb-3">Master List</h4>
                                 <div className="flex gap-2 mb-4 p-3 bg-white dark:bg-gray-700/50 rounded-md border border-gray-200 dark:border-gray-600">
                                     <input
                                         type="text"

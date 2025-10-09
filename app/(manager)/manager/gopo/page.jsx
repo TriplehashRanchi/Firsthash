@@ -321,19 +321,13 @@ function Page() {
                 </div>
             </div>
 
-            <div className="grid gap-8 pt-5">
+            <div className="grid mt-6 pt-5">
                 <div>
                     {/* --- PASS onDataChange TO EACH CHILD --- */}
                     <Clients company={company} onValidChange={setIsClientsValid} onDataChange={setClientsData} initialData={clientsData} />
-                    <ProjectDetails
-                        onValidChange={setIsProjectDetailsValid}
-                        packageCost={projectPackageCost}
-                        onPackageCostChange={setProjectPackageCost}
-                        // onDataChange={setProjectDetailsData}
-                    />
                 </div>
                 <div>
-                     <div id="section-shoots">
+                    <div id="section-shoots">
                         <Shoots company={company} onValidChange={setIsShootsValid} onDataChange={setShootsData} initialData={shootsData} />
                     </div>
 
@@ -346,11 +340,21 @@ function Page() {
                             initialData={deliverablesData}
                         />
                     </div>
-                    <ReceivedAmount onValidChange={setIsReceivedValid} onDataChange={setReceivedAmountData} initialData={receivedAmountData} />
-                    {/* <PaymentSchedule 
+                    <div>
+                        <ProjectDetails
+                            onValidChange={setIsProjectDetailsValid}
+                            packageCost={projectPackageCost}
+                            onPackageCostChange={setProjectPackageCost}
+                            // onDataChange={setProjectDetailsData}
+                        />
+                    </div>
+                    <div id="section-received-amount" className="mt-6">
+                        <ReceivedAmount onValidChange={setIsReceivedValid} onDataChange={setReceivedAmountData} initialData={receivedAmountData} />
+                        {/* <PaymentSchedule 
                         onValidChange={setIsScheduleValid} 
                         onDataChange={setPaymentScheduleData} 
                     /> */}
+                    </div>
                 </div>
             </div>
 
