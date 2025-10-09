@@ -42,6 +42,7 @@ import DeliverablesDetails from '@/components/show-details/Deliverables-details'
 import Expence from '@/components/show-details/Expence';
 import { TaskManagementModal } from '@/components/show-details/TaskManagementModal';
 import { VoiceNoteRecorder } from '@/components/show-details/VoiceNoteRecorder';
+import ExpenseInfoPopup from '@/components/common/ExpenseInfoPopup';
 
 // --- NEW: Helper Component for Status Badge ---
 const StatusBadge = ({ status }) => {
@@ -1144,6 +1145,18 @@ function ProjectReviewPage() {
                                 <DetailPairStylish label="Balance Due" value={fullProjectData.overallTotalCost - totalReceived} isCurrency icon={ReceiptIndianRupee} highlight />
                             </div>
                         </div>
+                        {fullProjectData.expenses?.length > 0 && (
+                            <div className="mt-4 flex items-center relative">
+                                <DetailPairStylish
+                                    label="Total Extra Expenses"
+                                    value={fullProjectData.expenses.reduce((sum, e) => sum + (Number(e.expense) || 0), 0)}
+                                    isCurrency
+                                    icon={ListChecks}
+                                    highlight
+                                />
+                                <ExpenseInfoPopup />
+                            </div>
+                        )}
 
                         <div className={subSectionSeparator}>
                             <div className="flex justify-between items-center mb-4">

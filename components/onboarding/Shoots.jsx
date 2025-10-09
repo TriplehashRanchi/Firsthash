@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Trash, Plus, X, Search, Settings2, ListChecks } from 'lucide-react';
+import { Trash, Plus, X, Search, Settings2, ListChecks, Loader2 } from 'lucide-react';
 import CreatableSelect from 'react-select/creatable';
 import { getAuth } from 'firebase/auth';
 
@@ -394,15 +394,49 @@ const ShootRow = ({
 
 // --- Shoots Component (Main Container) ---
 const Shoots = ({ company, onValidChange, onDataChange, initialData }) => {
-    const [shoots, setShoots] = useState([{ id: Date.now(), title: '', date: '', time: '', city: '', selectedRoles: {}, showRoleOptions: false }]);
+    // FIX: Initialize state to null to indicate it's not ready yet.
+    const [shoots, setShoots] = useState(null);
     const [masterEventTitles, setMasterEventTitles] = useState([]);
     const [masterRoles, setMasterRoles] = useState([]);
-    const isInitialized = useRef(false);
 
     useEffect(() => {
-        if (initialData && initialData.shootList && !isInitialized.current && masterRoles.length > 0) {
+        const fetchMasterData = async () => {
+            if (!company?.id) return;
+            try {
+                const [eventRes, roleRes] = await Promise.all([
+                    fetchWithAuth(`${API_URL}/api/events?company_id=${company.id}`),
+                    fetchWithAuth(`${API_URL}/api/roles?company_id=${company.id}`),
+                ]);
+
+                if (!eventRes.ok || !roleRes.ok) {
+                    throw new Error(`API Error: ${eventRes.status} | ${roleRes.status}`);
+                }
+
+                const eventTitles = await eventRes.json();
+                const allRoles = await roleRes.json();
+                const onProductionRoles = allRoles.filter((role) => role.role_code === 1);
+
+                setMasterEventTitles(eventTitles.map((e) => e.title));
+                setMasterRoles(onProductionRoles);
+            } catch (err) {
+                console.error('Error fetching master data:', err);
+            }
+        };
+        fetchMasterData();
+    }, [company]);
+
+    // FIX: This robust initialization effect runs ONLY ONCE when data is ready.
+    useEffect(() => {
+        // Guard clause: Wait for master data to load, and only run if shoots haven't been set yet.
+        if (masterRoles.length === 0 || shoots !== null) {
+            return;
+        }
+
+        // EDIT MODE: If initialData from the parent component exists, process it.
+        if (initialData && initialData.shootList) {
             const shootsWithFormattedDate = initialData.shootList.map((s) => ({
                 ...s,
+                id: s.id || Date.now() + Math.random(), // Ensure every shoot has a unique ID
                 date: s.date ? new Date(s.date).toISOString().split('T')[0] : '',
                 selectedRoles: s.selectedServices
                     ? Object.keys(s.selectedServices).reduce((acc, serviceName) => {
@@ -416,43 +450,63 @@ const Shoots = ({ company, onValidChange, onDataChange, initialData }) => {
                 showRoleOptions: false,
             }));
 
+            // If there's valid data, use it. Otherwise, start with a fresh empty shoot.
             if (shootsWithFormattedDate.length > 0) {
                 setShoots(shootsWithFormattedDate);
+            } else {
+                setShoots([{ id: Date.now(), title: '', date: '', time: '', city: '', selectedRoles: {}, showRoleOptions: false }]);
             }
-
-            isInitialized.current = true;
         }
+        // CREATE MODE: If no initialData, start with a single empty shoot.
+        else {
+            setShoots([{ id: Date.now(), title: '', date: '', time: '', city: '', selectedRoles: {}, showRoleOptions: false }]);
+        }
+    // FIX: The dependency array is corrected to prevent re-running on every `shoots` change.
     }, [initialData, masterRoles]);
 
-    // *** THIS IS THE MODIFIED SECTION ***
+    // FIX: This effect now safely waits for `shoots` to be initialized before sending data to the parent.
     useEffect(() => {
-        const fetchMasterData = async () => {
-            if (!company?.id) return;
-            try {
-                const [eventRes, roleRes] = await Promise.all([
-                    fetchWithAuth(`${API_URL}/api/events?company_id=${company.id}`),
-                    // 1. Fetch ALL roles, not filtering by role_code here
-                    fetchWithAuth(`${API_URL}/api/roles?company_id=${company.id}`),
-                ]);
+        if (shoots !== null && typeof onDataChange === 'function') {
+            const relevantShoots = shoots.filter((s) => s.title.trim() !== '' || s.date.trim() !== '' || s.time.trim() !== '' || s.city.trim() !== '' || Object.keys(s.selectedRoles).length > 0);
 
-                if (!eventRes.ok || !roleRes.ok) {
-                    throw new Error(`API Error: ${eventRes.status} | ${roleRes.status}`);
+            const shootsForParent = relevantShoots.map((shoot) => {
+                const selectedServices = {};
+                for (const roleId in shoot.selectedRoles) {
+                    const role = masterRoles.find((r) => r.id.toString() === roleId);
+                    if (role) {
+                        selectedServices[role.type_name] = shoot.selectedRoles[roleId];
+                    }
                 }
+                const { selectedRoles, showRoleOptions, ...restOfShoot } = shoot;
+                return {
+                    ...restOfShoot,
+                    selectedServices: selectedServices,
+                };
+            });
 
-                const eventTitles = await eventRes.json();
-                const allRoles = await roleRes.json();
-
-                // 2. Filter the roles on the frontend to only keep "On Production"
-                const onProductionRoles = allRoles.filter((role) => role.role_code === 1);
-
-                setMasterEventTitles(eventTitles.map((e) => e.title));
-                setMasterRoles(onProductionRoles); // Set state with only the filtered roles
-            } catch (err) {
-                console.error('Error fetching master data:', err);
+            onDataChange({
+                shootList: shootsForParent,
+            });
+        }
+    }, [shoots, onDataChange, masterRoles]);
+    
+    // FIX: Validation also waits for initialization.
+    useEffect(() => {
+        if (typeof onValidChange === 'function') {
+            if (shoots === null) {
+                onValidChange(false);
+                return;
             }
-        };
-        fetchMasterData();
-    }, [company]);
+
+            let allShootsAreValid = true;
+            if (shoots.length === 1 && shoots[0].title.trim() === '' && shoots[0].date.trim() === '' && shoots[0].city.trim() === '' && Object.keys(shoots[0].selectedRoles).length === 0) {
+                allShootsAreValid = true;
+            } else {
+                allShootsAreValid = shoots.every((s) => s && s.title?.trim() !== '' && s.date?.trim() !== '' && s.selectedRoles && Object.keys(s.selectedRoles).length > 0);
+            }
+            onValidChange(allShootsAreValid);
+        }
+    }, [shoots, onValidChange]);
 
     const addShootButtonStyles =
         'text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 focus:ring-4 focus:ring-blue-300 dark:focus:ring-blue-800 p-2.5 rounded-lg flex items-center justify-center text-sm';
@@ -494,7 +548,6 @@ const Shoots = ({ company, onValidChange, onDataChange, initialData }) => {
         [company],
     );
 
-    // *** THIS FUNCTION IS NOW CORRECT AND COMPLETE ***
     const handleAddMasterRole = useCallback(
         async (newRoleName) => {
             const trimmed = newRoleName.trim();
@@ -580,54 +633,32 @@ const Shoots = ({ company, onValidChange, onDataChange, initialData }) => {
             return remainingShoots.length > 0 ? remainingShoots : [{ id: Date.now(), title: '', date: '', time: '', city: '', selectedRoles: {}, showRoleOptions: false }];
         });
 
-    // --- useEffect for Validation ---
+    // FIX: Safely handle body overflow for modals
     useEffect(() => {
-        if (typeof onValidChange === 'function') {
-            let allShootsAreValid = true;
-            if (shoots.length === 1 && shoots[0].title.trim() === '' && shoots[0].date.trim() === '' && shoots[0].city.trim() === '' && Object.keys(shoots[0].selectedRoles).length === 0) {
-                allShootsAreValid = true;
-            } else {
-                allShootsAreValid = shoots.every((s) => s && s.title?.trim() !== '' && s.date?.trim() !== '' && s.selectedRoles && Object.keys(s.selectedRoles).length > 0);
-            }
-            onValidChange(allShootsAreValid);
-        }
-    }, [shoots, onValidChange]);
-
-    // --- useEffect for body overflow ---
-    useEffect(() => {
+        // Don't do anything if the component isn't ready
+        if (!shoots) return;
+        
         const hasOpenModal = shoots.some((s) => s.showRoleOptions);
-        if (hasOpenModal) document.body.style.overflow = 'hidden';
-        else document.body.style.overflow = '';
+        if (hasOpenModal) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = '';
+        }
+        // Cleanup function to restore scrolling when the component unmounts
         return () => {
             document.body.style.overflow = '';
         };
     }, [shoots]);
 
-    // --- useEffect for Reporting Data to Parent ---
-    useEffect(() => {
-        if (typeof onDataChange === 'function') {
-            const relevantShoots = shoots.filter((s) => s.title.trim() !== '' || s.date.trim() !== '' || s.time.trim() !== '' || s.city.trim() !== '' || Object.keys(s.selectedRoles).length > 0);
-
-            const shootsForParent = relevantShoots.map((shoot) => {
-                const selectedServices = {};
-                for (const roleId in shoot.selectedRoles) {
-                    const role = masterRoles.find((r) => r.id.toString() === roleId);
-                    if (role) {
-                        selectedServices[role.type_name] = shoot.selectedRoles[roleId];
-                    }
-                }
-                const { selectedRoles, showRoleOptions, ...restOfShoot } = shoot;
-                return {
-                    ...restOfShoot,
-                    selectedServices: selectedServices,
-                };
-            });
-
-            onDataChange({
-                shootList: shootsForParent,
-            });
-        }
-    }, [shoots, onDataChange, masterRoles]);
+    // FIX: Render a loading state until the component is initialized.
+    if (shoots === null) {
+        return (
+            <div className="mb-6 p-4 bg-white dark:bg-gray-900/50 rounded-lg shadow-md flex items-center justify-center min-h-[150px]">
+                <Loader2 className="animate-spin mr-2 text-blue-500" />
+                <p className="text-gray-600 dark:text-gray-300">Loading Shoot Schedule...</p>
+            </div>
+        );
+    }
 
     return (
         <div className="mb-6 p-4 bg-white dark:bg-gray-900/50 rounded-lg shadow-md dark:shadow-gray-700/50">
