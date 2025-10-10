@@ -1164,23 +1164,25 @@ function ProjectReviewPage() {
                                     <FileText className="w-5 h-5 mr-2.5 text-indigo-500" />
                                     Quotations
                                 </h3>
-                                <button
-                                    onClick={handleGenerateQuotation}
-                                    disabled={isGeneratingQuote}
-                                    className="flex items-center px-4 py-2 text-sm font-medium rounded-md transition-colors bg-indigo-600 hover:bg-indigo-700 text-white disabled:bg-indigo-400 disabled:cursor-not-allowed"
-                                >
-                                    {isGeneratingQuote ? (
-                                        <>
-                                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                            Generating...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <PlusCircle size={16} className="mr-1.5" />
-                                            Generate New Quote
-                                        </>
-                                    )}
-                                </button>
+                                {false && ( // change to true if you ever want it back
+                                    <button
+                                        onClick={handleGenerateQuotation}
+                                        disabled={isGeneratingQuote}
+                                        className="flex items-center px-4 py-2 text-sm font-medium rounded-md transition-colors bg-indigo-600 hover:bg-indigo-700 text-white disabled:bg-indigo-400 disabled:cursor-not-allowed"
+                                    >
+                                        {isGeneratingQuote ? (
+                                            <>
+                                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                                Generating...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <PlusCircle size={16} className="mr-1.5" />
+                                                Generate New Quote
+                                            </>
+                                        )}
+                                    </button>
+                                )}
                             </div>
 
                             {quotations.length > 0 ? (

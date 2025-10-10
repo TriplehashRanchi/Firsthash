@@ -7,6 +7,7 @@ import { getAuth } from 'firebase/auth';
 import axios from 'axios';
 // import toast from 'react-hot-toast';
 import toast, { Toaster } from 'react-hot-toast';
+import MemberTooltip from '@/components/common/MemberTooltip';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
@@ -212,8 +213,22 @@ export default function AttendancePage() {
             const [membersRes, attendanceRes] = await Promise.all([axios.get(`${API_URL}/api/members`, { headers }), axios.get(`${API_URL}/api/members/attendance`, { headers })]);
 
             // map members
-            setMembers(membersRes.data.map((m) => ({ id: m.firebase_uid, name: m.name })));
-
+             // map members
+            setMembers(
+                membersRes.data.map((m) => ({
+                    id: m.firebase_uid,
+                    name: m.name,
+                    email: m.email,
+                    phone: m.phone,
+                    alternate_phone: m.alternate_phone,
+                    employee_type: m.employee_type,
+                    address: m.address,
+                    status: m.status,
+                    salary: m.salary,
+                    created_at: m.created_at,
+                    roles: m.roles, // array of role objects
+                })),
+            );
             // reduce attendance into a date-indexed object
             const attendanceByDate = attendanceRes.data.reduce((acc, rec) => {
                 const { firebase_uid, a_date, a_status, in_time, out_time } = rec;
@@ -332,12 +347,14 @@ export default function AttendancePage() {
                         {filteredMembers.map((member) => (
                             <tr key={member.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                                 <td className="px-6 py-4 whitespace-nowrap">
-                                    <div className="flex items-center">
-                                        <div className="flex-shrink-0 h-10 w-10 bg-black rounded-full flex items-center justify-center text-white font-bold">{member.name.charAt(0)}</div>
-                                        <div className="ml-4">
-                                            <div className="text-sm font-medium dark:text-gray-200">{member.name}</div>
+                                    <MemberTooltip member={member}>
+                                        <div className="flex items-center cursor-pointer">
+                                            <div className="flex-shrink-0 h-10 w-10 bg-black rounded-full flex items-center justify-center text-white font-bold">{member.name.charAt(0)}</div>
+                                            <div className="ml-4">
+                                                <div className="text-sm font-medium dark:text-gray-200">{member.name}</div>
+                                            </div>
                                         </div>
-                                    </div>
+                                    </MemberTooltip>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap">
                                     <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${member.statusColor}`}>{member.status}</span>

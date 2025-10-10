@@ -197,6 +197,7 @@ function Page() {
                 receivedAmount: receivedAmountData,
                 paymentSchedule: paymentScheduleData,
             };
+            console.log('🟡 fullProjectData:', fullProjectData);
 
             const toastId = toast.loading(isEditMode ? 'Updating project...' : 'Saving project...');
 
@@ -206,27 +207,59 @@ function Page() {
                 // --- START: CORE LOGIC FOR CREATE VS. UPDATE ---
 
                 if (isEditMode) {
-                    // --- ACTION: UPDATE an existing project ---
+                    // --- ACTION: UPDATE existing project ---
                     await axios.put(`${API_URL}/api/projects/${projectId}`, fullProjectData, {
                         headers: { Authorization: `Bearer ${token}` },
                     });
 
+                    // --- AFTER SUCCESSFUL UPDATE, GENERATE NEW QUOTATION ---
                     toast.update(toastId, {
-                        render: 'Project Updated Successfully!',
-                        type: 'success',
-                        isLoading: false,
-                        autoClose: 3000,
+                        render: 'Generating updated quotation...',
+                        type: 'info',
+                        isLoading: true,
                     });
 
-                    // Redirect back to the project details page after a short delay
-                    setTimeout(() => {
-                        router.push(`/manager/show-details/${projectId}`);
-                    }, 1500);
+                    try {
+                        const quoteResponse = await axios.post(
+                            `${API_URL}/api/projects/${projectId}/quotations`,
+                            {}, // Empty body
+                            { headers: { Authorization: `Bearer ${token}` } },
+                        );
+
+                        const newQuote = quoteResponse.data;
+
+                        toast.update(toastId, {
+                            render: `Project updated & new quotation (v${newQuote.version}) generated successfully.`,
+                            type: 'success',
+                            isLoading: false,
+                            autoClose: 2500,
+                        });
+
+                        // ✅ Redirect back to project details after delay (auto refresh quotation list)
+                        setTimeout(() => {
+                            router.push(`/manager/show-details/${projectId}`);
+                        }, 1500);
+                    } catch (err) {
+                        console.error('Quotation generation failed after update:', err);
+                        toast.update(toastId, {
+                            render: 'Project updated but quotation generation failed.',
+                            type: 'warning',
+                            isLoading: false,
+                            autoClose: 4000,
+                        });
+
+                        // Still redirect even if quotation fails
+                        setTimeout(() => {
+                            router.push(`/manager/show-details/${projectId}`);
+                        }, 1500);
+                    }
                 } else {
                     // --- ACTION: CREATE a new project (Your original logic) ---
                     const createProjectResponse = await axios.post(`${API_URL}/api/projects`, fullProjectData, {
                         headers: { Authorization: `Bearer ${token}` },
                     });
+
+                    console.log('🟡 createProjectResponse:', createProjectResponse);
 
                     if (!createProjectResponse.data.success) {
                         throw new Error('Failed to save the project details.');

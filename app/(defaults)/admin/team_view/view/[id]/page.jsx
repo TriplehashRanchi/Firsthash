@@ -191,7 +191,7 @@ export default function MemberViewPage() {
                         <InfoCard title="Employment Details" icon={Briefcase}>
                             <DetailItem icon={UserCheck} label="Employee Type" value={TYPE_LABELS[member.employee_type]} />
                             <DetailItem icon={ShieldCheck} label="Primary Role" value={member.role} />
-                            {member.employee_type === 1 && (
+                            {(member.employee_type === 1 || member.employee_type === 0 || member.employee_type === 2) && (
                                 <DetailItem icon={Banknote} label="Salary" value={member.salary} isCurrency />
                             )}
                         </InfoCard>
@@ -199,7 +199,7 @@ export default function MemberViewPage() {
 
                     {/* Right Column (Sidebar) */}
                     <div className="lg:col-span-1 space-y-6">
-                         {member.employee_type === 1 && (
+                         {(member.employee_type === 1 || member.employee_type === 0 || member.employee_type === 2) && (
                             <InfoCard title="Payment Details" icon={Library}>
                                 {!paymentDetails ? (
                                     <p className="p-6 text-sm text-slate-500 dark:text-slate-400">No payment details have been recorded.</p>

@@ -7,6 +7,7 @@ import { getAuth } from 'firebase/auth';
 import axios from 'axios';
 // import toast from 'react-hot-toast';
 import toast, { Toaster } from 'react-hot-toast';
+import MemberTooltip from '@/components/common/MemberTooltip';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
@@ -90,7 +91,7 @@ const AttendanceModal = ({ member, onClose, onSave }) => {
                 },
             });
             onSave();
-            onClose();  // close modal ✅
+            onClose(); // close modal ✅
         } catch (err) {
             console.error('Failed to save attendance', err);
             toast.error(err.response?.data?.error || 'Error saving attendance');
@@ -101,7 +102,7 @@ const AttendanceModal = ({ member, onClose, onSave }) => {
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-60  flex items-center justify-center z-50">
-            <div className="bg-white dark:bg-gray-900  p-8 w-full max-w-md">
+            <div className="bg-white dark:bg-gray-700  p-8 w-full max-w-md">
                 <ul className="flex space-x-2 rtl:space-x-reverse mb-6">
                     <li>
                         <a className="text-blue-600 hover:underline dark:text-blue-400" href="/dashboard">
@@ -112,11 +113,11 @@ const AttendanceModal = ({ member, onClose, onSave }) => {
                         <span className="text-gray-600 dark:text-gray-400">Mark Attendance</span>
                     </li>
                 </ul>
-                <p className="text-gray-600 mt-1">
+                <p className="text-gray-600 dark:text-gray-400 mt-1">
                     For {member.name} on {new Date().toLocaleDateString()}
                 </p>
                 <div className="mt-6 space-y-6">
-                    <div className="flex items-center dark:bg-gray-900 justify-between bg-gray-50 p-4 rounded-lg">
+                    <div className="flex items-center dark:bg-gray-800 justify-between bg-gray-50 p-4 rounded-lg">
                         <span className={`font-semibold ${record.a_status === 1 ? 'text-green-700' : 'text-gray-700'}`}>{record.a_status === 1 ? 'Present' : 'Absent'}</span>
                         <label className="relative inline-flex items-center cursor-pointer">
                             <input type="checkbox" checked={record.a_status === 1} onChange={(e) => handleStatusToggle(e.target.checked)} className="sr-only peer" />
@@ -131,7 +132,7 @@ const AttendanceModal = ({ member, onClose, onSave }) => {
                                 value={record.in_time || ''}
                                 onChange={(e) => handleChange('in_time', e.target.value)}
                                 disabled={record.a_status !== 1}
-                                className="w-full border-gray-300 dark:bg-gray-900 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 disabled:bg-gray-100"
+                                className="w-full border-gray-300 dark:bg-gray-800 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 disabled:bg-gray-100"
                             />
                         </div>
                         <div>
@@ -141,7 +142,7 @@ const AttendanceModal = ({ member, onClose, onSave }) => {
                                 value={record.out_time || ''}
                                 onChange={(e) => handleChange('out_time', e.target.value)}
                                 disabled={record.a_status !== 1}
-                                className="w-full border-gray-300 dark:bg-gray-900 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 disabled:bg-gray-100"
+                                className="w-full border-gray-300 dark:bg-gray-800 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 disabled:bg-gray-100"
                             />
                         </div>
                     </div>
@@ -212,7 +213,21 @@ export default function AttendancePage() {
             const [membersRes, attendanceRes] = await Promise.all([axios.get(`${API_URL}/api/members`, { headers }), axios.get(`${API_URL}/api/members/attendance`, { headers })]);
 
             // map members
-            setMembers(membersRes.data.map((m) => ({ id: m.firebase_uid, name: m.name })));
+            setMembers(
+                membersRes.data.map((m) => ({
+                    id: m.firebase_uid,
+                    name: m.name,
+                    email: m.email,
+                    phone: m.phone,
+                    alternate_phone: m.alternate_phone,
+                    employee_type: m.employee_type,
+                    address: m.address,
+                    status: m.status,
+                    salary: m.salary,
+                    created_at: m.created_at,
+                    roles: m.roles, // array of role objects
+                })),
+            );
 
             // reduce attendance into a date-indexed object
             const attendanceByDate = attendanceRes.data.reduce((acc, rec) => {
@@ -332,13 +347,16 @@ export default function AttendancePage() {
                         {filteredMembers.map((member) => (
                             <tr key={member.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                                 <td className="px-6 py-4 whitespace-nowrap">
-                                    <div className="flex items-center">
-                                        <div className="flex-shrink-0 h-10 w-10 bg-black rounded-full flex items-center justify-center text-white font-bold">{member.name.charAt(0)}</div>
-                                        <div className="ml-4">
-                                            <div className="text-sm font-medium dark:text-gray-200">{member.name}</div>
+                                    <MemberTooltip member={member}>
+                                        <div className="flex items-center cursor-pointer">
+                                            <div className="flex-shrink-0 h-10 w-10 bg-black rounded-full flex items-center justify-center text-white font-bold">{member.name.charAt(0)}</div>
+                                            <div className="ml-4">
+                                                <div className="text-sm font-medium dark:text-gray-200">{member.name}</div>
+                                            </div>
                                         </div>
-                                    </div>
+                                    </MemberTooltip>
                                 </td>
+
                                 <td className="px-6 py-4 whitespace-nowrap">
                                     <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${member.statusColor}`}>{member.status}</span>
                                 </td>

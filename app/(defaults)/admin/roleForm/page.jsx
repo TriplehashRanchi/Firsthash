@@ -186,7 +186,7 @@ export default function MemberForm() {
         role_ids: selectedRoles.map(Number),
         full_name: fullName,
         mobile_no: mobileNo,
-        alternate_phone: alternatePhone,
+        ...(alternatePhone && { alternate_phone: alternatePhone }),
         email,
         password,
         company_id: companyId,
@@ -220,11 +220,11 @@ export default function MemberForm() {
 };
 
 
-    const renderInputField = (id, label, type, value, setter, placeholder, icon) => (
+    const renderInputField = (id, label, type, value, setter, placeholder, icon, required = true) => (
         <div className="relative">
             <label htmlFor={id} className="block dark:text-gray-200 text-sm font-medium text-gray-600 mb-1">{label}</label>
             <div className="absolute inset-y-0 left-0 top-6 flex items-center pl-3 pointer-events-none">{icon}</div>
-            <input id={id} type={type} value={value} onChange={(e) => setter(e.target.value)} placeholder={placeholder} className="form-input dark:text-gray-200 w-full border-gray-300 rounded-lg p-3 pl-10 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-shadow" required/>
+            <input id={id} type={type} value={value} onChange={(e) => setter(e.target.value)} placeholder={placeholder} className="form-input dark:text-gray-200 w-full border-gray-300 rounded-lg p-3 pl-10 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-shadow" required={required}/>
         </div>
     );
 
@@ -273,7 +273,7 @@ export default function MemberForm() {
                             <div className="grid grid-cols-1 dark:text-gray-200  md:grid-cols-2 gap-8 border-t pt-8">
                                 {renderInputField('fullName', 'Full Name', 'text', fullName, setFullName, 'John Doe', <User size={16} className="text-gray-400 dark:text-gray-200" />)}
                                 {renderInputField('mobileNo', 'Mobile No.', 'tel', mobileNo, setMobileNo, '123-456-7890', <Phone size={16} className="text-gray-400 dark:text-gray-200" />)}
-                                {renderInputField('alternatePhone','Alternate Phone No.','tel',alternatePhone,setAlternatePhone,'987-654-3210',<Phone size={16} className="text-gray-400 dark:text-gray-200" />)}
+                                {renderInputField('alternatePhone','Alternate Phone No.','tel',alternatePhone,setAlternatePhone,'987-654-3210',<Phone size={16} className="text-gray-400 dark:text-gray-200" />, false)}
                                 {renderInputField('email', 'Email Address', 'email', email, setEmail, 'email@example.com', <Mail size={16} className="text-gray-400 dark:text-gray-200" />)}
                                 {renderInputField('password', 'Password', 'password', password, setPassword, '••••••••', <Key size={16} className="text-gray-400 dark:text-gray-200" />)}
                                 {renderInputField('confirmPwd', 'Confirm Password', 'password', confirmPwd, setConfirmPwd, '••••••••', <Key size={16} className="text-gray-400 dark:text-gray-200" />)}

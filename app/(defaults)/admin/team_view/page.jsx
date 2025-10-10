@@ -5,7 +5,6 @@ import axios from 'axios';
 import { getAuth } from 'firebase/auth';
 import { motion, AnimatePresence } from 'framer-motion';
 
-
 const IconEye = () => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-gray-500 hover:text-blue-600">
         <path
@@ -46,8 +45,6 @@ const IconTrash = () => (
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 const TYPE_LABELS = { 0: 'Freelancer', 1: 'In-house', 2: 'Manager' };
-
-
 
 const Toast = ({ message, type, onClose }) => {
     if (!message) return null;
@@ -184,7 +181,6 @@ const RoleDisplay = ({ assignedRoleNames }) => {
 
     return (
         <div className="relative flex flex-wrap items-center gap-2" onMouseEnter={() => setIsPopoverVisible(true)} onMouseLeave={() => setIsPopoverVisible(false)}>
-            
             <span className="px-2.5 py-1 text-xs font-semibold leading-none text-gray-800 bg-gray-200 rounded-full">{firstRole}</span>
 
             {remainingRolesCount > 0 && <span className="px-2.5 py-1 text-xs font-semibold leading-none text-blue-800 bg-blue-100 rounded-full cursor-pointer">+{remainingRolesCount}</span>}
@@ -198,7 +194,7 @@ const RoleDisplay = ({ assignedRoleNames }) => {
                         transition={{ duration: 0.2 }}
                         className="absolute bottom-full left-0 mb-2 w-max max-w-xs z-10 p-3 bg-white rounded-lg shadow-xl border"
                     >
-                        <h4 className="font-bold text-sm mb-2 pb-2 border-b">All Assigned Roles</h4>
+                        <h4 className="font-bold dark:text-gray-800 text-sm mb-2 pb-2 border-b">All Assigned Roles</h4>
                         <div className="space-y-1">
                             {assignedRoleNames.map((name) => (
                                 <div key={name} className="text-sm text-gray-700">
@@ -212,7 +208,6 @@ const RoleDisplay = ({ assignedRoleNames }) => {
         </div>
     );
 };
-
 
 export default function TeamViewPage() {
     const [members, setMembers] = useState([]);
@@ -241,6 +236,7 @@ export default function TeamViewPage() {
             const token = await user.getIdToken();
             const { data } = await axios.get(`${API_URL}/api/members`, { headers: { Authorization: `Bearer ${token}` } });
             setMembers(data || []);
+            console.log('Fetched members:', data);
         } catch (err) {
             const msg = err.response?.data?.error || err.message;
             setToast({ message: `Error fetching members: ${msg}`, type: 'error' });
@@ -331,14 +327,12 @@ export default function TeamViewPage() {
         }
     }
 
-     const filteredMembers = members
+    const filteredMembers = members
         .filter((member) => {
             if (filterType === 'All') return true;
             return TYPE_LABELS[member.employee_type] === filterType;
         })
-        .filter((member) =>
-            member.name.toLowerCase().includes(searchTerm.toLowerCase())
-        );
+        .filter((member) => member.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
     const indexOfLastMember = currentPage * membersPerPage;
     const indexOfFirstMember = indexOfLastMember - membersPerPage;
@@ -383,7 +377,7 @@ export default function TeamViewPage() {
                 </Link>
             </div>
 
-             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 mb-6">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 mb-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <input
                         type="text"
@@ -427,7 +421,6 @@ export default function TeamViewPage() {
                                 let rolesArray = [];
 
                                 try {
-                                   
                                     if (Array.isArray(m.roles)) {
                                         rolesArray = m.roles;
                                     } else if (typeof m.roles === 'string' && m.roles.startsWith('[')) {
@@ -443,13 +436,11 @@ export default function TeamViewPage() {
                                                 const fullRole = rolesList.find((r) => r.id === role.role_id);
                                                 return fullRole ? fullRole.type_name : null;
                                             })
-                                            .filter(Boolean); 
+                                            .filter(Boolean);
                                     }
                                 } catch (e) {
                                     console.error('Could not parse roles for member:', m.name, m.roles, e);
-                                   
                                 }
-                              
 
                                 return (
                                     <tr key={m.firebase_uid} className="hover:bg-gray-50  dark:hover:bg-gray-700  dark:bg-gray-900  dark:text-gray-200 transition-colors">
@@ -458,7 +449,7 @@ export default function TeamViewPage() {
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <RoleDisplay assignedRoleNames={assignedRoleNames} />
                                         </td>
-                                       
+
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <label className="relative inline-flex items-center cursor-pointer">
                                                 <input type="checkbox" checked={m.status === 'active'} onChange={(e) => toggleAuth(m.firebase_uid, e.target.checked)} className="sr-only peer" />
@@ -473,7 +464,7 @@ export default function TeamViewPage() {
                                                 <IconButton as={Link} href={`/admin/team_view/edit/${m.firebase_uid}`} text="Edit">
                                                     <IconEdit />
                                                 </IconButton>
-                                                <IconButton onClick={() => showAttendance(m.firebase_uid, m.name)} text="Attendance">
+                                                <IconButton as={Link} href={`/admin/attendance/view/${m.firebase_uid}`} text="View Attendance">
                                                     <IconCalendar />
                                                 </IconButton>
                                                 <IconButton onClick={() => handleDeleteRequest(m.firebase_uid)} text="Delete">
@@ -487,27 +478,40 @@ export default function TeamViewPage() {
                         </tbody>
                     </table>
                 </div>
-                 <div className="p-4 border-t border-gray-200 dark:bg-gray-800 dark:border-gray-700">
+                <div className="p-4 border-t border-gray-200 dark:bg-gray-800 dark:border-gray-700">
                     <nav className="flex justify-between items-center">
                         <p className="text-sm text-gray-700 dark:text-gray-200">
-                            Showing <span className="font-medium">{filteredMembers.length > 0 ? indexOfFirstMember + 1 : 0}</span> to <span className="font-medium">{indexOfLastMember > filteredMembers.length ? filteredMembers.length : indexOfLastMember}</span> of <span className="font-medium">{filteredMembers.length}</span> results
+                            Showing <span className="font-medium">{filteredMembers.length > 0 ? indexOfFirstMember + 1 : 0}</span> to{' '}
+                            <span className="font-medium">{indexOfLastMember > filteredMembers.length ? filteredMembers.length : indexOfLastMember}</span> of{' '}
+                            <span className="font-medium">{filteredMembers.length}</span> results
                         </p>
                         {totalPages > 1 && (
                             <ul className="flex items-center -space-x-px h-8 text-sm">
                                 <li>
-                                    <button onClick={() => paginate(currentPage - 1)} disabled={currentPage === 1} className="flex items-center justify-center px-3 h-8 ml-0 leading-tight text-gray-500 bg-white border border-gray-300 rounded-l-lg hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                                    <button
+                                        onClick={() => paginate(currentPage - 1)}
+                                        disabled={currentPage === 1}
+                                        className="flex items-center justify-center px-3 h-8 ml-0 leading-tight text-gray-500 bg-white border border-gray-300 rounded-l-lg hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
                                         Previous
                                     </button>
                                 </li>
                                 {Array.from({ length: totalPages }, (_, i) => (
                                     <li key={i}>
-                                        <button onClick={() => paginate(i + 1)} className={`flex items-center justify-center px-3 h-8 leading-tight ${currentPage === i + 1 ? 'text-blue-600 bg-blue-50 border-blue-300' : 'text-gray-500 bg-white border-gray-300'} hover:bg-gray-100 hover:text-gray-700`}>
+                                        <button
+                                            onClick={() => paginate(i + 1)}
+                                            className={`flex items-center justify-center px-3 h-8 leading-tight ${currentPage === i + 1 ? 'text-blue-600 bg-blue-50 border-blue-300' : 'text-gray-500 bg-white border-gray-300'} hover:bg-gray-100 hover:text-gray-700`}
+                                        >
                                             {i + 1}
                                         </button>
                                     </li>
                                 ))}
                                 <li>
-                                    <button onClick={() => paginate(currentPage + 1)} disabled={currentPage === totalPages} className="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 rounded-r-lg hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                                    <button
+                                        onClick={() => paginate(currentPage + 1)}
+                                        disabled={currentPage === totalPages}
+                                        className="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 rounded-r-lg hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
                                         Next
                                     </button>
                                 </li>

@@ -214,10 +214,7 @@ const ProjectListPage = () => {
         router.push(`/admin/show-details/${projectId}`);
     };
 
-     const filteredProjects = projects.filter(project =>
-    project.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    project.clientName.toLowerCase().includes(searchTerm.toLowerCase()) 
-);
+    const filteredProjects = projects.filter((project) => project.name.toLowerCase().includes(searchTerm.toLowerCase()) || project.clientName.toLowerCase().includes(searchTerm.toLowerCase()));
 
     const indexOfLastProject = currentPage * projectsPerPage;
     const indexOfFirstProject = indexOfLastProject - projectsPerPage;
@@ -229,7 +226,6 @@ const ProjectListPage = () => {
             setCurrentPage(pageNumber);
         }
     };
-
 
     // --- NEW: Refactored Render Logic for Table Body ---
     const renderTableBody = () => {
@@ -278,6 +274,19 @@ const ProjectListPage = () => {
             <tr key={project.id} className={`${rowHoverStyles} transition-colors duration-150`}>
                 <td className={`${tdStyles} font-medium ${textDefault}`}>{project.name}</td>
                 <td className={`${tdStyles} ${textDefault}`}>{formatEventDateRange(project.minDate, project.maxDate)}</td>
+                <td className={`${tdStyles} text-center`}>
+                    {(() => {
+                        const statusKey = project.status?.toLowerCase() || ProjectStatus.PENDING;
+                        const config = statusConfig[statusKey] || statusConfig[ProjectStatus.PENDING];
+
+                        return (
+                            <span className={`inline-flex items-center justify-center px-2.5 py-1 rounded-full text-xs font-medium ${config.pillBg} ${config.pillText}`}>
+                                {config.icon}
+                                {config.label}
+                            </span>
+                        );
+                    })()}
+                </td>
                 <td className={`${tdStyles} ${textDefault} text-center`}>{project.shoots}</td>
                 <td className={`${tdStyles} ${textDefault} text-center`}>
                     {project.deliverablesCompleted}/{project.deliverablesTotal}
@@ -291,50 +300,45 @@ const ProjectListPage = () => {
                         <Eye size={18} />
                     </button>
 
-                   <button
-  onClick={async () => {
-    if (project.status === ProjectStatus.ONGOING || project.status === ProjectStatus.PENDING) {
-      return; // do nothing if disabled
-    }
+                    <button
+                        onClick={async () => {
+                            if (project.status === ProjectStatus.ONGOING || project.status === ProjectStatus.PENDING) {
+                                return; // do nothing if disabled
+                            }
 
-    const result = await Swal.fire({
-      title: 'Confirm Deletion',
-      text: `Type the project name (${project.name}) to confirm deletion.`,
-      input: 'text',
-      inputPlaceholder: 'Enter project name',
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#d33',
-      cancelButtonColor: '#3085d6',
-      confirmButtonText: 'Delete Project',
-      preConfirm: (value) => {
-        if (value !== project.name) {
-          Swal.showValidationMessage('Project name does not match');
-          return false;
-        }
-        return true;
-      },
-    });
+                            const result = await Swal.fire({
+                                title: 'Confirm Deletion',
+                                text: `Type the project name (${project.name}) to confirm deletion.`,
+                                input: 'text',
+                                inputPlaceholder: 'Enter project name',
+                                icon: 'warning',
+                                showCancelButton: true,
+                                confirmButtonColor: '#d33',
+                                cancelButtonColor: '#3085d6',
+                                confirmButtonText: 'Delete Project',
+                                preConfirm: (value) => {
+                                    if (value !== project.name) {
+                                        Swal.showValidationMessage('Project name does not match');
+                                        return false;
+                                    }
+                                    return true;
+                                },
+                            });
 
-    if (result.isConfirmed) {
-      handleDeleteProject(project.id);
-    }
-  }}
-  disabled={project.status === ProjectStatus.ONGOING || project.status === ProjectStatus.PENDING}
-  className={`ml-2 ${actionButtonStyles} ${
-    project.status === ProjectStatus.ONGOING || project.status === ProjectStatus.PENDING
-      ? 'opacity-50 cursor-not-allowed'
-      : 'text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300'
-  }`}
-  title={
-    project.status === ProjectStatus.ONGOING || project.status === ProjectStatus.PENDING
-      ? 'Cannot delete ongoing or pending projects'
-      : 'Delete Project'
-  }
->
-  <Trash2 size={18} />
-</button>
-
+                            if (result.isConfirmed) {
+                                handleDeleteProject(project.id);
+                            }
+                        }}
+                        disabled={project.status === ProjectStatus.ONGOING || project.status === ProjectStatus.PENDING}
+                        className={`ml-2 ${actionButtonStyles} ${
+                            project.status === ProjectStatus.ONGOING || project.status === ProjectStatus.PENDING
+                                ? 'opacity-50 cursor-not-allowed'
+                                : 'text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300'
+                        }`}
+                        title={project.status === ProjectStatus.ONGOING || project.status === ProjectStatus.PENDING ? 'Cannot delete ongoing or pending projects' : 'Delete Project'}
+                    >
+                        <Trash2 size={18} />
+                    </button>
                 </td>
             </tr>
         ));
@@ -401,6 +405,9 @@ const ProjectListPage = () => {
                                 Event Dates
                             </th>
                             <th scope="col" className={`${thStyles} text-center`}>
+                                Status
+                            </th>
+                            <th scope="col" className={`${thStyles} text-center`}>
                                 Shoots
                             </th>
                             <th scope="col" className={`${thStyles} text-center`}>
@@ -426,19 +433,29 @@ const ProjectListPage = () => {
                     <tbody className="divide-y divide-slate-200 dark:divide-slate-700">{renderTableBody()}</tbody>
                 </table>
             </div>
-             {totalPages > 1 && (
+            {totalPages > 1 && (
                 <div className="mt-6 flex justify-between items-center">
                     <p className="text-sm text-slate-600 dark:text-slate-400">
-                        Showing <span className="font-semibold text-slate-800 dark:text-slate-200">{indexOfFirstProject + 1}</span> to <span className="font-semibold text-slate-800 dark:text-slate-200">{indexOfLastProject > filteredProjects.length ? filteredProjects.length : indexOfLastProject}</span> of <span className="font-semibold text-slate-800 dark:text-slate-200">{filteredProjects.length}</span> results
+                        Showing <span className="font-semibold text-slate-800 dark:text-slate-200">{indexOfFirstProject + 1}</span> to{' '}
+                        <span className="font-semibold text-slate-800 dark:text-slate-200">{indexOfLastProject > filteredProjects.length ? filteredProjects.length : indexOfLastProject}</span> of{' '}
+                        <span className="font-semibold text-slate-800 dark:text-slate-200">{filteredProjects.length}</span> results
                     </p>
                     <div className="flex items-center gap-2">
-                        <button onClick={() => paginate(currentPage - 1)} disabled={currentPage === 1} className="inline-flex items-center justify-center h-9 w-9 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                        <button
+                            onClick={() => paginate(currentPage - 1)}
+                            disabled={currentPage === 1}
+                            className="inline-flex items-center justify-center h-9 w-9 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
                             <ChevronLeft size={16} />
                         </button>
                         <span className="text-sm text-slate-600 dark:text-slate-400">
                             Page {currentPage} of {totalPages}
                         </span>
-                        <button onClick={() => paginate(currentPage + 1)} disabled={currentPage === totalPages} className="inline-flex items-center justify-center h-9 w-9 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                        <button
+                            onClick={() => paginate(currentPage + 1)}
+                            disabled={currentPage === totalPages}
+                            className="inline-flex items-center justify-center h-9 w-9 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
                             <ChevronRight size={16} />
                         </button>
                     </div>
