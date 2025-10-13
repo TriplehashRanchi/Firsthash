@@ -126,7 +126,8 @@ const ClientDataTable = () => {
     const [pageSize, setPageSize] = useState(PAGE_SIZES[0]);
     
     const [search, setSearch] = useState('');
-    const [sortStatus, setSortStatus] = useState({ columnAccessor: 'firstName', direction: 'asc' });
+    const [sortStatus, setSortStatus] = useState({ columnAccessor: 'created_at', direction: 'desc' });
+
 
     const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
     const [selectedClient, setSelectedClient] = useState(null);
