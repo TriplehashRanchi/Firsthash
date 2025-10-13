@@ -34,6 +34,8 @@ import {
     Download,
     Edit,
     ReceiptIcon,
+    Clock1,
+    CalendarDays,
 } from 'lucide-react';
 
 // Import your tab components
@@ -1566,25 +1568,31 @@ function ProjectReviewPage() {
                             placeholder="Enter new city"
                         />
 
-                        {/* Date Input */}
-                        <input
-                            type="date"
-                            value={newDateValue}
-                            onChange={(e) => setNewDateValue(e.target.value)}
-                            className="w-full px-3 py-2 mb-3 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm 
+                        {/* Date Input  */}
+                        <div className="relative mb-3">
+                            <CalendarDays className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                            <input
+                                type="date"
+                                value={newDateValue}
+                                onChange={(e) => setNewDateValue(e.target.value)}
+                                className="w-full pl-10 pr-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm 
           focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-slate-700 
-          text-slate-900 dark:text-slate-100"
-                        />
+          text-slate-900 dark:text-slate-100 appearance-none"
+                            />
+                        </div>
 
                         {/* Time Input */}
-                        <input
-                            type="time"
-                            value={newTimeValue}
-                            onChange={(e) => setNewTimeValue(e.target.value)}
-                            className="w-full px-3 py-2 mb-3 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm 
+                        <div className="relative mb-3">
+                            <Clock1 className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                            <input
+                                type="time"
+                                value={newTimeValue}
+                                onChange={(e) => setNewTimeValue(e.target.value)}
+                                className="w-full pl-10 pr-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm 
           focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-slate-700 
-          text-slate-900 dark:text-slate-100"
-                        />
+          text-slate-900 dark:text-slate-100 appearance-none"
+                            />
+                        </div>
 
                         <div className="mt-6 flex justify-end gap-3">
                             <button

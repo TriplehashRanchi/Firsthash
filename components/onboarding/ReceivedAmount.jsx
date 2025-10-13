@@ -1,5 +1,6 @@
 'use client';
 import { set } from 'lodash';
+import { CalendarDays, CalendarDaysIcon } from 'lucide-react';
 import React, { useState, useEffect, useRef } from 'react';
 
 // Accept onDataChange prop from Page.js
@@ -116,13 +117,16 @@ const ReceivedAmount = ({ onValidChange, onDataChange, initialData }) => {
                 </div>
                 <div>
                     <label htmlFor="receivedDate" className={labelStyles}>Date Received</label>
+                    <div className='relative'>
+                    <CalendarDaysIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 pointer-events-none" size={16} />
                     <input
                         id="receivedDate"
                         type="date"
                         value={date}
                         onChange={(e) => setDate(e.target.value)}
-                        className={themedInputStyles}
+                        className={`${themedInputStyles} pl-8 appearance-none`} // Add pl-8 for left padding
                     />
+                    </div>
                 </div>
             </div>
         </div>

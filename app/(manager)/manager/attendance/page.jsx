@@ -8,6 +8,7 @@ import axios from 'axios';
 // import toast from 'react-hot-toast';
 import toast, { Toaster } from 'react-hot-toast';
 import MemberTooltip from '@/components/common/MemberTooltip';
+import { Clock } from 'lucide-react';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
@@ -125,25 +126,32 @@ const AttendanceModal = ({ member, onClose, onSave }) => {
                         </label>
                     </div>
                     <div className={`grid grid-cols-1 md:grid-cols-2 gap-4 transition-opacity ${record.a_status === 1 ? 'opacity-100' : 'opacity-50'}`}>
-                        <div>
+                        <div className="relative">
                             <label className="block dark:text-gray-400 mb-1 font-medium text-gray-700">Clock In</label>
-                            <input
-                                type="time"
-                                value={record.in_time || ''}
-                                onChange={(e) => handleChange('in_time', e.target.value)}
-                                disabled={record.a_status !== 1}
-                                className="w-full border-gray-300 dark:bg-gray-900 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 disabled:bg-gray-100"
-                            />
+                            <div className="relative">
+                                <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                                <input
+                                    type="time"
+                                    value={record.in_time || ''}
+                                    onChange={(e) => handleChange('in_time', e.target.value)}
+                                    disabled={record.a_status !== 1}
+                                    className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-700 dark:bg-gray-800 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 disabled:bg-gray-100 appearance-none"
+                                />
+                            </div>
                         </div>
-                        <div>
+
+                        <div className="relative">
                             <label className="block mb-1 dark:text-gray-400 font-medium text-gray-700">Clock Out</label>
-                            <input
-                                type="time"
-                                value={record.out_time || ''}
-                                onChange={(e) => handleChange('out_time', e.target.value)}
-                                disabled={record.a_status !== 1}
-                                className="w-full border-gray-300 dark:bg-gray-900 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 disabled:bg-gray-100"
-                            />
+                            <div className="relative">
+                                <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                                <input
+                                    type="time"
+                                    value={record.out_time || ''}
+                                    onChange={(e) => handleChange('out_time', e.target.value)}
+                                    disabled={record.a_status !== 1}
+                                    className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-700 dark:bg-gray-800 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 disabled:bg-gray-100 appearance-none"
+                                />
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -213,7 +221,7 @@ export default function AttendancePage() {
             const [membersRes, attendanceRes] = await Promise.all([axios.get(`${API_URL}/api/members`, { headers }), axios.get(`${API_URL}/api/members/attendance`, { headers })]);
 
             // map members
-             // map members
+            // map members
             setMembers(
                 membersRes.data.map((m) => ({
                     id: m.firebase_uid,

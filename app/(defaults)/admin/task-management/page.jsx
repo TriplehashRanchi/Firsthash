@@ -5,7 +5,7 @@ import Link from 'next/link';
 import axios from 'axios';
 import toast, { Toaster } from 'react-hot-toast';
 import { getAuth } from 'firebase/auth';
-import { Trash2, Edit, Save, X, Briefcase, ChevronRight, ChevronDown, Mic, PlayCircle, PlusCircle, Loader2, Users, CheckCircle2, Circle, Search, ChevronLeft } from 'lucide-react';
+import { Trash2, Edit, Save, X, Briefcase, ChevronRight, ChevronDown, Mic, PlayCircle, PlusCircle, Loader2, Users, CheckCircle2, Circle, Search, ChevronLeft, CalendarDays } from 'lucide-react';
 
 import Select from 'react-select';
 
@@ -98,13 +98,12 @@ const AddTaskForm = ({ onAddTask, projects, deliverables, members, parentTasks, 
         };
         try {
             const ok = await onAddTask(taskData);
-            if(ok !== false) {
+            if (ok !== false) {
                 toast.success('Task added!');
                 resetForm();
                 onClose();
             }
         } catch (err) {
-         
             toast.error(err?.message || 'Failed to add task.');
         } finally {
             setIsSaving(false);
@@ -130,10 +129,9 @@ const AddTaskForm = ({ onAddTask, projects, deliverables, members, parentTasks, 
         singleValue: (provided) => ({ ...provided, color: '#1F2937' }),
         placeholder: (provided) => ({ ...provided, color: '#6B7280' }),
     };
-   
+
     return (
         <form onSubmit={handleSubmit} className="space-y-4 ">
-            
             <div>
                 <label htmlFor="task-title" className="block dark:text-gray-200  text-sm font-medium text-gray-600 mb-1.5">
                     Task Title
@@ -168,13 +166,18 @@ const AddTaskForm = ({ onAddTask, projects, deliverables, members, parentTasks, 
                     <label htmlFor="task-due-date" className="block dark:text-gray-200 text-sm font-medium text-gray-600 mb-1.5">
                         Due Date
                     </label>
-                    <input
-                        id="task-due-date"
-                        type="date"
-                        value={dueDate}
-                        onChange={(e) => setDueDate(e.target.value)}
-                        className="w-full bg-gray-50 dark:bg-gray-800 dark:text-gray-200 border border-gray-300 rounded-lg px-3 py-2 text-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
-                    />
+
+                    <div className="relative">
+                        <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500 pointer-events-none z-10" />
+
+                        <input
+                            id="task-due-date"
+                            type="date"
+                            value={dueDate}
+                            onChange={(e) => setDueDate(e.target.value)}
+                            className="w-full bg-gray-50 dark:bg-gray-800 dark:text-gray-200 border border-gray-300 rounded-lg pl-10 pr-3 py-2 text-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition appearance-none"
+                        />
+                    </div>
                 </div>
                 <div>
                     <label className="block text-sm dark:text-gray-200 font-medium text-gray-600 mb-1.5">Project</label>
@@ -499,7 +502,7 @@ export default function ProjectTaskDashboardPage() {
         return roots;
     }, [tasks, projects, members, deliverables]);
 
-     const filteredAndSearchedTasks = useMemo(() => {
+    const filteredAndSearchedTasks = useMemo(() => {
         const lowercasedSearchTerm = searchTerm.toLowerCase().trim();
 
         if (statusFilter === 'all' && !lowercasedSearchTerm) {
@@ -510,10 +513,11 @@ export default function ProjectTaskDashboardPage() {
             return tasksToFilter.reduce((acc, task) => {
                 const filteredChildren = task.children ? filterAndSearch(task.children) : [];
                 const matchesStatus = statusFilter === 'all' || (task.status || 'to_do').toLowerCase() === statusFilter;
-                const matchesSearch = lowercasedSearchTerm === '' ||
+                const matchesSearch =
+                    lowercasedSearchTerm === '' ||
                     task.taskTitle.toLowerCase().includes(lowercasedSearchTerm) ||
-                    (task.assignees && task.assignees.some(a => a.name.toLowerCase().includes(lowercasedSearchTerm)));
-                
+                    (task.assignees && task.assignees.some((a) => a.name.toLowerCase().includes(lowercasedSearchTerm)));
+
                 if ((matchesStatus && matchesSearch) || filteredChildren.length > 0) {
                     acc.push({ ...task, children: filteredChildren });
                 }
@@ -824,14 +828,14 @@ export default function ProjectTaskDashboardPage() {
                                 placeholder="Search by task name or assignee..."
                                 value={searchTerm}
                                 onChange={(e) => {
-                                   setSearchTerm(e.target.value);
-                                   setCurrentPage(1); // Reset page on new search
+                                    setSearchTerm(e.target.value);
+                                    setCurrentPage(1); // Reset page on new search
                                 }}
                                 className="w-full pl-10 pr-4 py-2 text-sm bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none text-gray-700 dark:text-gray-200"
                             />
                         </div>
                         <div className="flex items-center gap-2 flex-wrap">
-                            {STATUS_FILTERS.map(filter => (
+                            {STATUS_FILTERS.map((filter) => (
                                 <button
                                     key={filter.value}
                                     onClick={() => {
@@ -910,7 +914,7 @@ export default function ProjectTaskDashboardPage() {
                                 ))}
                             </tbody>
                         </table>
-                       {filteredAndSearchedTasks.length === 0 && !loading && (
+                        {filteredAndSearchedTasks.length === 0 && !loading && (
                             <div className="text-center py-20 text-gray-500">
                                 <Briefcase size={48} className="mx-auto text-gray-400" />
                                 <h3 className="mt-2 text-lg font-medium text-gray-900">No tasks match your criteria</h3>
@@ -920,36 +924,39 @@ export default function ProjectTaskDashboardPage() {
                     </div>
                 </div>
                 {totalPages > 1 && (
-                <div className="mt-6 flex flex-col sm:flex-row justify-between items-center gap-4">
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                        Showing <span className="font-semibold text-gray-800 dark:text-gray-200">{indexOfFirstTask + 1}</span> 
-                        to <span className="font-semibold text-gray-800 dark:text-gray-200">{indexOfLastTask > filteredAndSearchedTasks.length ? filteredAndSearchedTasks.length : indexOfLastTask}</span> 
-                        of <span className="font-semibold text-gray-800 dark:text-gray-200">{filteredAndSearchedTasks.length}</span> results
-                    </p>
-                    <div className="flex items-center gap-2">
-                        <button 
-                            onClick={() => paginate(currentPage - 1)} 
-                            disabled={currentPage === 1} 
-                            className="inline-flex items-center justify-center h-9 w-9 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                        >
-                            <ChevronLeft size={16} />
-                        </button>
-                        <span className="text-sm text-gray-600 dark:text-gray-400">
-                            Page {currentPage} of {totalPages}
-                        </span>
-                        <button 
-                            onClick={() => paginate(currentPage + 1)} 
-                            disabled={currentPage === totalPages} 
-                            className="inline-flex items-center justify-center h-9 w-9 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                        >
-                            <ChevronRight size={16} />
-                        </button>
+                    <div className="mt-6 flex flex-col sm:flex-row justify-between items-center gap-4">
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                            Showing <span className="font-semibold text-gray-800 dark:text-gray-200">{indexOfFirstTask + 1}</span>
+                            to{' '}
+                            <span className="font-semibold text-gray-800 dark:text-gray-200">
+                                {indexOfLastTask > filteredAndSearchedTasks.length ? filteredAndSearchedTasks.length : indexOfLastTask}
+                            </span>
+                            of <span className="font-semibold text-gray-800 dark:text-gray-200">{filteredAndSearchedTasks.length}</span> results
+                        </p>
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => paginate(currentPage - 1)}
+                                disabled={currentPage === 1}
+                                className="inline-flex items-center justify-center h-9 w-9 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                                <ChevronLeft size={16} />
+                            </button>
+                            <span className="text-sm text-gray-600 dark:text-gray-400">
+                                Page {currentPage} of {totalPages}
+                            </span>
+                            <button
+                                onClick={() => paginate(currentPage + 1)}
+                                disabled={currentPage === totalPages}
+                                className="inline-flex items-center justify-center h-9 w-9 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                                <ChevronRight size={16} />
+                            </button>
+                        </div>
                     </div>
-                </div>
-            )}
-        </div>
-    </main>
-);
+                )}
+            </div>
+        </main>
+    );
 }
 
 const AddSubtaskRow = ({ parentId, level, onSave, onCancel }) => {
@@ -1145,7 +1152,9 @@ const TaskRow = ({ task, level, isExpanded, expandedRows, onToggle, members, isA
                             <span className="font-medium dark:text-gray-200 group-hover:text-indigo-600 transition">{primaryAssignee.name}</span>
                             {/* This now displays the role correctly */}
                             {primaryAssignee.primaryRole && <span className="text-xs dark:text-gray-200 text-gray-500">{primaryAssignee.primaryRole}</span>}
-                            {task.assignees.length > 1 && primaryAssignee.name !== 'Unassigned' && <span className="text-xs dark:text-gray-200 text-gray-500 mt-1">+{task.assignees.length - 1} more</span>}
+                            {task.assignees.length > 1 && primaryAssignee.name !== 'Unassigned' && (
+                                <span className="text-xs dark:text-gray-200 text-gray-500 mt-1">+{task.assignees.length - 1} more</span>
+                            )}
                         </div>
                     </div>
                 </td>

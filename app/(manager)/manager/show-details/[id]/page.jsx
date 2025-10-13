@@ -34,6 +34,7 @@ import {
     Download,
     Edit,
     ReceiptIcon,
+    CalendarDays,
 } from 'lucide-react';
 
 // Import your tab components
@@ -197,14 +198,17 @@ const AddPaymentModal = ({ isOpen, onClose, currentUser, projectId, fetchProject
                             <label htmlFor="date" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                                 Payment Date
                             </label>
-                            <input
-                                type="date"
-                                id="date"
-                                value={date}
-                                onChange={(e) => setDate(e.target.value)}
-                                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
-                                required
-                            />
+                            <div className="relative">
+                                <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500 pointer-events-none z-10" />
+                                <input
+                                    type="date"
+                                    id="date"
+                                    value={date}
+                                    onChange={(e) => setDate(e.target.value)}
+                                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+                                    required
+                                />
+                            </div>
                         </div>
                         <div>
                             <label htmlFor="description" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
@@ -376,6 +380,8 @@ function ProjectReviewPage() {
     const [cityModalShoot, setCityModalShoot] = useState(null);
     const [newCityValue, setNewCityValue] = useState('');
     const [savingCity, setSavingCity] = useState(false);
+    const [newDateValue, setNewDateValue] = useState('');
+    const [newTimeValue, setNewTimeValue] = useState('');
 
     const openCityModal = (shoot) => {
         setCityModalShoot(shoot);
@@ -1027,6 +1033,41 @@ function ProjectReviewPage() {
             Swal.fire('Error', 'Failed to delete project', 'error');
         }
     };
+    const submitShootDetailsChange = async () => {
+        if (!currentUser || !cityModalShoot?.id) return;
+        setSavingCity(true);
+
+        const prevShoots = fullProjectData.shoots.shootList;
+
+        // Optimistic UI update
+        setFullProjectData((prev) => ({
+            ...prev,
+            shoots: {
+                ...prev.shoots,
+                shootList: prev.shoots.shootList.map((s) => (s.id === cityModalShoot.id ? { ...s, city: newCityValue.trim(), date: newDateValue, time: newTimeValue } : s)),
+            },
+        }));
+
+        try {
+            const token = await currentUser.getIdToken();
+            await axios.patch(
+                `${API_URL}/api/shoots/${cityModalShoot.id}/details`,
+                { city: newCityValue.trim(), date: newDateValue, time: newTimeValue },
+                { headers: { Authorization: `Bearer ${token}` } },
+            );
+            toast.success('Shoot updated');
+            closeCityModal();
+        } catch (err) {
+            console.error('Failed to update shoot details:', err);
+            toast.error('Could not update. Reverting.');
+            setFullProjectData((prev) => ({
+                ...prev,
+                shoots: { ...prev.shoots, shootList: prevShoots },
+            }));
+        } finally {
+            setSavingCity(false);
+        }
+    };
 
     // --- START: CORRECTED useMemo HOOKS ---
     const eligibleShootTeam = useMemo(() => {
@@ -1564,32 +1605,56 @@ function ProjectReviewPage() {
             {isCityModalOpen && (
                 <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4" onClick={closeCityModal}>
                     <div className="bg-white dark:bg-slate-800 rounded-lg shadow-2xl p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-                        <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4">Update Shoot Location</h3>
+                        <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4">Update Shoot Details</h3>
+
+                        {/* City Input */}
                         <input
                             type="text"
                             value={newCityValue}
                             onChange={(e) => setNewCityValue(e.target.value)}
-                            className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 
-                       rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 
-                       focus:border-indigo-500 bg-white dark:bg-slate-700 
-                       text-slate-900 dark:text-slate-100"
+                            className="w-full px-3 py-2 mb-3 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm 
+          focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-slate-700 
+          text-slate-900 dark:text-slate-100"
                             placeholder="Enter new city"
                         />
+
+                        {/* Date Input  */}
+                        <div className="relative mb-3">
+                            <CalendarDays className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                            <input
+                                type="date"
+                                value={newDateValue}
+                                onChange={(e) => setNewDateValue(e.target.value)}
+                                className="w-full pl-10 pr-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm 
+          focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-slate-700 
+          text-slate-900 dark:text-slate-100 appearance-none"
+                            />
+                        </div>
+
+                        {/* Time Input */}
+                        <div className="relative mb-3">
+                            <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                            <input
+                                type="time"
+                                value={newTimeValue}
+                                onChange={(e) => setNewTimeValue(e.target.value)}
+                                className="w-full pl-10 pr-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm 
+          focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-slate-700 
+          text-slate-900 dark:text-slate-100 appearance-none"
+                            />
+                        </div>
+
                         <div className="mt-6 flex justify-end gap-3">
                             <button
                                 onClick={closeCityModal}
-                                className="px-4 py-2 text-sm font-medium text-slate-700 
-                         bg-slate-100 dark:bg-slate-600 dark:text-slate-200 
-                         rounded-md hover:bg-slate-200 dark:hover:bg-slate-500"
+                                className="px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 dark:bg-slate-600 dark:text-slate-200 rounded-md hover:bg-slate-200 dark:hover:bg-slate-500"
                             >
                                 Cancel
                             </button>
                             <button
-                                onClick={submitCityChange}
+                                onClick={submitShootDetailsChange}
                                 disabled={savingCity}
-                                className="px-4 py-2 text-sm font-medium text-white 
-                         bg-indigo-600 rounded-md hover:bg-indigo-700 
-                         disabled:opacity-50"
+                                className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:opacity-50"
                             >
                                 {savingCity ? 'Saving...' : 'Save'}
                             </button>

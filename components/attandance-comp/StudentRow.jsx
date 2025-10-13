@@ -1,7 +1,7 @@
 // components/attandance-comp/StudentRow.jsx
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, Clock, X, User } from 'lucide-react';
+import { Check, Clock, X, User, Clock1 } from 'lucide-react';
 
 export default function StudentRow({ student, attendanceRecord, onRecordUpdate }) {
     const { status, inTime, outTime } = attendanceRecord;

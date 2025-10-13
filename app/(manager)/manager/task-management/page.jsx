@@ -5,7 +5,7 @@ import Link from 'next/link';
 import axios from 'axios';
 import toast, { Toaster } from 'react-hot-toast';
 import { getAuth } from 'firebase/auth';
-import { Trash2, Edit, Save, X, Briefcase, ChevronRight, ChevronDown, Mic, PlayCircle, PlusCircle, Loader2, Users, Search, ChevronLeft } from 'lucide-react';
+import { Trash2, Edit, Save, X, Briefcase, ChevronRight, ChevronDown, Mic, PlayCircle, PlusCircle, Loader2, Users, Search, ChevronLeft, CalendarDays } from 'lucide-react';
 
 import Select from 'react-select';
 
@@ -186,13 +186,18 @@ const AddTaskForm = ({ onAddTask, projects, deliverables, members, parentTasks, 
                     <label htmlFor="task-due-date" className="block dark:text-gray-200 text-sm font-medium text-gray-600 mb-1.5">
                         Due Date
                     </label>
-                    <input
-                        id="task-due-date"
-                        type="date"
-                        value={dueDate}
-                        onChange={(e) => setDueDate(e.target.value)}
-                        className="w-full bg-gray-50 dark:bg-gray-800 dark:text-gray-200 border border-gray-300 rounded-lg px-3 py-2 text-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
-                    />
+
+                    <div className="relative">
+                        <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500 pointer-events-none z-10" />
+
+                        <input
+                            id="task-due-date"
+                            type="date"
+                            value={dueDate}
+                            onChange={(e) => setDueDate(e.target.value)}
+                            className="w-full bg-gray-50 dark:bg-gray-800 dark:text-gray-200 border border-gray-300 rounded-lg pl-10 pr-3 py-2 text-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition appearance-none"
+                        />
+                    </div>
                 </div>
                 <div>
                     <label className="block text-sm dark:text-gray-200 font-medium text-gray-600 mb-1.5">Project</label>

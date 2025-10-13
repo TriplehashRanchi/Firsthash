@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Trash, Plus, X, Search, Settings2, ListChecks, Loader2 } from 'lucide-react';
+import { Trash, Plus, X, Search, Settings2, ListChecks, Loader2, Clock, CalendarDays } from 'lucide-react';
 import CreatableSelect from 'react-select/creatable';
 import { getAuth } from 'firebase/auth';
 
@@ -262,8 +262,14 @@ const ShootRow = ({
                     </button>
                 )}
             </div>
-            <input type="date" className={fullInputStyle} value={shoot.date || ''} onChange={(e) => onChange('date', e.target.value)} />
-            <input type="time" className={fullInputStyle} value={shoot.time || ''} onChange={(e) => onChange('time', e.target.value)} />
+            <div className="relative">
+                <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500 pointer-events-none" />
+                <input type="date" className={`${fullInputStyle} pl-10 appearance-none`} value={shoot.date || ''} onChange={(e) => onChange('date', e.target.value)} />
+            </div>
+            <div className="relative">
+                <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500 pointer-events-none" />
+                <input type="time" className={`${fullInputStyle} pl-10 appearance-none`} value={shoot.time || ''} onChange={(e) => onChange('time', e.target.value)} />
+            </div>
             <div className="relative">
                 <input
                     ref={rolesTriggerRef}
@@ -403,10 +409,7 @@ const Shoots = ({ company, onValidChange, onDataChange, initialData }) => {
         const fetchMasterData = async () => {
             if (!company?.id) return;
             try {
-                const [eventRes, roleRes] = await Promise.all([
-                    fetchWithAuth(`${API_URL}/api/events?company_id=${company.id}`),
-                    fetchWithAuth(`${API_URL}/api/roles?company_id=${company.id}`),
-                ]);
+                const [eventRes, roleRes] = await Promise.all([fetchWithAuth(`${API_URL}/api/events?company_id=${company.id}`), fetchWithAuth(`${API_URL}/api/roles?company_id=${company.id}`)]);
 
                 if (!eventRes.ok || !roleRes.ok) {
                     throw new Error(`API Error: ${eventRes.status} | ${roleRes.status}`);
@@ -461,7 +464,7 @@ const Shoots = ({ company, onValidChange, onDataChange, initialData }) => {
         else {
             setShoots([{ id: Date.now(), title: '', date: '', time: '', city: '', selectedRoles: {}, showRoleOptions: false }]);
         }
-    // FIX: The dependency array is corrected to prevent re-running on every `shoots` change.
+        // FIX: The dependency array is corrected to prevent re-running on every `shoots` change.
     }, [initialData, masterRoles]);
 
     // FIX: This effect now safely waits for `shoots` to be initialized before sending data to the parent.
@@ -489,7 +492,7 @@ const Shoots = ({ company, onValidChange, onDataChange, initialData }) => {
             });
         }
     }, [shoots, onDataChange, masterRoles]);
-    
+
     // FIX: Validation also waits for initialization.
     useEffect(() => {
         if (typeof onValidChange === 'function') {
@@ -637,7 +640,7 @@ const Shoots = ({ company, onValidChange, onDataChange, initialData }) => {
     useEffect(() => {
         // Don't do anything if the component isn't ready
         if (!shoots) return;
-        
+
         const hasOpenModal = shoots.some((s) => s.showRoleOptions);
         if (hasOpenModal) {
             document.body.style.overflow = 'hidden';

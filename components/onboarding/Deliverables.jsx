@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Plus, Trash2, X, Save, Settings2 } from 'lucide-react';
+import { Plus, Trash2, X, Save, Settings2, CalendarDays } from 'lucide-react';
 import { getAuth } from 'firebase/auth'; // Make sure firebase is configured in your project
 import { date } from 'yup';
 
@@ -444,7 +444,10 @@ const Deliverables = ({ company, onValidChange, onDeliverablesCostChange, onData
                             </div>
                         )}
                     </div>
-                    <input type="date" value={item.date || ''} onChange={(e) => handleChange(item.id, 'date', e.target.value)} className={themedInputStyles} />
+                    <div className="relative">
+                        <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 pointer-events-none" size={16} />
+                    <input type="date" value={item.date || ''} onChange={(e) => handleChange(item.id, 'date', e.target.value)} className={`${themedInputStyles} pl-10 appearance-none`} />
+                    </div>
                     <div className="flex items-center gap-1.5 justify-center">
                         <button onClick={addSingleDeliverableRow} className={addRowIconButtonStyles} title="Add New Row">
                             {' '}
