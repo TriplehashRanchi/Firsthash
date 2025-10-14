@@ -226,8 +226,9 @@ function Page() {
 
                     // --- AFTER SUCCESSFUL UPDATE, GENERATE NEW QUOTATION ---
                     toast.update(toastId, {
-                        render: 'Generating updated quotation...',
+                        render: '🔄 Updating project & generating new quotation...',
                         type: 'info',
+                        position: 'top-right',
                         isLoading: true,
                     });
 
@@ -239,25 +240,36 @@ function Page() {
                         );
 
                         const newQuote = quoteResponse.data;
+                        const quoteUrl = newQuote.url;
 
+                        // ✅ Show consistent success toast (like create flow)
                         toast.update(toastId, {
-                            render: `Project updated & new quotation (v${newQuote.version}) generated successfully.`,
+                            render: () => (
+                                <SuccessToast
+                                    quoteUrl={quoteUrl}
+                                    newProjectId={projectId}
+                                    isUpdate={true}
+                                    onNavigate={() => {
+                                        toast.dismiss(toastId);
+                                        router.push(`/admin/show-details/${projectId}`);
+                                    }}
+                                />
+                            ),
                             type: 'success',
                             isLoading: false,
-                            autoClose: 2500,
+                            closeOnClick: false,
+                            closeButton: true,
+                            autoClose: false,
+                            position: 'top-right',
                         });
-
-                        // ✅ Redirect back to project details after delay (auto refresh quotation list)
-                        setTimeout(() => {
-                            router.push(`/admin/show-details/${projectId}`);
-                        }, 1500);
                     } catch (err) {
                         console.error('Quotation generation failed after update:', err);
                         toast.update(toastId, {
-                            render: 'Project updated but quotation generation failed.',
+                            render: '⚠️ Project updated but quotation generation failed.',
                             type: 'warning',
                             isLoading: false,
                             autoClose: 4000,
+                            position: 'top-right',
                         });
 
                         // Still redirect even if quotation fails
