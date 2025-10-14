@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Edit3, PlusCircle, User, Calendar, Briefcase, Eye, X, Wallet, FilePlus } from 'lucide-react';
 import Link from 'next/link';
@@ -26,12 +26,116 @@ const getEmployeeType = (type) => {
     }
 };
 
-// ADDED: A safer parsing function for roles that now expects a proper array from the backend.
-const parseAndFormatRoles = (rolesArray) => {
-    if (Array.isArray(rolesArray) && rolesArray.length > 0) {
-        return rolesArray.map((r) => r.role_name).join(', ');
-    }
-    return 'No role assigned';
+const RoleTooltip = ({ roles }) => {
+    const [position, setPosition] = useState('down');
+    const tooltipRef = useRef(null);
+    const wrapperRef = useRef(null);
+
+    if (!roles || roles.length === 0) return <span className="text-slate-400 text-xs italic">No role assigned</span>;
+
+    const roleList = Array.isArray(roles)
+        ? roles.map((r) => r.role_name || r.type_name).filter(Boolean)
+        : (() => {
+              try {
+                  const parsed = JSON.parse(roles);
+                  return Array.isArray(parsed) ? parsed.map((r) => r.role_name || r.type_name).filter(Boolean) : [];
+              } catch {
+                  return [];
+              }
+          })();
+
+    if (roleList.length === 0) return <span className="text-slate-400 text-xs italic">No role assigned</span>;
+
+    const primaryRole = roleList[0];
+    const extraCount = roleList.length - 1;
+
+    // 🧭 Detect available space on hover
+    useEffect(() => {
+        const handleHover = () => {
+            if (!wrapperRef.current || !tooltipRef.current) return;
+            const rect = wrapperRef.current.getBoundingClientRect();
+            const tooltipHeight = tooltipRef.current.offsetHeight;
+            const spaceBelow = window.innerHeight - rect.bottom;
+            const spaceAbove = rect.top;
+
+            // 🧠 Flip dynamically
+            if (spaceBelow < tooltipHeight + 20 && spaceAbove > tooltipHeight) {
+                setPosition('up');
+            } else {
+                setPosition('down');
+            }
+        };
+
+        const wrapper = wrapperRef.current;
+        wrapper?.addEventListener('mouseenter', handleHover);
+        return () => wrapper?.removeEventListener('mouseenter', handleHover);
+    }, []);
+
+    return (
+        <div ref={wrapperRef} className="relative group inline-block cursor-pointer select-none">
+            {/* === Visible Role Summary === */}
+            <div className="flex items-center gap-1.5 text-xs">
+                <span className="font-medium text-slate-700 dark:text-slate-200 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 px-2 py-0.5 rounded-md border border-indigo-200/30 dark:border-indigo-800/40 shadow-sm">
+                    {primaryRole}
+                </span>
+
+                {extraCount > 0 && <span className="text-[11px] bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-1.5 py-[1px] rounded-full shadow-md font-semibold">+{extraCount}</span>}
+            </div>
+
+            {/* === Tooltip Popup === */}
+            <div
+                ref={tooltipRef}
+                className={`
+          absolute hidden group-hover:block z-50 w-max min-w-[130px] 
+          rounded-xl border border-slate-200/60 dark:border-slate-700/60
+          bg-white/90 dark:bg-slate-800/90 backdrop-blur-lg shadow-2xl
+          ${position === 'up' ? 'bottom-full mb-2 origin-bottom animate-fadeUp' : 'top-full mt-2 origin-top animate-fadeDown'}
+        `}
+            >
+                <div className="p-3">
+                    <h4 className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase mb-2 tracking-wide">Assigned Roles</h4>
+                    <ul className="space-y-1.5">
+                        {roleList.map((role, i) => (
+                            <li key={i} className="flex items-center text-[13px] text-slate-700 dark:text-slate-200 gap-1.5">
+                                <span className="inline-block w-1.5 h-1.5 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500" />
+                                {role}
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            </div>
+
+            {/* === Animations === */}
+            <style jsx>{`
+                .animate-fadeDown {
+                    animation: fadeDown 0.22s ease-out;
+                }
+                .animate-fadeUp {
+                    animation: fadeUp 0.22s ease-out;
+                }
+                @keyframes fadeDown {
+                    from {
+                        opacity: 0;
+                        transform: translateY(-6px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+                @keyframes fadeUp {
+                    from {
+                        opacity: 0;
+                        transform: translateY(6px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+            `}</style>
+        </div>
+    );
 };
 
 // --- MODAL 1: For updating BASE Salary ---
@@ -111,7 +215,7 @@ const MonthlySalaryModal = ({ isOpen, record, onSave, onCancel }) => {
                 return;
             }
         }
-        onSave(record, form);
+        onSave(record.id, form);
     };
     return (
         <AnimatePresence>
@@ -180,49 +284,196 @@ const MonthlySalaryModal = ({ isOpen, record, onSave, onCancel }) => {
     );
 };
 
-const RoleDisplay = ({ assignedRoleNames }) => {
-    const [isPopoverVisible, setIsPopoverVisible] = useState(false);
-
-    if (!assignedRoleNames || assignedRoleNames.length === 0) {
-        return <div className="text-xs text-slate-500 italic">Not assigned</div>;
-    }
-
-    const firstRole = assignedRoleNames[0];
-    const remainingRolesCount = assignedRoleNames.length - 1;
-
+const AssignTaskModal = ({ isOpen, freelancer, onSave, onCancel }) => {
+    const [projectName, setProjectName] = useState('');
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        onSave(freelancer.firebase_uid, { project_name: projectName });
+        setProjectName('');
+    };
+    if (!isOpen) return null;
     return (
-        <div className="relative flex items-center gap-1.5 mt-1" onMouseEnter={() => setIsPopoverVisible(true)} onMouseLeave={() => setIsPopoverVisible(false)}>
-            {/* First Role Badge */}
-            <span className="px-2 py-0.5 text-xs font-semibold leading-none text-slate-700 bg-slate-100 rounded-full">{firstRole}</span>
-
-            {/* Counter Badge (if there are more roles) */}
-            {remainingRolesCount > 0 && <span className="px-2 py-0.5 text-xs font-semibold leading-none text-indigo-800 bg-indigo-100 rounded-full cursor-pointer">+{remainingRolesCount} more</span>}
-
-            {/* Popover for all roles (appears on hover) */}
-            <AnimatePresence>
-                {isPopoverVisible && assignedRoleNames.length > 1 && (
-                    <motion.div
-                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                        transition={{ duration: 0.2, ease: 'easeOut' }}
-                        className="absolute bottom-full left-0 mb-2 w-max max-w-xs z-20 p-3 bg-white rounded-lg shadow-xl border"
-                    >
-                        <h4 className="font-bold text-sm text-slate-800 mb-2 pb-2 border-b">All Assigned Roles</h4>
-                        <div className="space-y-1.5">
-                            {assignedRoleNames.map((name) => (
-                                <div key={name} className="text-sm text-slate-600">
-                                    {name}
-                                </div>
-                            ))}
+        <AnimatePresence>
+            <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                onClick={onCancel}
+            >
+                <motion.div
+                    initial={{ scale: 0.9 }}
+                    animate={{ scale: 1 }}
+                    exit={{ scale: 0.9 }}
+                    className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-2xl w-full max-w-md"
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    <h2 className="text-xl font-bold mb-1">Assign New Task</h2>
+                    <p className="text-sm text-slate-500 mb-4">To {freelancer?.name}</p>
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                        <div>
+                            <label className="text-xs text-slate-500">Task / Project Description</label>
+                            <input type="text" value={projectName} onChange={(e) => setProjectName(e.target.value)} className="w-full p-2.5 rounded-lg bg-slate-100" required />
                         </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-        </div>
+                        <div className="flex justify-end gap-3 pt-4">
+                            <button type="button" onClick={onCancel} className="px-4 py-2 rounded-lg bg-slate-200">
+                                Cancel
+                            </button>
+                            <button type="submit" className="px-4 py-2 rounded-lg bg-indigo-600 text-white">
+                                Assign Task
+                            </button>
+                        </div>
+                    </form>
+                </motion.div>
+            </motion.div>
+        </AnimatePresence>
+    );
+};
+const BillTaskModal = ({ isOpen, freelancer, onSave, onCancel }) => {
+    const [unbilledTasks, setUnbilledTasks] = useState([]);
+    const [selectedTaskId, setSelectedTaskId] = useState('');
+    const [fee, setFee] = useState('');
+    useEffect(() => {
+        if (isOpen && freelancer) {
+            const auth = getAuth();
+            auth.currentUser.getIdToken().then((token) => {
+                axios.get(`${API_URL}/api/members/freelancers/${freelancer.firebase_uid}/unbilled-tasks`, { headers: { Authorization: `Bearer ${token}` } }).then((res) => setUnbilledTasks(res.data));
+            });
+        }
+    }, [isOpen, freelancer]);
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        onSave({ task_id: selectedTaskId, fee });
+        setSelectedTaskId('');
+        setFee('');
+    };
+    if (!isOpen) return null;
+    return (
+        <AnimatePresence>
+            <motion.div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onCancel}>
+                <motion.div className="bg-white dark:bg-slate-800 rounded-2xl p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+                    <h2 className="text-xl font-bold mb-4">Bill a Task for {freelancer?.name}</h2>
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                        <div>
+                            <label className="text-xs text-slate-500">Select an Assigned Task</label>
+                            <select value={selectedTaskId} onChange={(e) => setSelectedTaskId(e.target.value)} className="w-full p-2.5 rounded-lg bg-slate-100" required>
+                                <option value="" disabled>
+                                    -- Select a task to bill --
+                                </option>
+                                {unbilledTasks.map((a) => (
+                                    <option key={a.id} value={a.id}>
+                                        {a.project_name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="text-xs text-slate-500">Enter Fee for this Task (₹)</label>
+                            <input type="number" value={fee} onChange={(e) => setFee(e.target.value)} className="w-full p-2.5 rounded-lg bg-slate-100" required />
+                        </div>
+                        <div className="flex justify-end gap-3 pt-4">
+                            <button type="button" onClick={onCancel} className="px-4 py-2 rounded-lg bg-slate-200">
+                                Cancel
+                            </button>
+                            <button type="submit" className="px-4 py-2 rounded-lg bg-indigo-600 text-white" disabled={!selectedTaskId || !fee}>
+                                Save & Bill
+                            </button>
+                        </div>
+                    </form>
+                </motion.div>
+            </motion.div>
+        </AnimatePresence>
     );
 };
 
+// --- NEW MODAL 1: AssignFeeModal ---
+const AssignFeeModal = ({ isOpen, freelancer, onSave, onCancel }) => {
+    const [unbilledTasks, setUnbilledTasks] = useState([]);
+    const [selectedTaskId, setSelectedTaskId] = useState('');
+    const [taskFee, setTaskFee] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+
+    useEffect(() => {
+        if (isOpen && freelancer) {
+            setIsLoading(true);
+            const auth = getAuth();
+            auth.currentUser.getIdToken().then((token) => {
+                axios
+                    .get(`${API_URL}/api/members/freelancers/${freelancer.firebase_uid}/unbilled-tasks`, { headers: { Authorization: `Bearer ${token}` } })
+                    .then((res) => setUnbilledTasks(res.data))
+                    .catch((err) => console.error('Failed to fetch unbilled tasks', err))
+                    .finally(() => setIsLoading(false));
+            });
+        }
+    }, [isOpen, freelancer]);
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        onSave({ task_id: selectedTaskId, task_fee: taskFee });
+        setSelectedTaskId('');
+        setTaskFee('');
+    };
+
+    if (!isOpen) return null;
+
+    return (
+        <AnimatePresence>
+            <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                onClick={onCancel}
+            >
+                <motion.div
+                    initial={{ scale: 0.9 }}
+                    animate={{ scale: 1 }}
+                    exit={{ scale: 0.9 }}
+                    className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-2xl w-full max-w-md"
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    <h2 className="text-xl font-bold mb-1">Bill a Task</h2>
+                    <p className="text-sm text-slate-500 mb-4">For {freelancer?.name}</p>
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                        <div>
+                            <label className="text-xs text-slate-500">Select Task to Bill</label>
+                            {isLoading ? (
+                                <p>Loading tasks...</p>
+                            ) : (
+                                <select value={selectedTaskId} onChange={(e) => setSelectedTaskId(e.target.value)} className="w-full p-2.5 rounded-lg bg-slate-100" required>
+                                    <option value="" disabled>
+                                        -- Select an unbilled task --
+                                    </option>
+                                    {unbilledTasks.map((task) => (
+                                        <option key={task.id} value={task.id}>
+                                            {task.project_name} (Assigned: {new Date(task.assignment_date).toLocaleDateString()})
+                                        </option>
+                                    ))}
+                                    {unbilledTasks.length === 0 && <option disabled>No unbilled tasks found</option>}
+                                </select>
+                            )}
+                        </div>
+                        <div>
+                            <label className="text-xs text-slate-500">Enter Fee for this Task (₹)</label>
+                            <input type="number" value={taskFee} onChange={(e) => setTaskFee(e.target.value)} className="w-full p-2.5 rounded-lg bg-slate-100" required />
+                        </div>
+                        <div className="flex justify-end gap-3 pt-4">
+                            <button type="button" onClick={onCancel} className="px-4 py-2 rounded-lg bg-slate-200">
+                                Cancel
+                            </button>
+                            <button type="submit" className="px-4 py-2 rounded-lg bg-indigo-600 text-white" disabled={!selectedTaskId || !taskFee}>
+                                Save & Bill Task
+                            </button>
+                        </div>
+                    </form>
+                </motion.div>
+            </motion.div>
+        </AnimatePresence>
+    );
+};
+
+// --- NEW: FreelancerHistoryModal ---
+// --- NEW MODAL 1: BillAssignmentModal ---
 const BillAssignmentModal = ({ isOpen, freelancer, onSave, onCancel }) => {
     const [unbilledAssignments, setUnbilledAssignments] = useState([]);
     const [selectedAssignment, setSelectedAssignment] = useState('');
@@ -359,6 +610,52 @@ const FreelancerHistoryModal = ({ isOpen, freelancer, onClose }) => {
                             </div>
                         </div>
                     </div>
+                </motion.div>
+            </motion.div>
+        </AnimatePresence>
+    );
+};
+
+const AddTaskModal = ({ isOpen, freelancer, onSave, onCancel }) => {
+    const [projectName, setProjectName] = useState('');
+    const [taskFee, setTaskFee] = useState('');
+    if (!isOpen) return null;
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        onSave(freelancer.firebase_uid, { project_name: projectName, task_fee: taskFee });
+        setProjectName('');
+        setTaskFee('');
+    };
+    return (
+        <AnimatePresence>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onCancel}>
+                <motion.div
+                    initial={{ scale: 0.9 }}
+                    animate={{ scale: 1 }}
+                    exit={{ scale: 0.9 }}
+                    className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-2xl w-full max-w-md"
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    <h2 className="text-xl font-bold mb-1">Add New Task</h2>
+                    <p className="text-sm text-slate-500 mb-4">For {freelancer?.name}</p>
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                        <div>
+                            <label className="text-xs text-slate-500">Project / Task Description</label>
+                            <input type="text" value={projectName} onChange={(e) => setProjectName(e.target.value)} className="w-full p-2.5 rounded-lg bg-slate-100 dark:bg-slate-700" required />
+                        </div>
+                        <div>
+                            <label className="text-xs text-slate-500">Task Fee (₹)</label>
+                            <input type="number" value={taskFee} onChange={(e) => setTaskFee(e.target.value)} className="w-full p-2.5 rounded-lg bg-slate-100 dark:bg-slate-700" required />
+                        </div>
+                        <div className="flex justify-end gap-3 pt-4">
+                            <button type="button" onClick={onCancel} className="px-4 py-2 rounded-lg bg-slate-200">
+                                Cancel
+                            </button>
+                            <button type="submit" className="px-4 py-2 rounded-lg bg-indigo-600 text-white">
+                                Save Task
+                            </button>
+                        </div>
+                    </form>
                 </motion.div>
             </motion.div>
         </AnimatePresence>
@@ -611,6 +908,40 @@ const PaymentHistoryModal = ({ isOpen, employee, onClose }) => {
     );
 };
 
+const parseAndFormatRoles = (roles) => {
+    if (!roles) return 'No role assigned';
+
+    // If roles is already an array (correct backend behavior)
+    if (Array.isArray(roles)) {
+        if (roles.length === 0) return 'No role assigned';
+        return (
+            roles
+                .map((r) => r.role_name || r.type_name || '')
+                .filter(Boolean)
+                .join(', ') || 'No role assigned'
+        );
+    }
+
+    // If roles came as JSON string accidentally
+    if (typeof roles === 'string') {
+        try {
+            const parsed = JSON.parse(roles);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+                return (
+                    parsed
+                        .map((r) => r.role_name || r.type_name || '')
+                        .filter(Boolean)
+                        .join(', ') || 'No role assigned'
+                );
+            }
+        } catch (err) {
+            console.error('Role parse error:', roles);
+        }
+    }
+
+    return 'No role assigned';
+};
+
 // --- Main Page Component ---
 function PayrollManagementPage() {
     const [activeTab, setActiveTab] = useState('salaried');
@@ -628,10 +959,6 @@ function PayrollManagementPage() {
     const [isMonthlyModalOpen, setIsMonthlyModalOpen] = useState(false);
     const [editingMonthlyRecord, setEditingMonthlyRecord] = useState(null);
     const [isBillAssignmentModalOpen, setIsBillAssignmentModalOpen] = useState(false);
-
-    // ✅ NEW: State for the history modal
-    // --- THIS IS THE FIXED LINE ---
-    const [isGenerating, setIsGenerating] = useState(false);
     const [isPaymentHistoryModalOpen, setIsPaymentHistoryModalOpen] = useState(false);
     const [viewingEmployee, setViewingEmployee] = useState(null);
     const [freelancerSummaries, setFreelancerSummaries] = useState([]);
@@ -643,6 +970,7 @@ function PayrollManagementPage() {
     const currentYear = new Date().getFullYear();
     const [year, setYear] = useState(currentYear);
     const [month, setMonth] = useState(new Date().getMonth() + 1);
+    
 
     const fetchData = async () => {
         const auth = getAuth();
@@ -651,36 +979,40 @@ function PayrollManagementPage() {
         const headers = { Authorization: `Bearer ${token}` };
 
         setIsEmployeeLoading(true);
+        axios
+            .get(`${API_URL}/api/members`, { headers })
+            .then((res) => {
+                console.log('All employees fetched from DB:', res.data);
+                setEmployees(res.data || []);
+            })
+            .catch((e) => setEmployeeError(e?.response?.data?.error || 'Failed to load employees.'))
+            .finally(() => setIsEmployeeLoading(false));
+
         setIsMonthlyLoading(true);
+        axios
+            .get(`${API_URL}/api/members/salaries`, { headers })
+            .then((res) => setMonthlyRecords(res.data || []))
+            .catch((e) => setMonthlyError(e?.response?.data?.error || 'Failed to load monthly records.'))
+            .finally(() => setIsMonthlyLoading(false));
 
-        const employeePromise = axios.get(`${API_URL}/api/members`, { headers });
-        const monthlyPromise = axios.get(`${API_URL}/api/members/salaries?month=${month}&year=${year}`, { headers }); // CHANGED: Fetch salaries for the specific month/year
-        const freelancerPromise = axios.get(`${API_URL}/api/members/freelancers/summaries`, { headers });
-
-        try {
-            const [employeeRes, monthlyRes, freelancerRes] = await Promise.all([employeePromise, monthlyPromise, freelancerPromise]);
-            setEmployees(employeeRes.data || []);
-            setMonthlyRecords(monthlyRes.data || []);
-            setFreelancerSummaries(freelancerRes.data || []);
-        } catch (e) {
-            console.error('Failed to fetch payroll data', e);
-            setEmployeeError(e?.response?.data?.error || 'Failed to load page data.');
-        } finally {
-            setIsEmployeeLoading(false);
-            setIsMonthlyLoading(false);
-        }
+        axios
+            .get(`${API_URL}/api/members/freelancers/summaries`, { headers })
+            .then((res) => {
+                console.log('All freelancer summaries fetched from DB:', res.data);
+                setFreelancerSummaries(res.data || []);
+            })
+            .catch((e) => console.error('Failed to load freelancer summaries', e));
     };
 
-    // CHANGED: useEffect dependency array now includes month and year to refetch data when they change.
+    console.log('Freelancer summaries fetched from DB:', freelancerSummaries);
+
     useEffect(() => {
         const auth = getAuth();
         const unsubscribe = auth.onAuthStateChanged((user) => {
-            if (user) {
-                fetchData();
-            }
+            if (user) fetchData();
         });
         return () => unsubscribe();
-    }, [month, year]);
+    }, []);
 
     // --- Handler Functions ---
     const handleUpdateBaseSalary = async (uid, salary) => {
@@ -696,8 +1028,7 @@ function PayrollManagementPage() {
     };
 
     const handleGenerate = async (month, year) => {
-        // CHANGED: Updated the confirmation message to be more accurate.
-        if (!window.confirm(`Generate/update salary records for ${monthName(month)}, ${year}? This will affect In-House and Manager employees.`)) return;
+        if (!window.confirm(`Generate/update salary records for ${monthName(month)}, ${year}? This will affect ALL employee types.`)) return;
         try {
             const auth = getAuth();
             const token = await auth.currentUser.getIdToken();
@@ -709,27 +1040,11 @@ function PayrollManagementPage() {
         }
     };
 
-    // CHANGED: This handler is now more robust. It can CREATE a new salary record if one doesn't exist.
-    const handleUpdateMonthlyRecord = async (record, formData) => {
+    const handleUpdateMonthlyRecord = async (id, formData) => {
         try {
             const auth = getAuth();
             const token = await auth.currentUser.getIdToken();
-            const headers = { Authorization: `Bearer ${token}` };
-
-            // If the record has a status of 'N/A', it's a placeholder we need to create.
-            if (record.status === 'N/A') {
-                const payload = {
-                    firebase_uid: record.firebase_uid,
-                    month: record.period_month,
-                    year: record.period_year,
-                    ...formData,
-                };
-                // This assumes your backend has a POST /api/members/salaries endpoint to create a single record
-                await axios.post(`${API_URL}/api/members/salaries`, payload, { headers });
-            } else {
-                // Otherwise, update the existing record.
-                await axios.put(`${API_URL}/api/members/salaries/${record.id}`, formData, { headers });
-            }
+            await axios.put(`${API_URL}/api/members/salaries/${id}`, formData, { headers: { Authorization: `Bearer ${token}` } });
             setIsMonthlyModalOpen(false);
             fetchData();
         } catch (e) {
@@ -753,37 +1068,162 @@ function PayrollManagementPage() {
         axios
             .post(`${API_URL}/api/members/freelancers/billings`, data, { headers: { Authorization: `Bearer ${token}` } })
             .then(() => {
-                setIsBillAssignmentModalOpen(false); // ✅ correct name
+                setIsBillAssignmentModalOpen(false);
                 fetchData();
             })
             .catch((err) => alert(err.response?.data?.error || 'Failed to bill assignment.'));
     };
 
-    const handleMakePayment = async (freelancer_uid, paymentData) => {
-        const freelancer = freelancerSummaries.find((f) => f.firebase_uid === freelancer_uid);
-        if (parseFloat(paymentData.payment_amount) > parseFloat(freelancer.remaining_balance)) {
-            alert('Error: Payment amount cannot be greater than the balance due.');
-            return;
-        }
+    const handleAssignTask = async (freelancer_uid, taskData) => {
+        const auth = getAuth();
+        const token = await auth.currentUser.getIdToken();
+        axios
+            .post(`${API_URL}/api/members/freelancers/tasks`, { ...taskData, freelancer_uid }, { headers: { Authorization: `Bearer ${token}` } })
+            .then(() => {
+                setIsAssignTaskModalOpen(false);
+                fetchData();
+            })
+            .catch((err) => alert(err.response?.data?.error || 'Failed to assign task.'));
+    };
+    console.log('freelancerSummaries', freelancerSummaries);
+    console.log('selectedFreelancer', selectedFreelancer);
 
+    const handleBillTask = async (data) => {
+        const auth = getAuth();
+        const token = await auth.currentUser.getIdToken();
+        axios
+            .put(`${API_URL}/api/members/freelancers/tasks/bill`, data, { headers: { Authorization: `Bearer ${token}` } })
+            .then(() => {
+                setIsBillTaskModalOpen(false);
+                fetchData();
+            })
+            .catch((err) => alert(err.response?.data?.error || 'Failed to bill task.'));
+    };
+
+    const handleViewHistory = (record) => {
+        console.log('Attempting to view history for record:', record);
+        // The monthly salary record object has `firebase_uid` which is the employee's ID.
+        const employee = employees.find((emp) => emp.firebase_uid === record.firebase_uid);
+        if (employee) {
+            setViewingEmployee(employee);
+            setIsHistoryModalOpen(true);
+        } else {
+            alert("Could not find employee details for this record. Mismatch between salary record's firebase_uid and employee list.");
+        }
+    };
+
+    const handleSaveTask = async (freelancer_uid, taskData) => {
         try {
             const auth = getAuth();
             const token = await auth.currentUser.getIdToken();
-
-            await axios.post(`${API_URL}/api/members/freelancers/payments`, { ...paymentData, freelancer_uid }, { headers: { Authorization: `Bearer ${token}` } });
-
-            // ✅ Correct state name
-            setIsMakePaymentModalOpen(false);
-
-            // Refresh data
-            fetchData();
-
-            // Optional: success feedback
-            alert('Payment saved successfully ✅');
-        } catch (err) {
-            alert(err.response?.data?.error || 'Failed to record payment.');
+            // Note the new endpoint from your backend setup
+            await axios.post(`${API_URL}/api/members/freelancers/tasks`, { ...taskData, freelancer_uid }, { headers: { Authorization: `Bearer ${token}` } });
+            setAddTaskModalOpen(false);
+            fetchData(); // Refresh all data to show the new balance
+        } catch (e) {
+            alert(e?.response?.data?.error || 'Failed to save task.');
         }
     };
+
+    const openFreelancerModal = (freelancer, modalType) => {
+        setSelectedFreelancer(freelancer);
+        if (modalType === 'task') {
+            setAddTaskModalOpen(true);
+        } else if (modalType === 'payment') {
+            setMakePaymentModalOpen(true);
+        }
+    };
+
+    const handleSaveMonthlyPayment = async (record, formData) => {
+        try {
+            const auth = getAuth();
+            const token = await auth.currentUser.getIdToken();
+            const headers = { Authorization: `Bearer ${token}` };
+
+            // Check if this is a NEW record (a placeholder we created on the frontend)
+            if (record.status === 'N/A') {
+                console.log('CREATING new salary record...');
+                // API endpoint for CREATION. Assumes a POST request.
+                // This is the most critical part. Your backend needs an endpoint to handle this.
+                const payload = {
+                    firebase_uid: record.firebase_uid, // The employee's ID
+                    month: record.period_month, // The current period
+                    year: record.period_year, // The current period
+                    ...formData, // The data from the modal (amount_paid, status, notes)
+                };
+                await axios.post(`${API_URL}/api/members/salaries`, payload, { headers });
+            } else {
+                console.log('UPDATING existing salary record...');
+                // API endpoint for UPDATING. Uses PUT with the record's specific ID.
+                await axios.put(`${API_URL}/api/members/salaries/${record.id}`, formData, { headers });
+            }
+
+            setIsMonthlyModalOpen(false); // Close the modal on success
+            fetchData(); // Refresh all data to show the change
+        } catch (e) {
+            alert(e?.response?.data?.error || 'Failed to save payment record. Please check the console.');
+            console.error('Error saving payment record:', e);
+        }
+    };
+
+    const handleAssignFee = async (data) => {
+        const auth = getAuth();
+        const token = await auth.currentUser.getIdToken();
+        axios
+            .put(`${API_URL}/api/members/freelancers/tasks/bill`, data, { headers: { Authorization: `Bearer ${token}` } })
+            .then(() => {
+                setAssignFeeModalOpen(false);
+                fetchData();
+            })
+            .catch((err) => alert(err.response?.data?.error || 'Failed to bill task.'));
+    };
+
+    const handleMakePayment = async (freelancer_uid, paymentData) => {
+  try {
+    const freelancer = freelancerSummaries.find(
+      (f) => f.firebase_uid === freelancer_uid
+    );
+
+    if (
+      parseFloat(paymentData.payment_amount) >
+      parseFloat(freelancer.remaining_balance)
+    ) {
+      alert("❌ Error: Payment amount cannot be greater than the balance due.");
+      return;
+    }
+
+    const auth = getAuth();
+    const token = await auth.currentUser.getIdToken();
+
+    const res = await axios.post(
+      `${API_URL}/api/members/freelancers/payments`,
+      { ...paymentData, freelancer_uid },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    const msg = res.data?.message || "✅ Payment recorded successfully.";
+
+    // ✅ Guarantee message appears before UI re-render
+    await new Promise((resolve) => {
+      alert(msg);
+      setTimeout(resolve, 300);
+    });
+
+    setIsMakePaymentModalOpen(false);
+    await fetchData();
+  } catch (err) {
+    console.error("Payment Error:", err);
+    const errorMsg =
+      err.response?.data?.error ||
+      err.message ||
+      "❌ Failed to record payment. Please try again.";
+
+    await new Promise((resolve) => {
+      alert(errorMsg);
+      setTimeout(resolve, 300);
+    });
+  }
+};
 
     const openModal = (freelancer, modalType) => {
         setSelectedFreelancer(freelancer);
@@ -804,6 +1244,39 @@ function PayrollManagementPage() {
     }, [freelancerSummaries, searchQuery]);
 
     const salariedEmployees = filteredEmployees.filter((emp) => emp.employee_type === 1 || emp.employee_type === 2);
+    const freelancerEmployees = filteredEmployees.filter((emp) => emp.employee_type === 0);
+
+    const monthlyDisplayRecords = useMemo(() => {
+        // Create a Map for instant lookups of salary records
+        const salaryMap = new Map(monthlyRecords.map((rec) => [rec.firebase_uid, rec]));
+
+        // Use the filtered list of ALL employees as the source of truth
+        return filteredEmployees.map((employee) => {
+            const salaryRecord = salaryMap.get(employee.firebase_uid);
+
+            if (salaryRecord) {
+                // If a salary record exists, combine it with employee data
+                return {
+                    ...employee, // contains name, roles, employee_type
+                    ...salaryRecord, // contains amount_due, amount_paid, status, etc.
+                    id: salaryRecord.id, // ensure salary record id is primary
+                };
+            } else {
+                // If no salary record exists, create a placeholder row.
+                // This is crucial for employees who haven't been generated a salary yet.
+                return {
+                    ...employee,
+                    id: employee.firebase_uid, // Use firebase_uid as a fallback key
+                    amount_due: '0.00',
+                    amount_paid: '0.00',
+                    status: 'N/A',
+                    period_month: month,
+                    period_year: year,
+                    employee_name: employee.name, // ensure name is present
+                };
+            }
+        });
+    }, [filteredEmployees, monthlyRecords, month, year]);
 
     const enrichedMonthlyRecords = useMemo(() => {
         const employeeMap = new Map(employees.map((emp) => [emp.firebase_uid, emp]));
@@ -817,55 +1290,16 @@ function PayrollManagementPage() {
         });
     }, [monthlyRecords, employees]);
 
-    // CORRECT LOGIC: This constant correctly filters for Salaried/Manager roles for the 'Monthly Payroll' tab
     const filteredMonthlyRecords = useMemo(() => {
-        // First, filter by employee type to ONLY include In-House (1) and Managers (2)
-        console.log('ENRICHED RECORDS:', enrichedMonthlyRecords);
-        const salariedRecords = enrichedMonthlyRecords.filter((rec) => rec.employee_type === 1 || rec.employee_type === 2);
-
-        console.log('SALARIED RECORDS:', salariedRecords);
-
-        // Then, if there's a search query, filter the result by the query
-        if (!searchQuery) {
-            return salariedRecords;
-        }
-        return salariedRecords.filter((rec) => rec.employee_name.toLowerCase().includes(searchQuery.toLowerCase()) || parseAndFormatRoles(rec.roles).toLowerCase().includes(searchQuery.toLowerCase()));
+        if (!searchQuery) return enrichedMonthlyRecords;
+        return enrichedMonthlyRecords.filter(
+            (rec) => rec.employee_name.toLowerCase().includes(searchQuery.toLowerCase()) || parseAndFormatRoles(rec.roles).toLowerCase().includes(searchQuery.toLowerCase()),
+        );
     }, [enrichedMonthlyRecords, searchQuery]);
 
-    // *** CHANGED: This is the new, more robust logic for the Monthly Payroll tab ***
-    const monthlyPayrollDisplayRecords = useMemo(() => {
-        // 1. Get all employees who are salaried (In-House or Manager)
-        const allSalariedEmployees = employees.filter((emp) => emp.employee_type === 1 || emp.employee_type === 2);
-
-        // 2. Create a fast lookup map for existing salary records for the current month/year
-        const salaryRecordMap = new Map(monthlyRecords.map((rec) => [rec.firebase_uid, rec]));
-
-        // 3. Create display records, ensuring every salaried employee has an entry
-        const displayRecords = allSalariedEmployees.map((emp) => {
-            const existingRecord = salaryRecordMap.get(emp.firebase_uid);
-            if (existingRecord) {
-                return { ...existingRecord, employee_name: emp.name, roles: emp.roles, employee_type: emp.employee_type };
-            } else {
-                // If NO record exists, create a placeholder
-                return {
-                    id: emp.firebase_uid, // Use firebase_uid as a stable unique key
-                    firebase_uid: emp.firebase_uid,
-                    employee_name: emp.name,
-                    roles: emp.roles,
-                    employee_type: emp.employee_type,
-                    period_month: month,
-                    period_year: year,
-                    amount_due: emp.salary || '0.00', // Use base salary if available
-                    amount_paid: '0.00',
-                    status: 'N/A', // Special status indicates this record doesn't exist in the DB yet
-                    notes: '',
-                };
-            }
-        });
-
-        if (!searchQuery) return displayRecords;
-        return displayRecords.filter((rec) => rec.employee_name.toLowerCase().includes(searchQuery.toLowerCase()) || parseAndFormatRoles(rec.roles).toLowerCase().includes(searchQuery.toLowerCase()));
-    }, [employees, monthlyRecords, month, year, searchQuery]);
+    const freelancerMonthlyRecords = useMemo(() => {
+        return filteredMonthlyRecords.filter((rec) => rec.employee_type === 0);
+    }, [filteredMonthlyRecords]);
 
     // Tab configuration
     const tabConfig = {
@@ -877,7 +1311,7 @@ function PayrollManagementPage() {
     const breadcrumbLinkStyles = 'text-blue-600 dark:text-blue-500 hover:underline';
 
     return (
-        <div className="min-h-screen p-4 sm:p-6 lg:p-8 text-slate-900 dark:text-slate-100">
+        <div className="min-h-screen p-4 sm:p-6 lg:p-8 text-slate-900">
             <BaseSalaryModal isOpen={isBaseSalaryModalOpen} onSave={handleUpdateBaseSalary} onCancel={() => setIsBaseSalaryModalOpen(false)} employee={editingEmployee} />
             <MonthlySalaryModal isOpen={isMonthlyModalOpen} onSave={handleUpdateMonthlyRecord} onCancel={() => setIsMonthlyModalOpen(false)} record={editingMonthlyRecord} />
             <PaymentHistoryModal isOpen={isPaymentHistoryModalOpen} onClose={() => setIsPaymentHistoryModalOpen(false)} employee={viewingEmployee} />
@@ -932,7 +1366,7 @@ function PayrollManagementPage() {
 
                         {/* --- Conditional Rendering for 'Salaried' Tab --- */}
                         {activeTab === 'salaried' && (
-                            <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700">
+                            <div className="bg-white dark:bg-slate-800 dark:text-slate-400 p-6 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700">
                                 <h2 className="text-xl font-bold mb-4">Salaried Employee Base Salaries</h2>
                                 {isEmployeeLoading ? (
                                     <p className="text-center p-4">Loading...</p>
@@ -950,39 +1384,35 @@ function PayrollManagementPage() {
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                {salariedEmployees.map((emp) => {
-                                                    // Prepare the array of role names for the new component
-                                                    const assignedRoleNames = Array.isArray(emp.roles) ? emp.roles.map((role) => role.role_name).filter(Boolean) : [];
-
-                                                    return (
-                                                        <tr key={emp.firebase_uid} className="border-b border-slate-100 dark:border-slate-700">
-                                                            <td className="p-3 text-sm">
-                                                                <div className="font-medium">{emp.name}</div>
-                                                                {/* Use the new RoleDisplay component here */}
-                                                                <RoleDisplay assignedRoleNames={assignedRoleNames} />
-                                                            </td>
-                                                            <td className="p-3 text-sm">
-                                                                <span
-                                                                    className={`px-2 py-1 text-xs font-semibold rounded-full ${emp.employee_type === 2 ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}`}
-                                                                >
-                                                                    {getEmployeeType(emp.employee_type)}
-                                                                </span>
-                                                            </td>
-                                                            <td className="p-3 text-sm font-semibold">{formatCurrency(emp.salary)}</td>
-                                                            <td className="p-3 text-sm text-right">
-                                                                <button
-                                                                    onClick={() => {
-                                                                        setEditingEmployee(emp);
-                                                                        setIsBaseSalaryModalOpen(true);
-                                                                    }}
-                                                                    className="p-2 text-slate-500 hover:text-indigo-600"
-                                                                >
-                                                                    <Edit3 size={16} />
-                                                                </button>
-                                                            </td>
-                                                        </tr>
-                                                    );
-                                                })}
+                                                {salariedEmployees.map((emp) => (
+                                                    <tr key={emp.firebase_uid} className="border-b border-slate-100 dark:border-slate-700">
+                                                        <td className="p-3 text-sm">
+                                                            <div className="font-medium">{emp.name}</div>
+                                                            <div className="text-xs">
+                                                                <RoleTooltip roles={emp.roles} />
+                                                            </div>
+                                                        </td>
+                                                        <td className="p-3 text-sm">
+                                                            <span
+                                                                className={`px-2 py-1 text-xs font-semibold rounded-full ${emp.employee_type === 2 ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}`}
+                                                            >
+                                                                {getEmployeeType(emp.employee_type)}
+                                                            </span>
+                                                        </td>
+                                                        <td className="p-3 text-sm font-semibold">{formatCurrency(emp.salary)}</td>
+                                                        <td className="p-3 text-sm text-right">
+                                                            <button
+                                                                onClick={() => {
+                                                                    setEditingEmployee(emp);
+                                                                    setIsBaseSalaryModalOpen(true);
+                                                                }}
+                                                                className="p-2 text-slate-500 hover:text-indigo-600"
+                                                            >
+                                                                <Edit3 size={16} />
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                ))}
                                                 {salariedEmployees.length === 0 && (
                                                     <tr>
                                                         <td className="p-4 text-center text-slate-500" colSpan={4}>
@@ -997,9 +1427,9 @@ function PayrollManagementPage() {
                             </div>
                         )}
 
-                        {/* --- Freelancers Tab --- */}
+                        {/* --- Conditional Rendering for 'Freelancers' Tab --- */}
                         {activeTab === 'freelancers' && (
-                            <div className="bg-white p-6 dark:bg-slate-800 rounded-xl shadow-lg">
+                            <div className="bg-white dark:bg-slate-800 dark:text-slate-400 p-6 rounded-xl shadow-lg">
                                 <h2 className="text-xl font-bold mb-4">Freelancer Accounts</h2>
                                 <div className="overflow-x-auto">
                                     <table className="w-full text-left">
@@ -1014,60 +1444,64 @@ function PayrollManagementPage() {
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {filteredFreelancerSummaries.map((emp) => {
-                                                const assignedRoleNames = Array.isArray(emp.roles) ? emp.roles.map((r) => r.role_name).filter(Boolean) : [];
-                                                return (
-                                                    <tr key={emp.firebase_uid} className="border-b">
-                                                        <td className="p-3">
-                                                            <div className="font-medium">{emp.name}</div>
-                                                            <RoleDisplay assignedRoleNames={assignedRoleNames} />
-                                                        </td>
-                                                        <td className="p-3">
-                                                            <span
-                                                                className={`px-2 py-1 text-xs font-semibold rounded-full ${Number(emp.remaining_balance) > 0 ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}`}
+                                            {filteredFreelancerSummaries.map((emp) => (
+                                                <tr key={emp.firebase_uid} className="border-b">
+                                                    <td className="p-3">
+                                                        <div className="font-medium">{emp.name}</div>
+                                                        <div className="text-xs">
+                                                            <RoleTooltip roles={emp.roles} />
+                                                        </div>
+                                                    </td>
+                                                    <td className="p-3">
+                                                        <span
+                                                            className={`px-2 py-1 text-xs font-semibold rounded-full ${Number(emp.remaining_balance) > 0 ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}`}
+                                                        >
+                                                            {Number(emp.remaining_balance) > 0 ? 'Due' : 'Paid Up'}
+                                                        </span>
+                                                    </td>
+                                                    <td className="p-3 font-semibold">{formatCurrency(emp.total_billed)}</td>
+                                                    <td className="p-3 font-semibold text-green-600">{formatCurrency(emp.total_paid)}</td>
+                                                    <td className={`p-3 font-bold ${Number(emp.remaining_balance) > 0 ? 'text-red-600' : 'text-slate-500'}`}>
+                                                        {formatCurrency(emp.remaining_balance)}
+                                                    </td>
+                                                    <td className="p-3 text-right">
+                                                        <div className="flex items-center justify-end gap-2">
+                                                            <button
+                                                                onClick={() => openModal(emp, 'billAssignment')}
+                                                                title="Bill an Assigned Work"
+                                                                className="relative p-2 text-slate-500 hover:text-indigo-600"
                                                             >
-                                                                {Number(emp.remaining_balance) > 0 ? 'Due' : 'Paid Up'}
-                                                            </span>
-                                                        </td>
-                                                        <td className="p-3 font-semibold">{formatCurrency(emp.total_billed)}</td>
-                                                        <td className="p-3 font-semibold text-green-600">{formatCurrency(emp.total_paid)}</td>
-                                                        <td className={`p-3 font-bold ${Number(emp.remaining_balance) > 0 ? 'text-red-600' : 'text-slate-500'}`}>
-                                                            {formatCurrency(emp.remaining_balance)}
-                                                        </td>
-                                                        <td className="p-3 text-right">
-                                                            <div className="flex items-center justify-end gap-2">
-                                                                <button
-                                                                    onClick={() => openModal(emp, 'billAssignment')}
-                                                                    title="Bill an Assigned Work"
-                                                                    className="relative p-2 text-slate-500 hover:text-indigo-600"
-                                                                >
-                                                                    <FilePlus size={18} />
-                                                                </button>
-                                                                <button
-                                                                    onClick={() => openModal(emp, 'payment')}
-                                                                    title="Make Payment"
-                                                                    className="p-2 text-slate-500 hover:text-green-600 disabled:text-slate-300"
-                                                                    disabled={Number(emp.remaining_balance) <= 0}
-                                                                >
-                                                                    <Wallet size={18} />
-                                                                </button>
-                                                                <button onClick={() => openModal(emp, 'freelancerHistory')} title="View History" className="p-2 text-slate-500 hover:text-blue-600">
-                                                                    <Eye size={18} />
-                                                                </button>
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-                                                );
-                                            })}
+                                                                <FilePlus size={18} />
+                                                                {emp.unbilled_assignments_count > 0 && (
+                                                                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-indigo-500 text-xs text-white">
+                                                                        {emp.unbilled_assignments_count}
+                                                                    </span>
+                                                                )}
+                                                            </button>
+                                                            <button
+                                                                onClick={() => openModal(emp, 'payment')}
+                                                                title="Make Payment"
+                                                                className="p-2 text-slate-500 hover:text-green-600 disabled:text-slate-300"
+                                                                disabled={Number(emp.remaining_balance) <= 0}
+                                                            >
+                                                                <Wallet size={18} />
+                                                            </button>
+                                                            <button onClick={() => openModal(emp, 'freelancerHistory')} title="View History" className="p-2 text-slate-500 hover:text-blue-600">
+                                                                <Eye size={18} />
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
                                         </tbody>
                                     </table>
                                 </div>
                             </div>
                         )}
 
-                        {/* --- Monthly Payroll Tab --- */}
+                        {/* --- Conditional Rendering for 'Monthly Payroll' Tab --- */}
                         {activeTab === 'monthlyPayroll' && (
-                            <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-lg">
+                            <div className="bg-white dark:bg-slate-800 dark:text-slate-400 p-6 rounded-xl shadow-lg">
                                 <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
                                     <h2 className="text-xl font-bold">Monthly Payroll</h2>
                                     <div className="p-2 bg-slate-50 dark:bg-slate-800/50 border rounded-lg flex flex-wrap items-center gap-2">
@@ -1092,11 +1526,10 @@ function PayrollManagementPage() {
                                         </button>
                                     </div>
                                 </div>
-
                                 {isMonthlyLoading ? (
-                                    <p>Loading...</p>
+                                    <p className="text-center p-4">Loading...</p>
                                 ) : monthlyError ? (
-                                    <p>{monthlyError}</p>
+                                    <p className="text-center p-4 text-red-500">{monthlyError}</p>
                                 ) : (
                                     <div className="overflow-x-auto">
                                         <table className="w-full text-left">
@@ -1112,17 +1545,25 @@ function PayrollManagementPage() {
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                {monthlyPayrollDisplayRecords.map((rec) => {
+                                                {filteredMonthlyRecords.map((rec) => {
                                                     const remaining = Number(rec.amount_due ?? 0) - Number(rec.amount_paid ?? 0);
                                                     const type = getEmployeeType(rec.employee_type);
-                                                    const assignedRoleNames = Array.isArray(rec.roles) ? rec.roles.map((r) => r.role_name).filter(Boolean) : [];
                                                     return (
                                                         <tr key={rec.id} className="border-b border-slate-100 dark:border-slate-700">
                                                             <td className="p-3 text-sm">
                                                                 <div className="font-medium">{rec.employee_name}</div>
-                                                                <RoleDisplay assignedRoleNames={assignedRoleNames} />
+                                                                <div className="mt-0.5">
+                                                                    <RoleTooltip roles={Array.isArray(rec.roles) ? rec.roles : []} />
+                                                                </div>
+
                                                                 <span
-                                                                    className={`mt-2 inline-block px-2 py-0.5 text-xs font-semibold rounded-full capitalize ${type === 'Manager' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}`}
+                                                                    className={`mt-1 inline-block px-2 py-0.5 text-xs font-semibold rounded-full capitalize ${
+                                                                        type === 'Manager'
+                                                                            ? 'bg-purple-100 text-purple-800'
+                                                                            : type === 'In-House'
+                                                                              ? 'bg-blue-100 text-blue-800'
+                                                                              : 'bg-gray-100 text-gray-800'
+                                                                    }`}
                                                                 >
                                                                     {type}
                                                                 </span>
@@ -1135,14 +1576,14 @@ function PayrollManagementPage() {
                                                             <td className={`p-3 text-sm font-semibold ${remaining > 0 ? 'text-red-600' : 'text-slate-400'}`}>{formatCurrency(remaining)}</td>
                                                             <td className="p-3 text-sm">
                                                                 <span
-                                                                    className={`px-2 py-1 text-xs font-semibold rounded-full capitalize ${rec.status === 'N/A' ? 'bg-slate-100 text-slate-600' : rec.status === 'complete' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}
+                                                                    className={`px-2 py-1 text-xs font-semibold rounded-full capitalize ${rec.status === 'complete' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}
                                                                 >
                                                                     {rec.status}
                                                                 </span>
                                                             </td>
                                                             <td className="p-3 text-sm text-right">
                                                                 <div className="flex items-center justify-end gap-1">
-                                                                    <button onClick={() => handleViewSalariedHistory(rec)} title="View History">
+                                                                    <button onClick={() => handleViewSalariedHistory(rec)} className="p-2 text-slate-500 hover:text-blue-600" title="View History">
                                                                         <Eye size={16} />
                                                                     </button>
                                                                     <button
@@ -1150,6 +1591,7 @@ function PayrollManagementPage() {
                                                                             setEditingMonthlyRecord(rec);
                                                                             setIsMonthlyModalOpen(true);
                                                                         }}
+                                                                        className="p-2 text-slate-500 hover:text-indigo-600"
                                                                         title="Edit Record"
                                                                     >
                                                                         <Edit3 size={16} />
@@ -1159,10 +1601,10 @@ function PayrollManagementPage() {
                                                         </tr>
                                                     );
                                                 })}
-                                                {monthlyPayrollDisplayRecords.length === 0 && (
+                                                {filteredMonthlyRecords.length === 0 && (
                                                     <tr>
                                                         <td className="p-4 text-center text-slate-500" colSpan={7}>
-                                                            No payroll records found.
+                                                            No payroll records found. Try generating records or adjusting your search.
                                                         </td>
                                                     </tr>
                                                 )}
