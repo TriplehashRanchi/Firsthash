@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import Link from 'next/link';
@@ -32,6 +32,18 @@ const SuccessToast = ({ quoteUrl, newProjectId, onNavigate }) => {
     );
 };
 
+// Helper: safely convert string or number to number
+const toNumber = (v) => {
+    if (typeof v === 'number') return Number.isFinite(v) ? v : 0;
+    if (typeof v === 'string') {
+        const trimmed = v.trim();
+        if (!trimmed) return 0;
+        const parsed = Number(trimmed.replace(/,/g, ''));
+        return Number.isFinite(parsed) ? parsed : 0;
+    }
+    return 0;
+};
+
 function Page() {
     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
@@ -60,7 +72,11 @@ function Page() {
     const [isReceivedValid, setIsReceivedValid] = useState(false);
     // const [isScheduleValid, setIsScheduleValid] = useState(false);
     const [isLoadingData, setIsLoadingData] = useState(isEditMode);
-    const [isScheduleValid, setIsScheduleValid] = useState(false);
+
+    
+    const packageCostNumber = useMemo(() => toNumber(projectPackageCost), [projectPackageCost]);
+    const deliverablesCostNumber = useMemo(() => toNumber(deliverablesTotalCost), [deliverablesTotalCost]);
+    const overallTotal = useMemo(() => packageCostNumber + deliverablesCostNumber, [packageCostNumber, deliverablesCostNumber]);
 
     // --- NEW: useEffect to fetch data in Edit Mode ---
     useEffect(() => {
@@ -354,9 +370,6 @@ function Page() {
     const totalCostLabelStyles = 'text-xl font-semibold text-gray-700 dark:text-gray-200';
     const totalCostValueStyles = 'text-3xl font-bold text-green-600 dark:text-green-400 ml-2';
 
-    // Calculate overall total cost for display
-    const overallTotalCostForDisplay = (parseFloat(projectPackageCost) || 0) + deliverablesTotalCost;
-
     return (
         <div className={pageContainerStyles}>
             <ToastContainer theme={typeof window !== 'undefined' && document.documentElement.classList.contains('dark') ? 'dark' : 'light'} position="top-right" autoClose={3000} />
@@ -418,7 +431,7 @@ function Page() {
             <div className={`${totalCostSectionStyles} flex justify-between items-center`}>
                 <div>
                     <span className={totalCostLabelStyles}>Overall Total:</span>
-                    <span className={totalCostValueStyles}>₹{overallTotalCostForDisplay.toLocaleString()}</span>
+                    <span className={totalCostValueStyles}>₹{overallTotal.toLocaleString('en-IN')}</span>
                 </div>
                 <button onClick={handleSave} className={successButtonStyles}>
                     {isEditMode ? 'Update Project' : 'Save Project'}

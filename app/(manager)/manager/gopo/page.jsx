@@ -32,6 +32,18 @@ const SuccessToast = ({ quoteUrl, newProjectId, onNavigate }) => {
     );
 };
 
+const toNumber = (v) => {
+    if (typeof v === 'number') return Number.isFinite(v) ? v : 0;
+    if (typeof v === 'string') {
+        const trimmed = v.trim();
+        if (!trimmed) return 0;
+        const parsed = Number(trimmed.replace(/,/g, ''));
+        return Number.isFinite(parsed) ? parsed : 0;
+    }
+    return 0;
+};
+
+
 function Page() {
     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
@@ -61,6 +73,11 @@ function Page() {
     // const [isScheduleValid, setIsScheduleValid] = useState(false);
     const [isLoadingData, setIsLoadingData] = useState(isEditMode);
     const [isScheduleValid, setIsScheduleValid] = useState(false);
+
+
+    const packageCostNumber = useMemo(() => toNumber(projectPackageCost), [projectPackageCost]);
+    const deliverablesCostNumber = useMemo(() => toNumber(deliverablesTotalCost), [deliverablesTotalCost]);
+    const overallTotal = useMemo(() => packageCostNumber + deliverablesCostNumber, [packageCostNumber, deliverablesCostNumber]);
 
     // --- NEW: useEffect to fetch data in Edit Mode ---
     useEffect(() => {
@@ -394,7 +411,7 @@ function Page() {
             <div className={`${totalCostSectionStyles} flex justify-between items-center`}>
                 <div>
                     <span className={totalCostLabelStyles}>Overall Total:</span>
-                    <span className={totalCostValueStyles}>₹{overallTotalCostForDisplay.toLocaleString()}</span>
+                    <span className={totalCostValueStyles}>₹{overallTotal.toLocaleString('en-IN')}</span>
                 </div>
                 <button onClick={handleSave} className={successButtonStyles}>
                     {isEditMode ? 'Update Project' : 'Save Project'}

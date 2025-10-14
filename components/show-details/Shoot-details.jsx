@@ -1,6 +1,6 @@
 'use client';
-import React, { useState } from 'react';
-import { Camera, CalendarDays, Clock, MapPin, Edit3, X, UserPlus, Users as UsersIcon, CheckCircle } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Camera, CalendarDays, Clock, MapPin, Edit3, X, UserPlus, Users as UsersIcon, CheckCircle, Search } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
@@ -15,6 +15,8 @@ const AssignmentModalContent = ({
     teamMembers, // <-- This prop name is what we will use consistently
 }) => {
     const [selectedMemberIds, setSelectedMemberIds] = useState([...currentAssignedMemberIds]);
+    const [searchTerm, setSearchTerm] = useState('');
+
 
     const handleMemberSelect = (memberId) => {
         console.log('Selecting member:', memberId);
@@ -46,9 +48,25 @@ const AssignmentModalContent = ({
     // Now correctly uses the 'teamMembers' prop for lookups
     const getMemberById = (id) => (teamMembers || []).find((member) => member.id === id);
 
+    const filteredTeamMembers = useMemo(() => {
+        if (!searchTerm.trim()) return teamMembersToDisplay;
+        const lower = searchTerm.toLowerCase();
+        return teamMembersToDisplay.filter((member) =>
+            [
+                member.name,
+                ...(member.onProductionRoles || []),
+                member.primaryRole,
+            ]
+                .join(' ')
+                .toLowerCase()
+                .includes(lower),
+        );
+    }, [teamMembersToDisplay, searchTerm]);
+
     return (
         <div className="fixed inset-0 bg-gray-600 dark:bg-slate-900 bg-opacity-50 dark:bg-opacity-80 flex items-center justify-center p-4 z-[60] backdrop-blur-sm">
-            <div className="bg-white dark:bg-gradient-to-br dark:from-slate-800 dark:to-slate-900 p-6 rounded-xl shadow-2xl w-full max-w-lg border border-slate-300 dark:border-slate-700">
+             <div className="bg-white dark:bg-gradient-to-br dark:from-slate-800 dark:to-slate-900 p-8 rounded-2xl shadow-2xl w-full max-w-5xl border border-slate-300 dark:border-slate-700 flex flex-col max-h-[90vh]">
+                
                 <div className="flex justify-between items-center mb-6 pb-4 border-b border-slate-300 dark:border-slate-700">
                     <h3 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-pink-600 dark:from-purple-400 dark:to-pink-500 flex items-center">
                         <UserPlus size={26} className="mr-3 text-purple-500 dark:text-purple-400" /> Assign Team
@@ -75,6 +93,17 @@ const AssignmentModalContent = ({
                     </p>
                 </div>
 
+                 <div className="relative mb-4">
+                    <Search className="absolute left-3 top-2.5 text-slate-400" size={18} />
+                    <input
+                        type="text"
+                        placeholder="Search by name or role..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full pl-10 pr-3 py-2 rounded-md border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-sm text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 outline-none"
+                    />
+                </div>
+
                 {currentAssignedMemberIds.length > 0 && (
                     <div className="mb-4 p-3 bg-slate-100 dark:bg-slate-700/50 rounded-md">
                         <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Currently assigned:</p>
@@ -91,9 +120,10 @@ const AssignmentModalContent = ({
                     </div>
                 )}
 
-                {teamMembersToDisplay.length > 0 ? (
-                    <ul className="max-h-60 overflow-y-auto space-y-2 pr-1 mb-6 border border-slate-300 dark:border-slate-700 rounded-md p-3 bg-slate-50 dark:bg-slate-800/50">
-                        {teamMembersToDisplay.map((member) => (
+
+                {filteredTeamMembers.length > 0 ? (
+                    <div className="max-h-80 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-3 pr-1 mb-6 border border-slate-300 dark:border-slate-700 rounded-md p-3 bg-slate-50 dark:bg-slate-800/50">
+                        {filteredTeamMembers.map((member) => (
                             <li key={member.id}>
                                 <label
                                     htmlFor={`member-${member.id}-${serviceName}`}
@@ -116,7 +146,7 @@ const AssignmentModalContent = ({
                                 </label>
                             </li>
                         ))}
-                    </ul>
+                    </div>
                 ) : (
                     <div className="text-center py-10 my-4 border border-dashed border-slate-300 dark:border-slate-700 rounded-lg">
                         <UsersIcon size={32} className="mx-auto mb-2 text-slate-400" />

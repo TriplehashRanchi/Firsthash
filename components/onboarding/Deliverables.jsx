@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Plus, Trash2, X, Save, Settings2, CalendarDays } from 'lucide-react';
+import { Plus, Trash2, X, Save, Settings2, CalendarDays, CloudDownload, Edit2, SquarePen } from 'lucide-react';
 import { getAuth } from 'firebase/auth'; // Make sure firebase is configured in your project
 import { date } from 'yup';
 
@@ -8,11 +8,6 @@ import { date } from 'yup';
 const generateId = () => (typeof self !== 'undefined' && self.crypto ? self.crypto.randomUUID() : Math.random().toString(36).substring(2));
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
-// --- Authentication & API Wrapper ---
-/**
- * Retrieves the Firebase ID token for the current user.
- * @returns {Promise<string|null>} The token or null if the user is not signed in.
- */
 const getFirebaseToken = async () => {
     const user = getAuth().currentUser;
     if (!user) {
@@ -22,12 +17,6 @@ const getFirebaseToken = async () => {
     return await user.getIdToken();
 };
 
-/**
- * A wrapper around fetch that automatically adds the Firebase Auth bearer token.
- * @param {string} url The URL to fetch.
- * @param {object} options The options object for the fetch call.
- * @returns {Promise<Response>} The fetch response.
- */
 const fetchWithAuth = async (url, options = {}) => {
     const token = await getFirebaseToken();
     if (!token) {
@@ -76,9 +65,6 @@ const Deliverables = ({ company, onValidChange, onDeliverablesCostChange, onData
     }, []);
 
     useEffect(() => {
-        // The console.log was misleading because state updates are async.
-        // It was logging the *old* state before the new state was set.
-
         if (initialData && initialData.deliverableItems && !isInitialized.current) {
             const formattedItems = initialData.deliverableItems.map((itemFromApi) => {
                 // The date source from the API is 'estimated_date'.
@@ -132,8 +118,8 @@ const Deliverables = ({ company, onValidChange, onDeliverablesCostChange, onData
                 const backendBundles = {};
                 bundleData.forEach((bundle) => {
                     try {
-                        // The API sends bundle_name and items, not items_json
                         backendBundles[bundle.bundle_name] = {
+                            id: bundle.id, // ✅ store DB ID
                             type: bundle.type,
                             items: bundle.items || [],
                         };
@@ -141,6 +127,7 @@ const Deliverables = ({ company, onValidChange, onDeliverablesCostChange, onData
                         console.error(`Error processing bundle ${bundle.bundle_name}:`, err);
                     }
                 });
+
                 setCustomDeliverableBundles(backendBundles);
 
                 // Process and set master templates
@@ -253,60 +240,95 @@ const Deliverables = ({ company, onValidChange, onDeliverablesCostChange, onData
             alert('Cannot save bundle: Company information is missing.');
             return;
         }
+
         const trimmedBundleName = newBundleName.trim();
         if (!trimmedBundleName) {
             alert('Please enter a name for the bundle.');
             return;
         }
+
         const validBundleItems = newBundleItems.map((item) => ({ title: item.title.trim() })).filter((item) => item.title !== '');
         if (validBundleItems.length === 0) {
             alert('Please add at least one valid item to the bundle.');
             return;
         }
 
-        let bundleKeyToSave = editingBundleKey || trimmedBundleName.toLowerCase().replace(/\s+/g, '_');
-        if (!editingBundleKey && (masterTemplates[bundleKeyToSave] || customDeliverableBundles[bundleKeyToSave])) {
-            alert(`An item named "${trimmedBundleName}" already exists.`);
-            return;
-        }
+        // ✅ Normalize bundle name to match DB-safe key
+        const bundleKeyToSave = editingBundleKey || trimmedBundleName.toLowerCase().replace(/\s+/g, '_');
 
         try {
-            await fetchWithAuth(`${API_URL}/api/deliverables/bundles`, {
-                method: 'POST',
-                body: JSON.stringify({
-                    company_id: company.id,
-                    bundle_name: bundleKeyToSave,
-                    items: validBundleItems,
-                }),
-            });
-            // On successful save, update state
+            if (editingBundleKey) {
+                // ✅ Update existing bundle
+                const bundleId = customDeliverableBundles[editingBundleKey]?.id;
+                if (!bundleId) {
+                    alert('Could not find bundle ID for update.');
+                    return;
+                }
+
+                await fetchWithAuth(`${API_URL}/api/deliverables/bundles`, {
+                    method: 'PUT',
+                    body: JSON.stringify({
+                        company_id: company.id,
+                        bundle_id: bundleId,
+                        items: validBundleItems,
+                    }),
+                });
+            } else {
+                // ✅ Create new bundle
+                await fetchWithAuth(`${API_URL}/api/deliverables/bundles`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        company_id: company.id,
+                        bundle_name: bundleKeyToSave,
+                        items: validBundleItems,
+                    }),
+                });
+            }
+
+            // ✅ Update frontend state
             setCustomDeliverableBundles((prev) => ({
                 ...prev,
                 [bundleKeyToSave]: {
+                    ...(prev[bundleKeyToSave] || {}),
+                    id: editingBundleKey ? prev[bundleKeyToSave]?.id : crypto.randomUUID(), // placeholder for new one
                     type: editingBundleKey ? prev[bundleKeyToSave]?.type || 'custom' : 'custom',
                     items: validBundleItems,
                 },
             }));
+
+            // ✅ Close modal cleanly
             setShowManageBundlesModal(false);
+            setEditingBundleKey(null);
             setNewBundleName('');
             setNewBundleItems([{ id: generateId(), title: '' }]);
-            setEditingBundleKey(null);
+
+            // ✅ Reopen import modal for smoother UX
+            setTimeout(() => setShowSelectionModal(true), 400);
         } catch (err) {
             console.error('Error saving bundle to backend:', err);
-            alert('Failed to save the bundle. Please check the console for details.');
+            alert(err.message || 'Failed to save the bundle. Please check the console for details.');
         }
-    }, [newBundleName, newBundleItems, editingBundleKey, company, customDeliverableBundles, masterTemplates]);
+    }, [newBundleName, newBundleItems, editingBundleKey, company, customDeliverableBundles]);
 
     const openManageBundlesModal = (bundleKeyToEdit = null) => {
         if (bundleKeyToEdit && customDeliverableBundles[bundleKeyToEdit]) {
+            const bundle = customDeliverableBundles[bundleKeyToEdit];
+            const bundleItems = Array.isArray(bundle.items) ? bundle.items : [];
+
             setEditingBundleKey(bundleKeyToEdit);
             setNewBundleName(bundleKeyToEdit.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase()));
-            setNewBundleItems(customDeliverableBundles[bundleKeyToEdit].map((item) => ({ id: generateId(), title: item.title })));
+            setNewBundleItems(
+                bundleItems.map((item) => ({
+                    id: generateId(),
+                    title: item.title || '',
+                })),
+            );
         } else {
             setEditingBundleKey(null);
             setNewBundleName('');
             setNewBundleItems([{ id: generateId(), title: '' }]);
         }
+
         setShowManageBundlesModal(true);
     };
 
@@ -316,36 +338,50 @@ const Deliverables = ({ company, onValidChange, onDeliverablesCostChange, onData
                 alert('Cannot delete bundle: Company information is missing.');
                 return;
             }
+
             const confirmDelete = window.confirm(`Are you sure you want to delete the bundle "${bundleKeyToDelete.replace(/_/g, ' ')}"?`);
             if (!confirmDelete) return;
 
             try {
+                // ✅ Get bundle ID
+                const bundleId = customDeliverableBundles[bundleKeyToDelete]?.id;
+
+                if (!bundleId) {
+                    alert('Could not find bundle ID for deletion.');
+                    console.error('Bundle ID missing for', bundleKeyToDelete, customDeliverableBundles);
+                    return;
+                }
+
+                // ✅ Send correct payload to backend
                 await fetchWithAuth(`${API_URL}/api/deliverables/bundles`, {
                     method: 'DELETE',
-                    body: JSON.stringify({
-                        company_id: company.id,
-                        bundle_name: bundleKeyToDelete,
-                    }),
+                    body: JSON.stringify({ id: bundleId }), // ✅ only send id
                 });
-                // On successful delete, update state
+
+                // ✅ Update frontend state after successful delete
                 setCustomDeliverableBundles((prev) => {
                     const updated = { ...prev };
                     delete updated[bundleKeyToDelete];
                     return updated;
                 });
-                // Also close modal if the deleted bundle was being edited
+
+                // ✅ Close modal if editing same bundle
                 if (editingBundleKey === bundleKeyToDelete) {
                     setShowManageBundlesModal(false);
                     setEditingBundleKey(null);
                     setNewBundleName('');
                     setNewBundleItems([{ id: generateId(), title: '' }]);
                 }
+
+                // ✅ Optional: Show nice toast message
+                console.log(`✅ Bundle "${bundleKeyToDelete}" deleted successfully`);
+                alert(`✅ Bundle "${bundleKeyToDelete.replace(/_/g, ' ')}" deleted successfully`);
             } catch (err) {
                 console.error('Error deleting bundle from backend:', err);
                 alert('Failed to delete the bundle. Please check the console for details.');
             }
         },
-        [company, editingBundleKey],
+        [company, editingBundleKey, customDeliverableBundles],
     );
 
     const handleNewBundleItemChange = (itemId, value) => setNewBundleItems((prev) => prev.map((item) => (item.id === itemId ? { ...item, title: value } : item)));
@@ -378,7 +414,7 @@ const Deliverables = ({ company, onValidChange, onDeliverablesCostChange, onData
     const secondaryButtonStyles = `${buttonBaseStyles} text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-500/20 hover:bg-blue-200 dark:hover:bg-blue-500/30 focus:ring-blue-200 dark:focus:ring-blue-600/50 border border-blue-200 dark:border-blue-500/30 hover:border-blue-300 dark:hover:border-blue-400`;
     const iconButtonBase =
         'flex items-center justify-center rounded-lg transition-all duration-150 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-900 p-2.5';
-    const addRowIconButtonStyles = `${iconButtonBase} text-green-600 bg-green-100 hover:bg-green-200 dark:text-green-300 dark:bg-green-700/50 dark:hover:bg-green-600/60 focus:ring-green-500`;
+    const addRowIconButtonStyles = `${iconButtonBase} text-blue-600 bg-blue-100 hover:bg-blue-200 dark:text-blue-300 dark:bg-blue-700/50 dark:hover:bg-blue-600/60 focus:ring-blue-500`;
     const removeRowIconButtonStyles = `${iconButtonBase} text-red-600 bg-red-100 hover:bg-red-200 dark:text-red-400 dark:bg-red-700/50 dark:hover:bg-red-600/60 focus:ring-red-500`;
     const modalOverlayStyles = 'fixed inset-0 bg-black/80 dark:bg-black/90 flex justify-center items-center z-50 p-4 backdrop-blur-md';
     const modalContentStyles =
@@ -411,7 +447,7 @@ const Deliverables = ({ company, onValidChange, onDeliverablesCostChange, onData
                 <div className={`grid ${columnHeaderGridColumnsClass} gap-x-3 sm:gap-x-4 mb-2`}>
                     <div className={`${columnHeaderStyles} col-span-1`}>Title</div>
                     <div className={`${columnHeaderStyles} col-span-1`}>Cost (₹)</div>
-                    <div className={`${columnHeaderStyles} col-span-1 text-left`}>Est. Date</div>
+                    <div className={`${columnHeaderStyles} col-span-1 text-left`}>Estimated Delivery Date</div>
                     <div className={`${columnHeaderStyles} col-span-1 text-center`}>Actions</div>
                 </div>
             )}
@@ -446,13 +482,9 @@ const Deliverables = ({ company, onValidChange, onDeliverablesCostChange, onData
                     </div>
                     <div className="relative">
                         <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 pointer-events-none" size={16} />
-                    <input type="date" value={item.date || ''} onChange={(e) => handleChange(item.id, 'date', e.target.value)} className={`${themedInputStyles} pl-10 appearance-none`} />
+                        <input type="date" value={item.date || ''} onChange={(e) => handleChange(item.id, 'date', e.target.value)} className={`${themedInputStyles} pl-10 appearance-none`} />
                     </div>
                     <div className="flex items-center gap-1.5 justify-center">
-                        <button onClick={addSingleDeliverableRow} className={addRowIconButtonStyles} title="Add New Row">
-                            {' '}
-                            <Plus size={18} />{' '}
-                        </button>
                         <button onClick={() => handleRemove(item.id)} className={removeRowIconButtonStyles} title="Remove This Row" disabled={items.length <= 1}>
                             {' '}
                             <Trash2 size={18} />{' '}
@@ -460,6 +492,11 @@ const Deliverables = ({ company, onValidChange, onDeliverablesCostChange, onData
                     </div>
                 </div>
             ))}
+            <div className="mt-6 flex">
+                <button onClick={addSingleDeliverableRow} className={`${addRowIconButtonStyles} px-5 py-2 text-sm sm:text-base`}>
+                    <Plus size={18} className="mr-2" /> Add Deliverable
+                </button>
+            </div>
 
             {/* --- Modals --- */}
             {showSelectionModal && (
@@ -471,7 +508,9 @@ const Deliverables = ({ company, onValidChange, onDeliverablesCostChange, onData
                                 <X size={24} />
                             </button>
                         </div>
+
                         <div className="space-y-5 max-h-[60vh] overflow-y-auto pr-3 -mr-1">
+                            {/* --- Templates Section --- */}
                             {Object.keys(masterTemplates).length > 0 && (
                                 <div>
                                     <h4 className="text-md font-semibold text-gray-700 dark:text-gray-300 mb-2.5">Your Templates</h4>
@@ -484,29 +523,50 @@ const Deliverables = ({ company, onValidChange, onDeliverablesCostChange, onData
                                     </div>
                                 </div>
                             )}
-                            {/* This part of the code is inside your Selection Modal */}
+
+                            {/* --- Custom Bundles Section --- */}
                             {Object.keys(customDeliverableBundles).length > 0 && (
                                 <div className={Object.keys(masterTemplates).length > 0 ? 'mt-4 border-t border-gray-200 dark:border-gray-700 pt-4' : ''}>
                                     <h4 className="text-md font-semibold text-gray-700 dark:text-gray-300 mb-2.5">Your Custom Bundles</h4>
                                     <div className="space-y-2">
                                         {Object.entries(customDeliverableBundles).map(([key, bundleContent]) => (
-                                            <button
-                                                key={key}
-                                                // Pass the nested 'items' array to the handler
-                                                onClick={() => addDeliverablesFromSource(bundleContent.items)}
-                                                // Add flex classes to position the tag
-                                                className={`${modalListItemButtonStyles} flex items-center justify-between group`}
-                                            >
-                                                {/* Bundle Name */}
-                                                <span>{key.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}</span>
-
-                                                {/* Conditionally render the "Global" tag */}
-                                                {bundleContent.type === 'global' && (
-                                                    <span className="text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 px-2.5 py-1 rounded-full group-hover:bg-blue-200 dark:group-hover:bg-blue-800 transition-colors">
-                                                        Global
-                                                    </span>
-                                                )}
-                                            </button>
+                                            <div key={key} className={`${modalListItemButtonStyles} flex items-center justify-between group`}>
+                                                <div className="flex flex-col">
+                                                    <span className="font-semibold">{key.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}</span>
+                                                    {bundleContent.type === 'global' && <span className="text-xs font-medium text-blue-500 dark:text-blue-300">Global</span>}
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <button
+                                                        onClick={() => {
+                                                            addDeliverablesFromSource(bundleContent.items);
+                                                            setShowSelectionModal(false);
+                                                        }}
+                                                        title="Import Bundle"
+                                                        className="p-2 rounded-lg bg-green-100 hover:bg-green-200 dark:bg-green-800 dark:hover:bg-green-700 text-green-700 dark:text-green-300 transition"
+                                                    >
+                                                        <CloudDownload size={16} />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => {
+                                                            setShowSelectionModal(false);
+                                                            setTimeout(() => {
+                                                                openManageBundlesModal(key);
+                                                            }, 300);
+                                                        }}
+                                                        title="Edit Bundle"
+                                                        className="p-2 rounded-lg bg-yellow-100 hover:bg-yellow-200 dark:bg-yellow-800 dark:hover:bg-yellow-700 text-yellow-700 dark:text-yellow-300 transition"
+                                                    >
+                                                        <SquarePen size={16} />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDeleteCustomBundle(key)}
+                                                        title="Delete Bundle"
+                                                        className="p-2 rounded-lg bg-red-100 hover:bg-red-200 dark:bg-red-800 dark:hover:bg-red-700 text-red-700 dark:text-red-300 transition"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </div>
+                                            </div>
                                         ))}
                                     </div>
                                 </div>
