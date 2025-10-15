@@ -80,6 +80,7 @@ const EditableListItem = ({ role, onDelete, isSelected, onToggleSelect, itemType
             onDelete(role.id);
         }
     };
+    const isGlobal = role.company_id === '00000000-0000-0000-0000-000000000000';
     return (
         <div
             className={`group flex items-center justify-between p-1.5 rounded-md w-full transition-colors duration-150 ${isSelected ? 'bg-blue-100 dark:bg-blue-800/50 hover:bg-blue-200 border border-blue-500' : 'bg-white dark:bg-gray-700 hover:bg-gray-50 border border-gray-300'}`}
@@ -92,10 +93,16 @@ const EditableListItem = ({ role, onDelete, isSelected, onToggleSelect, itemType
                 <span className="mr-2 inline-flex items-center">{isSelected ? <ListChecks size={16} className="text-blue-600" /> : <Plus size={16} className="text-gray-400" />}</span>
                 {role.type_name}
             </span>
-            <div className={`flex items-center gap-0.5 ml-2`}>
-                <button onClick={handleDeleteClick} className="p-1 text-red-500 hover:text-red-700 opacity-70 hover:opacity-100" title={`Delete ${itemType}`}>
-                    <Trash size={14} />
-                </button>
+            <div className="flex items-center gap-0.5 ml-2">
+                {isGlobal ? (
+                    <button disabled title="Global roles cannot be deleted" className="p-1 text-gray-400 dark:text-gray-500 cursor-not-allowed opacity-40">
+                        <Trash size={14} />
+                    </button>
+                ) : (
+                    <button onClick={handleDeleteClick} className="p-1 text-red-500 hover:text-red-700 opacity-70 hover:opacity-100" title={`Delete ${itemType}`}>
+                        <Trash size={14} />
+                    </button>
+                )}
             </div>
         </div>
     );

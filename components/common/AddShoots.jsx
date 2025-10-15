@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import { X } from "lucide-react";
+import IconPlusCircle from "../icon/icon-plus-circle";
 
 export default function AddShootModal({ onAddShoot }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -28,9 +29,9 @@ export default function AddShootModal({ onAddShoot }) {
       {/* Main Trigger Button */}
       <button
         onClick={() => setIsOpen(true)}
-        className="bg-blue-600 text-white px-4 py-2 rounded-md shadow hover:bg-blue-700 transition-all"
+        className="bg-blue-100  flex justify-space-between items-center px-2 py-2 text-xs text-blue-700 rounded-md border-blue-200 hover:bg-blue-200 transition-all"
       >
-        + Add Title
+        <IconPlusCircle/> &nbsp; Add Shoot Title
       </button>
 
       {/* Modal */}

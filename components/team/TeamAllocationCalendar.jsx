@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Plus, X, UserPlus, CheckCircle, ChevronLeft, ChevronRight, CalendarX, UserMinus, MapPin, Film, Users } from 'lucide-react'; // Added Users icon
+import { Plus, X, UserPlus, CheckCircle, ChevronLeft, ChevronRight, CalendarX, UserMinus, MapPin, Film, Users, Search } from 'lucide-react'; // Added Users icon
 
 // --- (UNCHANGED) Helper function for generating simple avatars ---
 const getAvatarUrl = (name) => {
@@ -19,6 +19,7 @@ const AssignmentModal = ({ isOpen, onClose, teamMembers, role, currentAssignedMe
     const [selectedIds, setSelectedIds] = useState([]);
     const [toAdd, setToAdd] = useState([]);
     const [toRemove, setToRemove] = useState([]);
+    const [searchTerm, setSearchTerm] = useState('');
 
     const isAtCapacity = selectedIds.length >= requiredCount;
 
@@ -28,6 +29,7 @@ const AssignmentModal = ({ isOpen, onClose, teamMembers, role, currentAssignedMe
             setSelectedIds(initialIds);
             setToAdd([]);
             setToRemove([]);
+            setSearchTerm('');
         }
     }, [isOpen, currentAssignedMemberIds]);
 
@@ -60,6 +62,11 @@ const AssignmentModal = ({ isOpen, onClose, teamMembers, role, currentAssignedMe
 
     const handleSaveChangesClick = () => onSaveChanges(selectedIds);
 
+    const filteredMembers = teamMembers.filter((member) => {
+        const search = searchTerm.toLowerCase();
+        return member.name.toLowerCase().includes(search) || (member.roles && member.roles.join(', ').toLowerCase().includes(search));
+    });
+
     const requirementMet = selectedIds.length === requiredCount;
     const counterColor = requirementMet ? 'text-green-500 dark:text-green-400' : 'text-slate-500 dark:text-slate-400';
 
@@ -69,6 +76,7 @@ const AssignmentModal = ({ isOpen, onClose, teamMembers, role, currentAssignedMe
                 className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-4xl border border-slate-200 dark:border-slate-700/80 transform transition-all duration-300 scale-95 opacity-0 animate-scale-in"
                 onClick={(e) => e.stopPropagation()}
             >
+                {/* HEADER */}
                 <div className="flex justify-between items-center p-6 border-b border-slate-200 dark:border-slate-700/80">
                     <div>
                         <h3 className="text-2xl font-bold text-slate-800 dark:text-slate-100 flex items-center">
@@ -96,41 +104,60 @@ const AssignmentModal = ({ isOpen, onClose, teamMembers, role, currentAssignedMe
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-6">
                     <div className="md:col-span-2">
-                        <p className="text-sm font-medium text-slate-600 dark:text-slate-300 mb-3">Select team members to assign:</p>
+                        <div className="flex items-center justify-between mb-4">
+                            <p className="text-sm font-medium text-slate-600 dark:text-slate-300 ">Select team members to assign:</p>
+                            <div className="relative w-60">
+                                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
+                                <input
+                                    type="text"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    placeholder="Search by name or role..."
+                                    className="pl-9 pr-3 py-2 w-full text-sm rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                                />
+                            </div>
+                        </div>
+
                         <ul className="max-h-[50vh] overflow-y-auto space-y-3 pr-2 -mr-2">
-                            {teamMembers.map((member) => {
-                                const isSelected = selectedIds.includes(member.id);
-                                const isDisabled = isAtCapacity && !isSelected;
-                                return (
-                                    <li key={member.id}>
-                                        <label
-                                            htmlFor={`member-${member.id}-${role}`}
-                                            className={`relative flex items-center w-full p-4 rounded-xl transition-all duration-200 border-2 ${isSelected ? 'bg-indigo-50 dark:bg-indigo-900/40 border-indigo-500 shadow-md' : 'bg-slate-50 dark:bg-slate-800/60 border-transparent'} ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'hover:border-slate-300 dark:hover:border-slate-600 cursor-pointer'}`}
-                                        >
-                                            <input
-                                                type="checkbox"
-                                                id={`member-${member.id}-${role}`}
-                                                checked={isSelected}
-                                                onChange={() => handleMemberSelect(member.id)}
-                                                className="sr-only"
-                                                disabled={isDisabled}
-                                            />
-                                            <img src={getAvatarUrl(member.name)} alt={member.name} className="h-10 w-10 rounded-full mr-4 border-2 border-white dark:border-slate-700" />
-                                            <div className="flex-grow">
-                                                <span className="block font-semibold text-slate-800 dark:text-slate-100">{member.name}</span>
-                                                <span className="block text-xs text-indigo-500 dark:text-indigo-400 font-medium">
-                                                    {member.roles && member.roles.length > 0 ? member.roles.join(', ') : 'No role specified'}
-                                                </span>
-                                            </div>
-                                            {isSelected && (
-                                                <div className="absolute top-3 right-3 text-indigo-500">
-                                                    <CheckCircle size={20} strokeWidth={2.5} />
+                            {filteredMembers.length > 0 ? (
+                                filteredMembers.map((member) => {
+                                    const isSelected = selectedIds.includes(member.id);
+                                    const isDisabled = isAtCapacity && !isSelected;
+                                    return (
+                                        <li key={member.id}>
+                                            <label
+                                                htmlFor={`member-${member.id}-${role}`}
+                                                className={`relative flex items-center w-full p-4 rounded-xl transition-all duration-200 border-2 ${
+                                                    isSelected ? 'bg-indigo-50 dark:bg-indigo-900/40 border-indigo-500 shadow-md' : 'bg-slate-50 dark:bg-slate-800/60 border-transparent'
+                                                } ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'hover:border-slate-300 dark:hover:border-slate-600 cursor-pointer'}`}
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    id={`member-${member.id}-${role}`}
+                                                    checked={isSelected}
+                                                    onChange={() => handleMemberSelect(member.id)}
+                                                    className="sr-only"
+                                                    disabled={isDisabled}
+                                                />
+                                                <img src={getAvatarUrl(member.name)} alt={member.name} className="h-10 w-10 rounded-full mr-4 border-2 border-white dark:border-slate-700" />
+                                                <div className="flex-grow">
+                                                    <span className="block font-semibold text-slate-800 dark:text-slate-100">{member.name}</span>
+                                                    <span className="block text-xs text-indigo-500 dark:text-indigo-400 font-medium">
+                                                        {member.roles && member.roles.length > 0 ? member.roles.join(', ') : 'No role specified'}
+                                                    </span>
                                                 </div>
-                                            )}
-                                        </label>
-                                    </li>
-                                );
-                            })}
+                                                {isSelected && (
+                                                    <div className="absolute top-3 right-3 text-indigo-500">
+                                                        <CheckCircle size={20} strokeWidth={2.5} />
+                                                    </div>
+                                                )}
+                                            </label>
+                                        </li>
+                                    );
+                                })
+                            ) : (
+                                <p className="text-center text-sm text-slate-500 dark:text-slate-400 py-6">No team members match your search.</p>
+                            )}
                         </ul>
                     </div>
                     <div className="bg-slate-50 dark:bg-slate-800/60 rounded-xl p-4 h-fit sticky top-6">
@@ -210,6 +237,7 @@ const AllocationSlot = ({ role, assignedMembers, requiredCount, onClick }) => {
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [role]);
+
 
     return (
         <div
