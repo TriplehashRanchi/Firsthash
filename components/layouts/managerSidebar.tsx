@@ -21,9 +21,10 @@ import IconTag from '../icon/icon-tag';
 import IconDollarSignCircle from '../icon/icon-dollar-sign-circle';
 import IconMenuForms from '../icon/menu/icon-menu-forms';
 import IconUser from '../icon/icon-user';
-import { CalendarCheck, CalendarCheck2, ClipboardCheck, Presentation, ShieldAlert, UserRoundSearch } from 'lucide-react';
+import { CalendarCheck, CalendarCheck2, ClipboardCheck, IndianRupee, Presentation, ShieldAlert, UserRoundSearch } from 'lucide-react';
 import IconCaretDown from '../icon/icon-caret-down';
 import AnimateHeight from 'react-animate-height';
+import IconMessage2 from '../icon/icon-message2';
 
 const ManagerSidebar = () => {
     const dispatch = useDispatch();
@@ -141,7 +142,7 @@ const ManagerSidebar = () => {
                                     <li className="nav-item">
                                         <Link href="/manager/project" className="group">
                                             <div className="flex items-center">
-                                                <Presentation className="shrink-0 group-hover:!text-primary" />
+                                                <IconCamera className="shrink-0 group-hover:!text-primary" />
                                                 <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-gray-200  dark:group-hover:text-white-dark">{t('Project')}</span>
                                             </div>
                                         </Link>
@@ -150,7 +151,7 @@ const ManagerSidebar = () => {
                                      <li className="nav-item">
                                         <Link href="/manager/task-management" className="group">
                                             <div className="flex items-center">
-                                                <ClipboardCheck className="shrink-0 group-hover:!text-primary" />
+                                                <IconMessage2 className="shrink-0 group-hover:!text-primary" />
                                                 <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-gray-200  dark:group-hover:text-white-dark">{t('Manage Task')}</span>
                                             </div>
                                         </Link>
@@ -181,7 +182,7 @@ const ManagerSidebar = () => {
                                     <li className="nav-item">
                                         <Link href="/manager/expense" className="group">
                                             <div className="flex items-center">
-                                                <IconDollarSignCircle className="shrink-0 group-hover:!text-primary" />
+                                                <IndianRupee className="shrink-0 group-hover:!text-primary" />
                                                 <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-gray-200  dark:group-hover:text-white-dark">{t('Salary')}</span>
                                             </div>
                                         </Link>
@@ -199,20 +200,16 @@ const ManagerSidebar = () => {
                                         <Link href="/manager/attendance" className="group">
                                             <div className="flex items-center">
                                                 <CalendarCheck2 className="shrink-0 group-hover:!text-primary" />
-                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-gray-200  dark:group-hover:text-white-dark">{t('Attandance')}</span>
+                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-gray-200  dark:group-hover:text-white-dark">{t('Mark Attendance')}</span>
                                             </div>
                                         </Link>
                                     </li>
-
-                                   
-
-                                   
 
                                     <li className="nav-item">
                                         <Link href="/manager/view-attendance" className="group">
                                             <div className="flex items-center">
                                                 <CalendarCheck className="shrink-0 group-hover:!text-primary" />
-                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-gray-200  dark:group-hover:text-white-dark">{t('View-Attandance')}</span>
+                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-gray-200  dark:group-hover:text-white-dark">{t('View Attendance')}</span>
                                             </div>
                                         </Link>
                                     </li>

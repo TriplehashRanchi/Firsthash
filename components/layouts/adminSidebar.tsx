@@ -230,7 +230,7 @@ const AdminSidebar = () => {
                                         <Link href="/admin/task-management" className="group">
                                             <div className="flex items-center">
                                                 <IconMessage2 className="shrink-0 group-hover:!text-primary" />
-                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:text-gray-200 dark:group-hover:text-white-dark">{t('To-do')}</span>
+                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:text-gray-200 dark:group-hover:text-white-dark">{t('Manage Task')}</span>
                                             </div>
                                         </Link>
                                     </li>

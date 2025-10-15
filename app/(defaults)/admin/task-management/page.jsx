@@ -68,7 +68,14 @@ const AddTaskForm = ({ onAddTask, projects, deliverables, members, parentTasks, 
     // --- Data transformation for react-select (no changes needed) ---
     const memberOptions = useMemo(() => members.map((m) => ({ value: m.firebase_uid, label: m.name })), [members]);
     const projectOptions = useMemo(() => projects.map((p) => ({ value: p.id, label: p.name })), [projects]);
-    const deliverableOptions = useMemo(() => deliverables.map((d) => ({ value: d.id, label: `${d.project_name} / ${d.title}` })), [deliverables]);
+    const deliverableOptions = useMemo(
+        () =>
+            deliverables.map((d) => ({
+                value: d.id,
+                label: `${d.client_name ? d.client_name + ' - ' : ''}${d.project_name} / ${d.title}`,
+            })),
+        [deliverables],
+    );
 
     // --- Form Logic (no changes needed) ---
     const resetForm = () => {
@@ -468,6 +475,7 @@ export default function ProjectTaskDashboardPage() {
             const deliverable = deliverableMap.get(String(task.deliverable_id));
 
             const assigneeNames = task.assignments || [];
+            const clientName = project?.client_name || project?.clientName || deliverable?.client_name || deliverable?.clientName || '—';
 
             let assigneeIdArray = [];
             if (typeof task.assignee_ids === 'string' && task.assignee_ids.trim()) {
@@ -482,6 +490,7 @@ export default function ProjectTaskDashboardPage() {
                 ...task,
                 taskTitle: task.title,
                 projectName: project?.name || '—',
+                projectClientName: clientName, // ✅ Added line
                 deliverableName: deliverable?.title || '—',
                 assignees: finalAssignees,
                 children: [],
@@ -860,8 +869,11 @@ export default function ProjectTaskDashboardPage() {
                         <table className="min-w-full divide-y divide-gray-200">
                             <thead className="bg-gray-50">
                                 <tr>
-                                    <th scope="col" className="w-2/5 dark:text-gray-200 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th scope="col" className="w-2/5  dark:text-gray-200 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Task
+                                    </th>
+                                    <th scope="col" className="px-6 dark:text-gray-200 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Client
                                     </th>
                                     <th scope="col" className="px-6 dark:text-gray-200 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Status
@@ -1091,15 +1103,16 @@ const TaskRow = ({ task, level, isExpanded, expandedRows, onToggle, members, isA
         <Fragment className="dark:bg-gray-900">
             <tr className={level > 0 ? 'bg-gray-50/50 dark:bg-gray-900 hover:bg-gray-100/50' : 'hover:bg-gray-50 dark:hover:bg-gray-600 dark:text-gray-100'}>
                 {/* Task Title */}
+                {/* Task Title with Client */}
                 <td className="px-6 py-4 align-top whitespace-nowrap">
                     <div className="flex dark:text-gray-100 items-start gap-2" style={{ paddingLeft: `${level * 1.5}rem` }}>
                         <div className="flex-shrink-0 pt-1">
                             {hasChildren ? (
-                                <button onClick={() => onToggle(task.id)} className="p-1 rounded-full hover:bg-gray-200">
+                                <button onClick={() => onToggle(task.id)} className="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
                                     {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                                 </button>
                             ) : (
-                                <div className="w-8"></div>
+                                <div className="w-8" />
                             )}
                         </div>
 
@@ -1109,18 +1122,20 @@ const TaskRow = ({ task, level, isExpanded, expandedRows, onToggle, members, isA
                                     type="text"
                                     value={handlers.editedTask.taskTitle}
                                     onChange={(e) => handlers.onEditChange({ ...handlers.editedTask, taskTitle: e.target.value })}
-                                    className="w-full  bg-white dark:bg-gray-700 dark:text-gray-200 border-gray-300 rounded-md shadow-sm py-2 px-3 text-sm"
+                                    className="w-full bg-white dark:bg-gray-700 dark:text-gray-200 border-gray-300 rounded-md shadow-sm py-2 px-3 text-sm"
                                 />
                             ) : (
                                 <>
                                     <div className="flex items-center flex-wrap">
                                         <span className="font-semibold text-gray-900 dark:text-gray-100">{displayText}</span>
                                         {isLong && !isFullyShown && (
-                                            <button onClick={() => onToggleFullText(task.id)} className="ml-2 text-indigo-600 dark:text-gray-400 hover:underline font-bold flex-shrink-0">
+                                            <button onClick={() => onToggleFullText(task.id)} className="ml-1 text-indigo-600 dark:text-gray-400 hover:underline font-bold">
                                                 ...
                                             </button>
                                         )}
                                     </div>
+
+                                    {/* Project + Deliverable tags */}
                                     <div className="mt-1">
                                         <InfoBadge text={task.projectName} colorClass="bg-blue-100 text-blue-800" />
                                         <InfoBadge text={task.deliverableName} colorClass="bg-green-100 text-green-800" />
@@ -1130,6 +1145,8 @@ const TaskRow = ({ task, level, isExpanded, expandedRows, onToggle, members, isA
                         </div>
                     </div>
                 </td>
+
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-200">{task.projectClientName || '—'}</td>
 
                 {/* Status */}
                 <td className="px-6 py-4 whitespace-nowrap">

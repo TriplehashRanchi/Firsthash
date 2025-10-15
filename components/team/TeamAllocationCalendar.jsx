@@ -15,7 +15,6 @@ const getAvatarUrl = (name) => {
     return `https://ui-avatars.com/api/?name=${initials}&background=random&color=fff&size=64`;
 };
 
-// --- (UNCHANGED) The Assignment Modal ---
 const AssignmentModal = ({ isOpen, onClose, teamMembers, role, currentAssignedMemberIds, requiredCount = 1, onSaveChanges }) => {
     const [selectedIds, setSelectedIds] = useState([]);
     const [toAdd, setToAdd] = useState([]);
@@ -200,6 +199,17 @@ const AllocationSlot = ({ role, assignedMembers, requiredCount, onClick }) => {
     const displayMembers = assignedMembers.slice(0, 3);
     const remainingCount = assignedMembers.length - displayMembers.length;
     const isRequirementMet = assignedMembers.length >= requiredCount;
+    const [open, setOpen] = useState(false);
+    const [openModal, setOpenModal] = useState(false);
+
+    useEffect(() => {
+        const safeRoleId = role.replace(/\s+/g, '-').toLowerCase(); // make safe ID
+        const handleClickOutside = (e) => {
+            if (!e.target.closest(`#dropdown-${safeRoleId}`)) setOpen(false);
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [role]);
 
     return (
         <div
@@ -209,13 +219,59 @@ const AllocationSlot = ({ role, assignedMembers, requiredCount, onClick }) => {
             <div>
                 <h4 className="font-bold text-sm text-slate-600 dark:text-slate-300 mb-3">{role.replace(/([A-Z])/g, ' $1').trim()}</h4>
                 {assignedMembers.length > 0 ? (
-                    <div className="flex items-center -space-x-3 h-9">
-                        {displayMembers.map((member) => (
-                            <img key={member.id} src={getAvatarUrl(member.name)} alt={member.name} className="w-9 h-9 rounded-full border-2 border-white dark:border-slate-800" title={member.name} />
-                        ))}
-                        {remainingCount > 0 && (
-                            <div className="w-9 h-9 rounded-full bg-slate-200 dark:bg-slate-600 flex items-center justify-center text-xs font-bold text-slate-600 dark:text-slate-200 border-2 border-white dark:border-slate-800">
-                                +{remainingCount}
+                    <div className="relative" id={`dropdown-${role}`}>
+                        {/* --- Compact Assigned Member Preview --- */}
+                        <div
+                            className="flex items-center gap-3 cursor-pointer"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setOpenModal(true);
+                            }}
+                        >
+                            <img src={getAvatarUrl(assignedMembers[0].name)} alt={assignedMembers[0].name} className="w-9 h-9 rounded-full border-2 border-white dark:border-slate-800 shadow-sm" />
+                            <div className="flex flex-col">
+                                <span className="font-medium text-slate-800 dark:text-slate-100 text-sm leading-tight">{assignedMembers[0].name}</span>
+                                {assignedMembers[0].role && <span className="text-xs text-slate-500 dark:text-slate-400 leading-tight">{assignedMembers[0].role}</span>}
+                                {assignedMembers.length > 1 && <span className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">+{assignedMembers.length - 1} more</span>}
+                            </div>
+                        </div>
+
+                        {/* --- Small Centered Modal --- */}
+                        {openModal && (
+                            <div className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-[70]" onClick={() => setOpenModal(false)}>
+                                <div
+                                    className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 w-full max-w-sm p-5 relative"
+                                    onClick={(e) => e.stopPropagation()}
+                                >
+                                    <h4 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4">Assigned Members ({assignedMembers.length})</h4>
+
+                                    {assignedMembers.length > 0 ? (
+                                        <div className="flex flex-col gap-3 max-h-[60vh] overflow-y-auto">
+                                            {assignedMembers.map((m, idx) => (
+                                                <div
+                                                    key={m.id}
+                                                    className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${
+                                                        idx % 2 === 0 ? 'bg-slate-50 dark:bg-slate-800/40' : 'hover:bg-slate-100 dark:hover:bg-slate-700/40'
+                                                    }`}
+                                                >
+                                                    <img src={getAvatarUrl(m.name)} alt={m.name} className="w-9 h-9 rounded-full border border-slate-200 dark:border-slate-600" />
+                                                    <div className="flex flex-col leading-tight">
+                                                        <span className="text-[13px] font-medium text-slate-800 dark:text-slate-100">{m.name}</span>
+                                                        {m.role && <span className="text-[11px] text-slate-500 dark:text-slate-400 font-normal">{m.role}</span>}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <p className="text-sm text-slate-500 dark:text-slate-400">No members assigned.</p>
+                                    )}
+
+                                    <div className="mt-5 flex justify-end">
+                                        <button onClick={() => setOpenModal(false)} className="px-4 py-2 text-sm font-semibold rounded-md bg-indigo-600 hover:bg-indigo-700 text-white transition-all">
+                                            Close
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         )}
                     </div>
@@ -228,9 +284,13 @@ const AllocationSlot = ({ role, assignedMembers, requiredCount, onClick }) => {
                     </div>
                 )}
             </div>
-            <div className={`flex items-center justify-end text-xs font-semibold mt-3 pt-2 border-t border-slate-200 dark:border-slate-700/50 ${isRequirementMet ? 'text-green-600 dark:text-green-500' : 'text-slate-500 dark:text-slate-400'}`}>
+            <div
+                className={`flex items-center justify-end text-xs font-semibold mt-3 pt-2 border-t border-slate-200 dark:border-slate-700/50 ${isRequirementMet ? 'text-green-600 dark:text-green-500' : 'text-slate-500 dark:text-slate-400'}`}
+            >
                 <Users size={12} className="mr-1.5" />
-                <span>{assignedMembers.length} / {requiredCount} Assigned</span>
+                <span>
+                    {assignedMembers.length} / {requiredCount} Assigned
+                </span>
             </div>
         </div>
     );
@@ -298,7 +358,7 @@ const TeamAllocationCalendar = ({ initialShoots, teamMembers, roles, onSaveAlloc
 
     const openModal = (shootId, role) => setModalContext({ shootId, role });
     const closeModal = () => setModalContext(null);
-    
+
     const handleMonthChange = (inc) =>
         setCurrentDate((d) => {
             const n = new Date(d);
@@ -328,9 +388,14 @@ const TeamAllocationCalendar = ({ initialShoots, teamMembers, roles, onSaveAlloc
         setShootsData((prevShoots) =>
             prevShoots.map((shoot) => {
                 if (shoot.id === shootId) {
-                    const newAllocations = { ...shoot.allocations };
-                    if (!newAllocations[role]) newAllocations[role] = { required: 1, assigned: [] };
-                    newAllocations[role].assigned = teamMemberIds || [];
+                    const newAllocations = {
+                        ...shoot.allocations,
+                        [role]: {
+                            ...shoot.allocations[role],
+                            required: shoot.allocations[role]?.required || 1,
+                            assigned: teamMemberIds || [],
+                        },
+                    };
                     return { ...shoot, allocations: newAllocations };
                 }
                 return shoot;
@@ -341,18 +406,19 @@ const TeamAllocationCalendar = ({ initialShoots, teamMembers, roles, onSaveAlloc
             onSaveAllocation(shootId, role, teamMemberIds);
         }
 
+        // ✅ Close modal after successful update
         closeModal();
     };
 
     const monthLabel = currentDate.toLocaleString('default', { month: 'long' });
     const yearLabel = currentDate.getFullYear();
     const formattedDate = currentDate.toLocaleString('default', { month: 'long', year: 'numeric' });
-    
+
     const currentShootForModal = modalContext ? shootsData.find((s) => s.id === modalContext.shootId) : null;
     const currentAllocation = currentShootForModal?.allocations[modalContext?.role];
     const currentAllocationIds = currentAllocation?.assigned || [];
     const currentRequiredCount = currentAllocation?.required || 1;
-    
+
     const navButtonStyles = 'p-2 rounded-md text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-800 dark:hover:text-white transition-colors';
 
     return (

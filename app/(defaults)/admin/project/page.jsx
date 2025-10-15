@@ -270,8 +270,8 @@ const ProjectListPage = () => {
             );
         }
 
-        return currentProjects.map((project) => (
-            <tr key={project.id} className={`${rowHoverStyles} transition-colors duration-150`}>
+        return currentProjects.map((project) => ( 
+            <tr key={project.id} onClick={() => handleNavigate(project.id)} className={`${rowHoverStyles} transition-colors duration-150 cursor-pointer`}>
                 <td className={`${tdStyles} font-medium ${textDefault}`}>{project.name}</td>
                 <td className={`${tdStyles} ${textDefault}`}>{formatEventDateRange(project.minDate, project.maxDate)}</td>
                 <td className={`${tdStyles} text-center`}>
@@ -295,7 +295,7 @@ const ProjectListPage = () => {
                 <td className={`${tdStyles} ${textDefault}`}>{project.clientName}</td>
                 <td className={`${tdStyles} font-medium ${textDefault} text-right`}>₹{project.packageCost.toLocaleString()}</td>
                 <td className={`${tdStyles} ${textDefault} text-right`}>₹{project.additionalCost.toLocaleString()}</td>
-                <td className={`${tdStyles} text-center`}>
+                <td className={`${tdStyles} text-center`} onClick={(e) => e.stopPropagation()}>
                     <button onClick={() => handleNavigate(project.id)} className={actionButtonStyles} title="View Project Details">
                         <Eye size={18} />
                     </button>

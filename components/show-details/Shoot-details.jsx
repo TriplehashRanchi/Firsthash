@@ -124,7 +124,7 @@ const AssignmentModalContent = ({
                 {filteredTeamMembers.length > 0 ? (
                     <div className="max-h-80 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-3 pr-1 mb-6 border border-slate-300 dark:border-slate-700 rounded-md p-3 bg-slate-50 dark:bg-slate-800/50">
                         {filteredTeamMembers.map((member) => (
-                            <li key={member.id}>
+                            <div key={member.id}>
                                 <label
                                     htmlFor={`member-${member.id}-${serviceName}`}
                                     className={`flex items-center w-full p-3 rounded-lg cursor-pointer transition-all duration-200 ease-in-out border-2 ${selectedMemberIds.includes(member.id) ? 'bg-indigo-500/10 dark:bg-indigo-600/20 border-indigo-500' : 'bg-slate-100 dark:bg-slate-700/50 border-slate-300 dark:border-slate-600 hover:bg-slate-200 dark:hover:bg-slate-600/70'}`}
@@ -144,7 +144,7 @@ const AssignmentModalContent = ({
                                     </div>
                                     {selectedMemberIds.includes(member.id) && <CheckCircle size={18} className="text-green-500 ml-auto" />}
                                 </label>
-                            </li>
+                            </div>
                         ))}
                     </div>
                 ) : (

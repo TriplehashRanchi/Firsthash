@@ -1,8 +1,9 @@
 'use client';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Trash, Plus, X, Search, Settings2, ListChecks, Loader2, Clock, CalendarDays } from 'lucide-react';
+import { Trash, Plus, X, Search, Settings2, ListChecks, Loader2, Clock, CalendarDays, Trash2 } from 'lucide-react';
 import CreatableSelect from 'react-select/creatable';
 import { getAuth } from 'firebase/auth';
+import AddShootModal from '@/components/common/AddShoots';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
@@ -288,11 +289,11 @@ const ShootRow = ({
             {!isFirst && canDelete && (
                 <button
                     onClick={onDelete}
-                    className="bg-red-600 text-white hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 rounded p-2 h-10 w-10 flex items-center justify-center"
+                    className="bg-red-500 text-white hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 rounded p-2 h-10 w-10 flex items-center justify-center"
                     title="Delete Shoot"
                     type="button"
                 >
-                    <Trash size={16} />
+                    <Trash2 size={16} />
                 </button>
             )}
 
@@ -404,6 +405,8 @@ const Shoots = ({ company, onValidChange, onDataChange, initialData }) => {
     const [shoots, setShoots] = useState(null);
     const [masterEventTitles, setMasterEventTitles] = useState([]);
     const [masterRoles, setMasterRoles] = useState([]);
+    const [newShootTitle, setNewShootTitle] = useState('');
+    const [creatingShoot, setCreatingShoot] = useState(false);
 
     useEffect(() => {
         const fetchMasterData = async () => {
@@ -666,7 +669,10 @@ const Shoots = ({ company, onValidChange, onDataChange, initialData }) => {
     return (
         <div className="mb-6 p-4 bg-white dark:bg-gray-900/50 rounded-lg shadow-md dark:shadow-gray-700/50">
             <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold text-gray-700 dark:text-gray-200">Shoot Schedule</h2>
+                <div className="flex items-center gap-6">
+                    <h2 className="text-xl font-semibold text-gray-700 dark:text-gray-200">Shoot Schedule</h2>
+                    <AddShootModal onAddShoot={handleAddMasterTitle} />
+                </div>
                 <button onClick={addShoot} className={addShootButtonStyles} title="Add Another Shoot" type="button">
                     <Plus size={16} className="mr-1.5" /> Add Shoot
                 </button>
