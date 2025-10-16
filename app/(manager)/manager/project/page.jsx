@@ -245,7 +245,7 @@ const ProjectListPage = () => {
                 <td className={`${tdStyles} ${textDefault} text-center`}>
                     {project.deliverablesCompleted}/{project.deliverablesTotal}
                 </td>
-                <td className={`${tdStyles} ${textDefault} text-center`}>{project.tasks}</td>
+                {/* <td className={`${tdStyles} ${textDefault} text-center`}>{project.tasks}</td> */}
                 <td className={`${tdStyles} ${textDefault}`}>{project.clientName}</td>
                 <td className={`${tdStyles} font-medium ${textDefault} text-right`}>₹{project.packageCost.toLocaleString()}</td>
                 <td className={`${tdStyles} ${textDefault} text-right`}>₹{project.additionalCost.toLocaleString()}</td>
@@ -364,9 +364,9 @@ const ProjectListPage = () => {
                             <th scope="col" className={`${thStyles} text-center`}>
                                 Deliverables
                             </th>
-                            <th scope="col" className={`${thStyles} text-center`}>
+                            {/* <th scope="col" className={`${thStyles} text-center`}>
                                 Tasks
-                            </th>
+                            </th> */}
                             <th scope="col" className={thStyles}>
                                 Client
                             </th>

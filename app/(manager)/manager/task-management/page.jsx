@@ -1030,35 +1030,54 @@ const AddSubtaskRow = ({ parentId, level, onSave, onCancel }) => {
     );
 };
 const AdminStatusToggle = ({ task, onStatusComplete }) => {
-    const status = task.status;
+    const status = (task.status || '').toLowerCase().trim();
+    const [isFinalized, setIsFinalized] = useState(status === 'finalize');
+    const [isCompleted, setIsCompleted] = useState(status === 'completed');
+    const [busy, setBusy] = useState(false);
 
-    // Determine toggle state and next status
-    const isCompleted = status === 'completed' || status === 'finalize';
-    let nextStatus;
+    const handleToggle = async () => {
+        if (busy || isCompleted) return;
+        setBusy(true);
+        try {
+            // Call your backend to mark as completed
+            await onStatusComplete(task, 'completed');
+            // Turn green briefly before hiding
+            setIsFinalized(false);
+            setIsCompleted(true);
+        } finally {
+            setBusy(false);
+        }
+    };
 
-    if (status === 'to_do' || status === 'in_progress') {
-        nextStatus = 'completed';
-    } else if (status === 'completed') {
-        nextStatus = 'finalize';
-    } else if (status === 'finalize') {
-        nextStatus = 'completed'; // allow toggling back
-    }
+    // ✅ If completed, hide the toggle
+    if (isCompleted) return null;
 
     return (
-        <div className="flex items-center justify-start">
-            <StatusBadge status={status} />
-            <label htmlFor={`toggle-${task.id}`} className="flex items-center cursor-pointer ml-4">
-                <div className="relative">
-                    <input type="checkbox" id={`toggle-${task.id}`} className="sr-only" checked={isCompleted} onChange={() => onStatusComplete(task, nextStatus)} />
-                    <div className={`block w-12 h-7 rounded-full transition-colors ${isCompleted ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-                    <div className={`dot absolute left-1 top-1 bg-white w-5 h-5 rounded-full transition-transform ${isCompleted ? 'translate-x-5' : 'translate-x-0'}`}></div>
-                </div>
-                <div className="ml-2 text-xs text-gray-600 font-medium select-none">{status === 'finalize' ? 'Finalized' : isCompleted ? 'Completed' : 'Mark Complete'}</div>
-            </label>
+        <div className="flex items-center gap-3">
+            <span className="text-[15px] font-semibold text-slate-800">Finalized</span>
+
+            <button
+                onClick={handleToggle}
+                disabled={busy}
+                className={[
+                    'relative w-[52px] h-[30px] rounded-full border transition-all duration-300 ease-in-out focus:outline-none',
+                    isFinalized
+                        ? 'bg-gray-300 border-gray-300' // gray before click
+                        : 'bg-emerald-500 border-emerald-500', // turns green after click
+                    busy ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer',
+                ].join(' ')}
+                title="Click to mark as completed"
+            >
+                <span
+                    className={[
+                        'absolute top-[3px] left-[3px] h-[24px] w-[24px] rounded-full bg-white shadow-md transform transition-transform duration-300 ease-in-out',
+                        isFinalized ? 'translate-x-0' : 'translate-x-[22px]',
+                    ].join(' ')}
+                />
+            </button>
         </div>
     );
 };
-
 const TaskRow = ({ task, level, isExpanded, expandedRows, onToggle, members, isAdmin, fullyShownTasks, onToggleFullText, ...handlers }) => {
     const isEditing = handlers.editingTaskId === task.id;
     const isEditingStatus = handlers.statusEditingTaskId === task.id;

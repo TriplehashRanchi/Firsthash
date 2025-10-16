@@ -1009,66 +1009,57 @@ const AddSubtaskRow = ({ parentId, level, onSave, onCancel }) => {
     );
 };
 const AdminStatusToggle = ({ task, onStatusComplete }) => {
-    const status = (task.status || '').toLowerCase().trim();
-    const isFinalized = status === 'finalize';
-    const nextStatus = isFinalized ? 'completed' : 'finalize';
-    const [busy, setBusy] = React.useState(false);
+  const status = (task.status || "").toLowerCase().trim();
+  const [isFinalized, setIsFinalized] = useState(status === "finalize");
+  const [isCompleted, setIsCompleted] = useState(status === "completed");
+  const [busy, setBusy] = useState(false);
 
-    const handleToggle = async () => {
-        if (busy) return;
-        setBusy(true);
-        try {
-            await onStatusComplete(task, nextStatus);
-        } finally {
-            setBusy(false);
-        }
-    };
+  const handleToggle = async () => {
+    if (busy || isCompleted) return;
+    setBusy(true);
+    try {
+      // Call your backend to mark as completed
+      await onStatusComplete(task, "completed");
+      // Turn green briefly before hiding
+      setIsFinalized(false);
+      setIsCompleted(true);
+    } finally {
+      setBusy(false);
+    }
+  };
 
-    return (
-        <div className="flex items-center">
-            <StatusBadge status={task.status} />
+  // ✅ If completed, hide the toggle
+  if (isCompleted) return null;
 
-            <button
-                type="button"
-                onClick={handleToggle}
-                disabled={busy}
-                role="switch"
-                aria-checked={isFinalized}
-                title={isFinalized ? 'Click to mark as Completed' : 'Click to Finalize'}
-                className={[
-                    'ml-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium',
-                    'border transition-all',
-                    isFinalized ? 'bg-emerald-50 border-emerald-200' : 'bg-gray-50 border-gray-200',
-                    'hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-400',
-                    busy ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer',
-                ].join(' ')}
-            >
-                <span className="relative inline-flex items-center">
-                    <span className={['relative inline-flex h-5 w-10 rounded-full transition-colors', isFinalized ? 'bg-emerald-500' : 'bg-gray-300'].join(' ')}>
-                        <span className={['absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform', isFinalized ? 'translate-x-5' : 'translate-x-0'].join(' ')} />
-                    </span>
-                </span>
+  return (
+    <div className="flex items-center gap-3">
+      <span className="text-[15px] font-semibold text-slate-800">
+        Finalized
+      </span>
 
-                {busy ? (
-                    <span className="inline-flex items-center gap-1">
-                        <Loader2 size={14} className="animate-spin" />
-                        <span>Saving…</span>
-                    </span>
-                ) : isFinalized ? (
-                    <span className="inline-flex items-center gap-1 text-emerald-700">
-                        <CheckCircle2 size={14} />
-                        <span>Finalized</span>
-                    </span>
-                ) : (
-                    <span className="inline-flex items-center gap-1 text-gray-600">
-                        <Circle size={14} />
-                        <span>Mark Finalized</span>
-                    </span>
-                )}
-            </button>
-        </div>
-    );
+      <button
+        onClick={handleToggle}
+        disabled={busy}
+        className={[
+          "relative w-[52px] h-[30px] rounded-full border transition-all duration-300 ease-in-out focus:outline-none",
+          isFinalized
+            ? "bg-gray-300 border-gray-300" // gray before click
+            : "bg-emerald-500 border-emerald-500", // turns green after click
+          busy ? "opacity-70 cursor-not-allowed" : "cursor-pointer",
+        ].join(" ")}
+        title="Click to mark as completed"
+      >
+        <span
+          className={[
+            "absolute top-[3px] left-[3px] h-[24px] w-[24px] rounded-full bg-white shadow-md transform transition-transform duration-300 ease-in-out",
+            isFinalized ? "translate-x-0" : "translate-x-[22px]",
+          ].join(" ")}
+        />
+      </button>
+    </div>
+  );
 };
+
 
 const TaskRow = ({ task, level, isExpanded, expandedRows, onToggle, members, isAdmin, fullyShownTasks, onToggleFullText, ...handlers }) => {
     const isEditing = handlers.editingTaskId === task.id;
