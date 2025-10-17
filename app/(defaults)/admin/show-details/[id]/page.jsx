@@ -446,7 +446,14 @@ function ProjectReviewPage() {
             const response = await axios.get(`${API_URL}/api/projects/${projectId}`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
-            setFullProjectData(response.data);
+            setFullProjectData((prev) => {
+                const newData = response.data;
+                return {
+                    ...newData,
+                    tasks: newData.tasks?.length ? newData.tasks : prev?.tasks || [],
+                };
+            });
+
             console.log('Fetched project data:', response.data);
         } catch (err) {
             console.error('Failed to fetch project data:', err);

@@ -452,7 +452,13 @@ function ProjectReviewPage() {
             const response = await axios.get(`${API_URL}/api/projects/${projectId}`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
-            setFullProjectData(response.data);
+            setFullProjectData((prev) => {
+                const newData = response.data;
+                return {
+                    ...newData,
+                    tasks: newData.tasks?.length ? newData.tasks : prev?.tasks || [],
+                };
+            });
             console.log('Fetched project data:', response.data);
         } catch (err) {
             console.error('Failed to fetch project data:', err);
@@ -1521,7 +1527,7 @@ function ProjectReviewPage() {
                                 </button>
                             )}
                             {/* --- NEW EDIT BUTTON --- */}
-                            {fullProjectData.projectStatus === 'pending' && (
+                            {fullProjectData.projectStatus !== 'completed' && (
                                 <button
                                     onClick={handleEditProject}
                                     className="flex items-center px-4 py-2 text-sm font-medium bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors shadow-md"
@@ -1531,15 +1537,7 @@ function ProjectReviewPage() {
                                 </button>
                             )}
                             {/* Reject (always visible if not completed/rejected) */}
-                            {/* {(fullProjectData.projectStatus === 'pending' || fullProjectData.projectStatus === 'ongoing') && (
-                                <button
-                                    onClick={() => handleStatusChange('rejected')}
-                                    className="px-4 py-2 text-sm font-medium bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors shadow-md"
-                                >
-                                    Reject Project
-                                </button>
-                            )} */}
-                            {fullProjectData.projectStatus !== 'completed' && (
+                            {fullProjectData.projectStatus === 'pending' && (
                                 <button
                                     onClick={() => handleRejectProject(fullProjectData.id)}
                                     className="px-4 py-2 text-sm font-medium bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors shadow-md"

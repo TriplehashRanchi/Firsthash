@@ -10,14 +10,14 @@ import Swal from 'sweetalert2';
 
 // --- Constants (Keep these as they are) ---
 const ProjectStatus = {
-    // ALL: 'all',
+    ALL: 'all',
     ONGOING: 'ongoing',
-    // PENDING: 'pending',
-    // REJECTED: 'rejected',
+    PENDING: 'pending',
+    REJECTED: 'rejected',
     COMPLETED: 'completed',
 };
 const statusConfig = {
-    // [ProjectStatus.ALL]: { label: 'All', icon: <Package size={14} className="mr-1.5" />, base: 'bg-blue-500 dark:bg-blue-500', hover: 'hover:bg-blue-600 dark:hover:bg-blue-600', text: 'text-white', pillBg: 'bg-blue-100 dark:bg-blue-400/20', pillText: 'text-blue-700 dark:text-blue-300', activePillBg: 'bg-white/20 dark:bg-blue-400/30', activePillText: 'text-white dark:text-blue-100', focusRing: 'focus:ring-blue-400' },
+    [ProjectStatus.ALL]: { label: 'All', icon: <Package size={14} className="mr-1.5" />, base: 'bg-blue-500 dark:bg-blue-500', hover: 'hover:bg-blue-600 dark:hover:bg-blue-600', text: 'text-white', pillBg: 'bg-blue-100 dark:bg-blue-400/20', pillText: 'text-blue-700 dark:text-blue-300', activePillBg: 'bg-white/20 dark:bg-blue-400/30', activePillText: 'text-white dark:text-blue-100', focusRing: 'focus:ring-blue-400' },
     [ProjectStatus.ONGOING]: {
         label: 'Ongoing',
         icon: <Clock size={14} className="mr-1.5 text-green-300" />,
@@ -30,8 +30,8 @@ const statusConfig = {
         activePillText: 'text-white dark:text-green-100',
         focusRing: 'focus:ring-green-400',
     },
-    // [ProjectStatus.PENDING]: { label: 'Pending', icon: <AlertTriangle size={14} className="mr-1.5 text-yellow-700 dark:text-yellow-600" />, base: 'bg-yellow-400 dark:bg-yellow-500', hover: 'hover:bg-yellow-500 dark:hover:bg-yellow-600', text: 'text-yellow-800 dark:text-yellow-900', pillBg: 'bg-yellow-100 dark:bg-yellow-400/20', pillText: 'text-yellow-700 dark:text-yellow-300', activePillBg: 'bg-black/10 dark:bg-yellow-700/40', activePillText: 'text-yellow-800 dark:text-yellow-100', focusRing: 'focus:ring-yellow-400' },
-    // [ProjectStatus.REJECTED]: { label: 'Rejected', icon: <XCircle size={14} className="mr-1.5 text-red-300" />, base: 'bg-red-500 dark:bg-red-500', hover: 'hover:bg-red-600 dark:hover:bg-red-600', text: 'text-white', pillBg: 'bg-red-100 dark:bg-red-400/20', pillText: 'text-red-700 dark:text-red-300', activePillBg: 'bg-white/20 dark:bg-red-400/30', activePillText: 'text-white dark:text-red-100', focusRing: 'focus:ring-red-400' },
+    [ProjectStatus.PENDING]: { label: 'Pending', icon: <AlertTriangle size={14} className="mr-1.5 text-yellow-700 dark:text-yellow-600" />, base: 'bg-yellow-400 dark:bg-yellow-500', hover: 'hover:bg-yellow-500 dark:hover:bg-yellow-600', text: 'text-yellow-800 dark:text-yellow-900', pillBg: 'bg-yellow-100 dark:bg-yellow-400/20', pillText: 'text-yellow-700 dark:text-yellow-300', activePillBg: 'bg-black/10 dark:bg-yellow-700/40', activePillText: 'text-yellow-800 dark:text-yellow-100', focusRing: 'focus:ring-yellow-400' },
+    [ProjectStatus.REJECTED]: { label: 'Rejected', icon: <XCircle size={14} className="mr-1.5 text-red-300" />, base: 'bg-red-500 dark:bg-red-500', hover: 'hover:bg-red-600 dark:hover:bg-red-600', text: 'text-white', pillBg: 'bg-red-100 dark:bg-red-400/20', pillText: 'text-red-700 dark:text-red-300', activePillBg: 'bg-white/20 dark:bg-red-400/30', activePillText: 'text-white dark:text-red-100', focusRing: 'focus:ring-red-400' },
     [ProjectStatus.COMPLETED]: {
         label: 'Completed',
         icon: <CheckCircle size={14} className="mr-1.5 text-orange-300" />,

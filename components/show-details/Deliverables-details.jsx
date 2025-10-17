@@ -5,9 +5,6 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 
-// --- This component is now a pure "dumb" component. ---
-// It receives all necessary data as props and has no internal state or complex logic.
-
 const DeliverablesDetails = ({
     projectId,
     deliverables,

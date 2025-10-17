@@ -43,7 +43,6 @@ const toNumber = (v) => {
     return 0;
 };
 
-
 function Page() {
     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
@@ -73,7 +72,6 @@ function Page() {
     // const [isScheduleValid, setIsScheduleValid] = useState(false);
     const [isLoadingData, setIsLoadingData] = useState(isEditMode);
     const [isScheduleValid, setIsScheduleValid] = useState(false);
-
 
     const packageCostNumber = useMemo(() => toNumber(projectPackageCost), [projectPackageCost]);
     const deliverablesCostNumber = useMemo(() => toNumber(deliverablesTotalCost), [deliverablesTotalCost]);
@@ -365,9 +363,18 @@ function Page() {
                 </li>
             </ul>
 
-            <div className="text-left">
-                <div className="flex items-center justify-between mb-6">
+            <div className="text-left relative">
+                <div className="flex items-center justify-between mb-6 relative">
+                    {/* Input Field */}
                     <input type="text" value={projectName} onChange={(e) => setProjectName(e.target.value)} placeholder="Enter Project Name" className={projectNameInputStyles} />
+
+                    {/* Tooltip shown ONLY when creating & name not entered */}
+                    {!isEditMode && !projectName && (
+                        <div className="absolute top-full left-0 mt-2 bg-yellow-100 border border-yellow-400 text-yellow-800 text-sm rounded-md px-3 py-2 shadow-md animate-fade-in w-max z-50">
+                            💡 <span className="font-semibold">Tip:</span> Please enter your project name before proceeding.
+                            <div className="absolute -top-1 left-4 w-2 h-2 bg-yellow-100 border-l border-t border-yellow-400 rotate-45"></div>
+                        </div>
+                    )}
                 </div>
             </div>
 
