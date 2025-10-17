@@ -118,6 +118,7 @@ const AddPaymentModal = ({ isOpen, onClose, currentUser, projectId, fetchProject
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
     const [description, setDescription] = useState('');
     const [loading, setLoading] = useState(false);
+    const [isGst, setIsGst] = useState(false);
 
     if (!isOpen) return null;
 
@@ -146,6 +147,7 @@ const AddPaymentModal = ({ isOpen, onClose, currentUser, projectId, fetchProject
                     amount: numericAmount,
                     date_received: date,
                     description,
+                    is_gst: isGst,
                 },
                 {
                     headers: {
@@ -196,6 +198,13 @@ const AddPaymentModal = ({ isOpen, onClose, currentUser, projectId, fetchProject
                                 required
                             />
                         </div>
+                        <div className="flex items-center gap-2 mt-2">
+                            <input type="checkbox" id="is_gst" checked={isGst} onChange={(e) => setIsGst(e.target.checked)} className="w-4 h-4 text-indigo-600 border-gray-300 rounded" />
+                            <label htmlFor="is_gst" className="text-sm text-gray-700 dark:text-gray-300">
+                                Include GST?
+                            </label>
+                        </div>
+
                         <div>
                             <label htmlFor="date" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                                 Payment Date
