@@ -25,6 +25,7 @@ import { CalendarCheck, CalendarCheck2, ClipboardCheck, IndianRupee, Presentatio
 import IconCaretDown from '../icon/icon-caret-down';
 import AnimateHeight from 'react-animate-height';
 import IconMessage2 from '../icon/icon-message2';
+import IconChatDot from '../icon/icon-chat-dot';
 
 const ManagerSidebar = () => {
     const dispatch = useDispatch();
@@ -210,6 +211,15 @@ const ManagerSidebar = () => {
                                             <div className="flex items-center">
                                                 <CalendarCheck className="shrink-0 group-hover:!text-primary" />
                                                 <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-gray-200  dark:group-hover:text-white-dark">{t('View Attendance')}</span>
+                                            </div>
+                                        </Link>
+                                    </li>
+
+                                    <li className="nav-item">
+                                        <Link href="/manager/chat" className="group">
+                                            <div className="flex items-center">
+                                                <IconChatDot className="shrink-0 group-hover:!text-primary" />
+                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-gray-200  dark:group-hover:text-white-dark">{t('Chat')}</span>
                                             </div>
                                         </Link>
                                     </li>

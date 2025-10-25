@@ -11,6 +11,7 @@ import IconMinus from '@/components/icon/icon-minus';
 import { usePathname } from 'next/navigation';
 import { getTranslation } from '@/i18n';
 import { BadgeIndianRupee, BookmarkCheck, Calendar, CalendarCheck, UserPen } from 'lucide-react';
+import IconChatDot from '../icon/icon-chat-dot';
 
 const EmployeeSidebar = () => {
     const dispatch = useDispatch();
@@ -138,6 +139,15 @@ const EmployeeSidebar = () => {
                                             <div className="flex items-center">
                                                 <CalendarCheck className="shrink-0 group-hover:!text-primary" />
                                                 <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-gray-200 dark:group-hover:text-white-dark">{t('View-Attendance')}</span>
+                                            </div>
+                                        </Link>
+                                    </li>
+
+                                    <li className="nav-item">
+                                        <Link href="/employee/chat" className="group">
+                                            <div className="flex items-center">
+                                                <IconChatDot className="shrink-0 group-hover:!text-primary" />
+                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-gray-200 dark:group-hover:text-white-dark">{t('Chat')}</span>
                                             </div>
                                         </Link>
                                     </li>

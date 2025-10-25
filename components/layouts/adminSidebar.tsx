@@ -44,6 +44,7 @@ import IconSquareRotated from '../icon/icon-square-rotated';
 import IconUser from '../icon/icon-user';
 import { UserRoundSearch } from 'lucide-react';
 import IconPlusCircle from '../icon/icon-plus-circle';
+import IconChatDot from '../icon/icon-chat-dot';
 
 
 const AdminSidebar = () => {
@@ -249,6 +250,15 @@ const AdminSidebar = () => {
                                             <div className="flex items-center">
                                                 <IconSquareRotated className="shrink-0 group-hover:!text-primary" />
                                                 <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:text-gray-200 dark:group-hover:text-white-dark">{t('Team Allocation')}</span>
+                                            </div>
+                                        </Link>
+                                    </li>
+
+                                    <li className="nav-item">
+                                        <Link href="/admin/chat" className="group">
+                                            <div className="flex items-center">
+                                                <IconChatDot className="shrink-0 group-hover:!text-primary" />
+                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:text-gray-200 dark:group-hover:text-white-dark">{t('Chat')}</span>
                                             </div>
                                         </Link>
                                     </li>
