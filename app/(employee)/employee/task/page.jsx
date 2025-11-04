@@ -4,18 +4,27 @@
 import React, { useEffect, useMemo, useState, useCallback, Fragment } from 'react';
 import axios from 'axios';
 import { getAuth } from 'firebase/auth';
-import { Eye, X, Loader2, CalendarDays, ChevronDown, ClipboardEdit, PlayCircle, FolderKanban, Tag, Mic, Circle, CheckCircle2 } from 'lucide-react';
+import { Eye, X, Loader2, CalendarDays, ChevronDown, ClipboardEdit, PlayCircle, FolderKanban, Tag, Mic, Circle, CheckCircle2, Info } from 'lucide-react';
 import Link from 'next/link';
 import toast, { Toaster } from 'react-hot-toast';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
 /* ----------------------------- Helpers & UI Components ----------------------------- */
+// ✅ Replace your existing getAuthHeaders function with this:
+
 const getAuthHeaders = async () => {
     const auth = getAuth();
     const u = auth.currentUser;
     if (!u) return {};
-    const token = await u.getIdToken();
+
+    // ✅ Try cached token first
+    let token = localStorage.getItem('authToken');
+    if (!token) {
+        token = await u.getIdToken();
+        localStorage.setItem('authToken', token);
+    }
+
     return { Authorization: `Bearer ${token}` };
 };
 
@@ -148,8 +157,13 @@ const UpdateStatusModal = ({ isOpen, onClose, task, customStatuses = [], onSubmi
                     <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border rounded-md hover:bg-gray-100">
                         Cancel
                     </button>
-                    <button onClick={handleSubmit} disabled={isSubmitting} className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:bg-indigo-400">
-                        {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save Status'}
+                    <button
+                        onClick={handleSubmit}
+                        disabled={isSubmitting}
+                        className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:bg-indigo-400 min-w-[120px]"
+                    >
+                        {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                        {isSubmitting ? 'Saving...' : 'Save Status'}
                     </button>
                 </div>
             </div>
@@ -315,6 +329,8 @@ export default function TaskPage() {
     const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
     const [taskForDetails, setTaskForDetails] = useState(null);
 
+    // 🔍 Inside your TaskPage component, update fetchAll() like this:
+
     const fetchAll = useCallback(async () => {
         try {
             setLoading(true);
@@ -325,18 +341,25 @@ export default function TaskPage() {
                 setLoading(false);
                 return;
             }
-            const [tRes, pRes, csRes] = await Promise.all([
-                axios.get(`${API_URL}/api/employee/tasks/assigned`, { headers }),
-                axios.get(`${API_URL}/api/employee/projects/assigned`, { headers }),
-                axios.get(`${API_URL}/api/employee/tasks/custom-statuses`, { headers }),
-            ]);
+
+            // ✅ Fetch tasks first for faster render
+            const tRes = await axios.get(`${API_URL}/api/employee/tasks/assigned`, { headers });
             setTasks(Array.isArray(tRes.data) ? tRes.data : []);
-            setProjects(Array.isArray(pRes.data) ? pRes.data : []);
-            setCustomStatuses(Array.isArray(csRes.data) ? csRes.data : []);
+            setLoading(false);
+
+            // ✅ Then load projects and custom statuses in background (non-blocking)
+            axios
+                .get(`${API_URL}/api/employee/projects/assigned`, { headers })
+                .then((pRes) => setProjects(Array.isArray(pRes.data) ? pRes.data : []))
+                .catch(console.error);
+
+            axios
+                .get(`${API_URL}/api/employee/tasks/custom-statuses`, { headers })
+                .then((csRes) => setCustomStatuses(Array.isArray(csRes.data) ? csRes.data : []))
+                .catch(console.error);
         } catch (e) {
             console.error(e);
             setErr('Failed to connect to the server.');
-        } finally {
             setLoading(false);
         }
     }, []);
@@ -362,20 +385,21 @@ export default function TaskPage() {
         setIsDetailsModalOpen(false);
     };
 
+    // 🔍 Replace your handleUpdateTaskStatus function with this:
+
     const handleUpdateTaskStatus = async (task, newStatus) => {
         const toastId = toast.loading('Updating status...');
         try {
             const headers = await getAuthHeaders();
-            const response = await axios.put(`${API_URL}/api/employee/tasks/${task.id}/status`, { status: newStatus }, { headers });
-            if (response.status === 200) {
-                toast.success('Status updated!', { id: toastId });
-                await fetchAll();
-            } else {
-                toast.error(response.data?.error || 'Failed to update.', { id: toastId });
-            }
+
+            // ✅ Optimistically update UI before API call finishes
+            setTasks((prev) => prev.map((t) => (t.id === task.id ? { ...t, status: newStatus } : t)));
+
+            await axios.put(`${API_URL}/api/employee/tasks/${task.id}/status`, { status: newStatus }, { headers });
+            toast.success('Status updated!', { id: toastId });
         } catch (e) {
-            toast.error('An error occurred.', { id: toastId });
             console.error(e);
+            toast.error('Failed to update.', { id: toastId });
         }
     };
 
@@ -416,7 +440,7 @@ export default function TaskPage() {
             }
             const dueDate = new Date(task.due_date);
             if (dueDate < today) groups.overdue.push(task);
-            else if (dueDate.getTime() === today.getTime()) groups.today.push(task);
+            else if (dueDate.toDateString() === today.toDateString()) groups.today.push(task);
             else if (dueDate <= endOfWeek) groups.week.push(task);
             else groups.upcoming.push(task);
         }
@@ -488,7 +512,7 @@ export default function TaskPage() {
                             groupTasks.length > 0 && (
                                 <div key={groupKey}>
                                     <h2 className="text-base font-semibold text-gray-800 mb-3 dark:text-gray-200 capitalize">{groupKey.replace('_', ' ')}</h2>
-                                    <TaskTable tasks={groupTasks} onUpdateStatusClick={handleOpenStatusModal} onPlayAudio={handlePlayAudio} />
+                                    <TaskTable tasks={groupTasks} onUpdateStatusClick={handleOpenStatusModal} onPlayAudio={handlePlayAudio} onShowDetails={handleShowDetails} />
                                 </div>
                             ),
                     )}
