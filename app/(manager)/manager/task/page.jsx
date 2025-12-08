@@ -4,7 +4,7 @@
 import React, { useEffect, useMemo, useState, useCallback, Fragment } from 'react';
 import axios from 'axios';
 import { getAuth } from 'firebase/auth';
-import { Eye, X, Loader2, CalendarDays, ChevronDown, ClipboardEdit, PlayCircle, FolderKanban, Tag, Mic, Circle, CheckCircle2 } from 'lucide-react';
+import { Eye, X, Loader2, CalendarDays, ChevronDown, ClipboardEdit, PlayCircle, FolderKanban, Tag, Mic, Circle, CheckCircle2, Info } from 'lucide-react';
 import Link from 'next/link';
 import toast, { Toaster } from 'react-hot-toast';
 
