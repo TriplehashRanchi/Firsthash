@@ -15,7 +15,7 @@
         "@fullcalendar/interaction": "^6.1.1",
         "@fullcalendar/react": "^6.1.4",
         "@fullcalendar/timegrid": "^6.1.1",
-        "@headlessui/react": "^2.1.2",
+        "@headlessui/react": "^2.2.9",
         "@mantine/core": "^5.10.5",
         "@mantine/hooks": "^5.10.5",
         "@reduxjs/toolkit": "^2.2.7",
