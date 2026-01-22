@@ -42,7 +42,6 @@ import {
 import Shoots from '@/components/show-details/Shoot-details';
 import DeliverablesDetails from '@/components/show-details/Deliverables-details';
 import Expence from '@/components/show-details/Expence';
-import { TaskManagementModal } from '@/components/show-details/TaskManagementModal';
 import { VoiceNoteRecorder } from '@/components/show-details/VoiceNoteRecorder';
 
 import ExpenseInfoPopup from '@/components/common/ExpenseInfoPopup';
@@ -374,8 +373,6 @@ function ProjectReviewPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
     const [isAddPaymentModalOpen, setIsAddPaymentModalOpen] = useState(false);
-    const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
-    const [currentDeliverable, setCurrentDeliverable] = useState(null);
     const [isVoiceNoteModalOpen, setIsVoiceNoteModalOpen] = useState(false);
     const [taskForVoiceNote, setTaskForVoiceNote] = useState(null);
     const [isGeneratingQuote, setIsGeneratingQuote] = useState(false); // For loading state on the button
@@ -483,10 +480,6 @@ function ProjectReviewPage() {
 
     // --- END: ADDED/MODIFIED FOR API INTEGRATION ---
 
-    const handleManageTasks = (deliverable) => {
-        setCurrentDeliverable(deliverable);
-        setIsTaskModalOpen(true);
-    };
     const handleEditProject = () => {
         router.push(`/admin/gopo?projectId=${projectId}`);
     };
@@ -1255,7 +1248,12 @@ function ProjectReviewPage() {
                         deliverables={fullProjectData.deliverables.deliverableItems}
                         tasks={fullProjectData.tasks || []}
                         sectionTitleStyles={sectionTitleStyles}
-                        onManageTasks={handleManageTasks} // <-- Pass the handler down
+                        teamMembers={eligibleDeliverableTeam}
+                        onTaskCreate={handleTaskCreate}
+                        onTaskUpdate={handleTaskUpdate}
+                        onTaskDelete={handleTaskDelete}
+                        onTaskAssign={handleTaskAssign}
+                        onTaskVoiceNote={handleTaskVoiceNote}
                     />
                 );
 
@@ -1439,20 +1437,6 @@ function ProjectReviewPage() {
                         balanceDue={totalCost - totalReceived}
                     />
 
-                    {currentDeliverable && (
-                        <TaskManagementModal
-                            isOpen={isTaskModalOpen}
-                            onClose={() => setIsTaskModalOpen(false)}
-                            deliverable={currentDeliverable}
-                            initialTasks={(fullProjectData.tasks || []).filter((t) => t.deliverable_id === currentDeliverable.id)}
-                            teamMembers={eligibleDeliverableTeam}
-                            onTaskCreate={handleTaskCreate}
-                            onTaskUpdate={handleTaskUpdate}
-                            onTaskDelete={handleTaskDelete}
-                            onTaskAssign={handleTaskAssign}
-                            onTaskVoiceNote={handleTaskVoiceNote}
-                        />
-                    )}
                     <VoiceNoteRecorder isOpen={isVoiceNoteModalOpen} onClose={() => setIsVoiceNoteModalOpen(false)} task={taskForVoiceNote} onUpload={handleUploadVoiceNote} />
                 </>
             )}

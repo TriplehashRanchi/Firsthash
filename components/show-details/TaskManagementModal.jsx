@@ -89,7 +89,17 @@ const AssigneeModal = ({ isOpen, onClose, teamMembers, currentAssignees, onSave 
 }
 
 // --- Sub-Component: A single, fully-interactive Task Item ---
-const TaskItem = ({ task, onUpdate, onDelete, onAssign, onVoiceNote, onAddSubtask, isSubtask = false, teamMembers = [] }) => {
+const TaskItem = ({
+  task,
+  onUpdate,
+  onDelete,
+  onAssign,
+  onVoiceNote,
+  onAddSubtask,
+  isSubtask = false,
+  teamMembers = [],
+  isReadOnly = false,
+}) => {
   const [isEditing, setIsEditing] = useState(false)
   const [title, setTitle] = useState(task.title)
 
@@ -101,6 +111,7 @@ const TaskItem = ({ task, onUpdate, onDelete, onAssign, onVoiceNote, onAddSubtas
   }
 
   const handleCheckboxChange = (e) => {
+    if (isReadOnly) return
     onUpdate(task.id, { status: e.target.checked ? "completed" : "to_do" })
   }
 
@@ -117,6 +128,7 @@ const TaskItem = ({ task, onUpdate, onDelete, onAssign, onVoiceNote, onAddSubtas
           type="checkbox"
           checked={isCompleted}
           onChange={handleCheckboxChange}
+          disabled={isReadOnly}
           className="peer sr-only"
           id={`task-${task.id}`}
         />
@@ -142,7 +154,7 @@ const TaskItem = ({ task, onUpdate, onDelete, onAssign, onVoiceNote, onAddSubtas
 
       {/* Task Content */}
       <div className="flex-grow ml-3 min-w-0">
-        <div onDoubleClick={() => setIsEditing(true)}>
+        <div onDoubleClick={() => !isReadOnly && setIsEditing(true)}>
           {isEditing ? (
             <input
               type="text"
@@ -177,13 +189,15 @@ const TaskItem = ({ task, onUpdate, onDelete, onAssign, onVoiceNote, onAddSubtas
         <button
           onClick={() => onAssign(task)}
           title="Assign members"
-          className="p-1.5 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors duration-150"
+          disabled={isReadOnly}
+          className="p-1.5 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <UserPlus size={16} />
         </button>
         <button
     onClick={() => onVoiceNote(task)}
     title={task.voice_note_url ? "Play Voice Note" : "Add Voice Note"}
+    disabled={isReadOnly}
     className={`p-1.5 rounded transition-colors duration-150 ${
         task.voice_note_url 
         ? 'text-blue-500 hover:text-blue-600' 
@@ -198,7 +212,8 @@ const TaskItem = ({ task, onUpdate, onDelete, onAssign, onVoiceNote, onAddSubtas
           <button
             onClick={() => onAddSubtask(task.id)}
             title="Add subtask"
-            className="p-1.5 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors duration-150"
+            disabled={isReadOnly}
+            className="p-1.5 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Plus size={16} />
           </button>
@@ -207,7 +222,8 @@ const TaskItem = ({ task, onUpdate, onDelete, onAssign, onVoiceNote, onAddSubtas
         <button
           onClick={() => onDelete(task.id)}
           title="Delete task"
-          className="p-1.5 rounded text-gray-400 hover:text-red-500 transition-colors duration-150"
+          disabled={isReadOnly}
+          className="p-1.5 rounded text-gray-400 hover:text-red-500 transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Trash2 size={16} />
         </button>
@@ -230,6 +246,7 @@ const TaskGroup = ({
   onVoiceNote,
   handleCreateTask,
   teamMembers,
+  isReadOnly = false,
 }) => {
   const [showSubtasks, setShowSubtasks] = useState(true)
   const hasSubtasks = task.children && task.children.length > 0
@@ -246,6 +263,7 @@ const TaskGroup = ({
         onVoiceNote={onVoiceNote}  
         onAddSubtask={setSubtaskParentId}
         teamMembers={teamMembers}
+        isReadOnly={isReadOnly}
       />
 
       {/* Subtasks Section */}
@@ -263,7 +281,7 @@ const TaskGroup = ({
           </button>
 
           {/* Subtasks List */}
-          {showSubtasks && (
+      {showSubtasks && (
             <div>
               {task.children.map((subtask) => (
                 <TaskItem
@@ -275,6 +293,7 @@ const TaskGroup = ({
                   onVoiceNote={onVoiceNote}
                   isSubtask={true}
                   teamMembers={teamMembers}
+                  isReadOnly={isReadOnly}
                 />
               ))}
             </div>
@@ -283,7 +302,7 @@ const TaskGroup = ({
       )}
 
       {/* Add Subtask Input */}
-      {subtaskParentId === task.id && (
+      {subtaskParentId === task.id && !isReadOnly && (
         <div className="pl-8 pb-3">
           <div className="flex items-center gap-3">
             <div className="w-5 h-5 border-2 border-gray-300 dark:border-gray-600 rounded-full flex-shrink-0"></div>
@@ -302,7 +321,7 @@ const TaskGroup = ({
       )}
 
       {/* Add Subtask Button */}
-      {!subtaskParentId && (hasSubtasks ? showSubtasks : true) && (
+      {!subtaskParentId && !isReadOnly && (hasSubtasks ? showSubtasks : true) && (
         <div className="pl-8 pb-3">
           <button
             onClick={() => setSubtaskParentId(task.id)}
@@ -329,6 +348,7 @@ export const TaskManagementModal = ({
   onTaskDelete,
   onTaskAssign,
   onTaskVoiceNote,
+  isReadOnly = false,
 }) => {
   const [newTaskTitle, setNewTaskTitle] = useState("")
   const [subtaskParentId, setSubtaskParentId] = useState(null)
@@ -422,6 +442,7 @@ export const TaskManagementModal = ({
                   handleCreateTask={handleCreateTask}
                   onVoiceNote={onTaskVoiceNote}
                   teamMembers={teamMembers}
+                  isReadOnly={isReadOnly}
                 />
               ))}
             </div>
@@ -442,18 +463,144 @@ export const TaskManagementModal = ({
               value={newTaskTitle}
               onChange={(e) => setNewTaskTitle(e.target.value)}
               placeholder="What needs to be done?"
+              disabled={isReadOnly}
               className="flex-1 px-4 py-3 text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-150 placeholder-gray-500 dark:placeholder-gray-400"
               onKeyPress={(e) => e.key === "Enter" && handleCreateTask(null)}
             />
             <button
               onClick={() => handleCreateTask(null)}
-              disabled={!newTaskTitle.trim()}
+              disabled={isReadOnly || !newTaskTitle.trim()}
               className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 transition-colors duration-150"
             >
               <Plus size={16} />
               Add Task
             </button>
           </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export const TaskManagementPanel = ({
+  deliverable,
+  initialTasks = [],
+  teamMembers = [],
+  onTaskCreate,
+  onTaskUpdate,
+  onTaskDelete,
+  onTaskAssign,
+  onTaskVoiceNote,
+  isReadOnly = false,
+}) => {
+  const [newTaskTitle, setNewTaskTitle] = useState("")
+  const [subtaskParentId, setSubtaskParentId] = useState(null)
+  const [assigningTask, setAssigningTask] = useState(null)
+
+  const taskTree = useMemo(() => {
+    const tasks = [...initialTasks]
+    const taskMap = new Map(tasks.map((t) => [t.id, { ...t, children: [] }]))
+
+    const tree = []
+    for (const task of tasks) {
+      if (task.parent_task_id && taskMap.has(task.parent_task_id)) {
+        taskMap.get(task.parent_task_id).children.push(taskMap.get(task.id))
+      } else {
+        tree.push(taskMap.get(task.id))
+      }
+    }
+    return tree
+  }, [initialTasks])
+
+  const handleCreateTask = (parentId = null) => {
+    const title = newTaskTitle.trim()
+    if (title === "" || isReadOnly) return
+
+    onTaskCreate({ title, deliverable_id: deliverable.id, parent_task_id: parentId })
+
+    setNewTaskTitle("")
+    setSubtaskParentId(null)
+  }
+
+  const handleAssignSave = (assigneeIds) => {
+    onTaskAssign(assigningTask.id, assigneeIds)
+    setAssigningTask(null)
+  }
+
+  const getAssigneeIdsForTask = (task) => {
+    return (task.assignments || []).map((name) => teamMembers.find((m) => m.name === name)?.id).filter(Boolean)
+  }
+
+  return (
+    <div className="relative bg-white z-[-1] dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700">
+      <AssigneeModal
+        isOpen={!!assigningTask}
+        onClose={() => setAssigningTask(null)}
+        teamMembers={teamMembers}
+        currentAssignees={assigningTask ? getAssigneeIdsForTask(assigningTask) : []}
+        onSave={handleAssignSave}
+      />
+
+      <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <ListTodo size={18} className="text-blue-600" />
+          <div>
+            <p className="text-sm font-medium text-gray-900 dark:text-white">Task Management</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{deliverable.title}</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-h-[520px] overflow-y-auto">
+        {taskTree.length > 0 ? (
+          <div>
+            {taskTree.map((task) => (
+              <TaskGroup
+                key={task.id}
+                task={task}
+                onUpdate={onTaskUpdate}
+                onDelete={onTaskDelete}
+                onAssign={setAssigningTask}
+                onAddSubtask={setSubtaskParentId}
+                subtaskParentId={subtaskParentId}
+                setSubtaskParentId={setSubtaskParentId}
+                newTaskTitle={newTaskTitle}
+                setNewTaskTitle={setNewTaskTitle}
+                handleCreateTask={handleCreateTask}
+                onVoiceNote={onTaskVoiceNote}
+                teamMembers={teamMembers}
+                isReadOnly={isReadOnly}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-10">
+            <ListTodo size={40} className="mx-auto text-gray-300 dark:text-gray-600 mb-3" />
+            <h4 className="text-base font-medium text-gray-900 dark:text-white mb-1">No tasks yet</h4>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Create your first task for this deliverable.</p>
+          </div>
+        )}
+      </div>
+
+      <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+        <div className="flex gap-3">
+          <input
+            type="text"
+            value={newTaskTitle}
+            onChange={(e) => setNewTaskTitle(e.target.value)}
+            placeholder="Add a task..."
+            disabled={isReadOnly}
+            className="flex-1 px-4 py-2.5 text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-150 placeholder-gray-500 dark:placeholder-gray-400"
+            onKeyPress={(e) => e.key === "Enter" && handleCreateTask(null)}
+          />
+          <button
+            onClick={() => handleCreateTask(null)}
+            disabled={isReadOnly || !newTaskTitle.trim()}
+            className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-5 py-2.5 rounded-lg font-medium flex items-center gap-2 transition-colors duration-150"
+          >
+            <Plus size={16} />
+            Add Task
+          </button>
         </div>
       </div>
     </div>
