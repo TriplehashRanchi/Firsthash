@@ -113,7 +113,7 @@
             console.log(justConnected ? "Just connected! Fetching token from DB." : "Checking DB for token...");
             try {
                 // Call our new, single endpoint
-                const response = await axios.get(`${API_URL}/api/admin/getFbToken`, {
+          const response = await axios.get(`${API_URL}/api/admins/getFbToken`, {
                     headers: { Authorization: `Bearer ${firebaseToken}` },
                 });
                 
@@ -312,8 +312,8 @@
       try {
         // 1. Remove from your backend DB
         const firebaseToken = await firebaseUser.getIdToken();
-        await axios.post(
-          `${API_URL}/api/admin/updateFbToken`,
+      await axios.post(
+        `${API_URL}/api/admins/updateFbToken`,
           { fbToken: null, fbExpiry: null },
           { headers: { Authorization: `Bearer ${firebaseToken}` } }
         );
@@ -491,5 +491,4 @@
   };
 
   export default FacebookLeadManager;
-
 
