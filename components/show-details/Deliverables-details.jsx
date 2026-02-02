@@ -4,6 +4,7 @@ import { PackageCheck, CalendarClock, ListTodo } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { TaskManagementPanel } from '@/components/show-details/TaskManagementModal';
+import { dedupeTasks } from '@/lib/taskUtils';
 
 const DeliverablesDetails = ({
     projectId,
@@ -17,6 +18,7 @@ const DeliverablesDetails = ({
     onTaskDelete,
     onTaskAssign,
     onTaskVoiceNote,
+    onTaskBundleImported,
 }) => {
     const { role } = useAuth();
        console.log('role', role);
@@ -29,7 +31,7 @@ const DeliverablesDetails = ({
     // Helper function to find and summarize tasks for a specific deliverable ID.
     const getTasksForDeliverable = (deliverableId) => {
         // Filter the entire tasks array to find ones linked to this deliverable.
-        const relatedTasks = (tasks || []).filter((task) => task.deliverable_id === deliverableId);
+        const relatedTasks = dedupeTasks((tasks || []).filter((task) => task.deliverable_id === deliverableId));
         // Count how many of those tasks are marked as 'completed'.
         const completedTasks = relatedTasks.filter((task) => task.status === 'completed').length;
 
@@ -97,6 +99,7 @@ const DeliverablesDetails = ({
                                     onTaskDelete={onTaskDelete}
                                     onTaskAssign={onTaskAssign}
                                     onTaskVoiceNote={onTaskVoiceNote}
+                                    onTaskBundleImported={onTaskBundleImported}
                                     isReadOnly={isReadOnly}
                                 />
                             </div>

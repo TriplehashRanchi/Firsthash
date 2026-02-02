@@ -1052,7 +1052,7 @@ function ProjectReviewPage() {
     // --- Page Styles ---
     const pageContainerStyles = 'min-h-screen p-4 sm:p-6 lg:p-8 bg-transparent dark:bg-slate-900';
     const mainContentWrapperStyles = 'max-w-6xl mx-auto bg-transparent shadow-none rounded-2xl';
-    const filterTabsContainerStyles = 'inline-flex gap-2 items-center bg-slate-100/80 dark:bg-slate-700/60 p-2 rounded-2xl shadow-inner sticky top-4 backdrop-blur-sm overflow-x-auto';
+    const filterTabsContainerStyles = 'inline-flex gap-2 items-center bg-slate-100/80 dark:bg-slate-700/60 p-2 rounded-2xl shadow-inner sticky top-4 backdrop-blur-sm overflow-x-auto z-20 mb-6';
     const tabButtonBaseStyles =
         'flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 transform hover:-translate-y-0.5 hover:shadow-md';
     const inactiveTabStyles = 'bg-slate-200/70 hover:bg-slate-300/70 dark:bg-slate-600/50 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 focus:ring-indigo-300 dark:focus:ring-indigo-600';
@@ -1095,7 +1095,8 @@ function ProjectReviewPage() {
     }
     const isPending = fullProjectData.projectStatus === 'pending';
     const isInteractionDisabled = fullProjectData.projectStatus !== 'ongoing';
-    const isReadOnly = fullProjectData.projectStatus !== 'ongoing';
+    const normalizedStatus = (fullProjectData.projectStatus || '').toString().trim().toLowerCase();
+    const isReadOnly = normalizedStatus !== 'ongoing';
 
     const { clients, projectDetails, shoots: shootsObject, deliverables, receivedAmount, paymentSchedule, quotations } = fullProjectData;
 
@@ -1254,6 +1255,7 @@ function ProjectReviewPage() {
                         onTaskDelete={handleTaskDelete}
                         onTaskAssign={handleTaskAssign}
                         onTaskVoiceNote={handleTaskVoiceNote}
+                        onTaskBundleImported={fetchProjectData}
                     />
                 );
 
@@ -1547,7 +1549,7 @@ function ProjectReviewPage() {
                         </div>
 
                         {/* RENDERED TAB CONTENT */}
-                        <div className="mt-8 min-h-[350px]">{fullRenderTabContent()}</div>
+                        <div className="min-h-[350px]">{fullRenderTabContent()}</div>
                     </div>
                 </div>
             </div>

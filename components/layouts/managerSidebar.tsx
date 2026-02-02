@@ -159,6 +159,15 @@ const ManagerSidebar = () => {
                                     </li>
 
                                      <li className="nav-item">
+                                        <Link href="/manager/task-bundles" className="group">
+                                            <div className="flex items-center">
+                                                <ClipboardCheck className="shrink-0 group-hover:!text-primary" />
+                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-gray-200  dark:group-hover:text-white-dark">{t('Task Bundles')}</span>
+                                            </div>
+                                        </Link>
+                                    </li>
+
+                                     <li className="nav-item">
                                         <Link href="/manager/clients-details" className='group'>
                                             <div className='flex items-center'>
                                                 <UserRoundSearch className="shrink-0 group-hover:!text-primary" />

@@ -1,6 +1,8 @@
 "use client"
 import { useState, useMemo, useEffect } from "react"
 import { ListTodo, X, Plus, Trash2, UserPlus, ChevronDown, ChevronRight, Mic, Play } from "lucide-react"
+import { dedupeTasks } from "@/lib/taskUtils"
+import { importTaskBundleToDeliverable, listTaskBundles } from "@/lib/taskBundlesApi"
 
 // --- Sub-Component: Assignee Modal (Nested inside the main modal) ---
 const AssigneeModal = ({ isOpen, onClose, teamMembers, currentAssignees, onSave }) => {
@@ -81,6 +83,88 @@ const AssigneeModal = ({ isOpen, onClose, teamMembers, currentAssignees, onSave 
             className="px-4 py-2 text-sm text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors duration-150"
           >
             Save
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+const ImportBundleModal = ({
+  isOpen,
+  onClose,
+  bundles,
+  loadingBundles,
+  form,
+  setForm,
+  onImport,
+  importing,
+}) => {
+  if (!isOpen) return null
+
+  return (
+    <div className="absolute inset-0 bg-black/50 z-10 flex items-center justify-center p-4 backdrop-blur-sm">
+      <div className="bg-white dark:bg-gray-900 rounded-xl w-full max-w-lg border border-gray-200 dark:border-gray-700">
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+          <div>
+            <h4 className="text-lg font-medium text-gray-900 dark:text-white">Import Task Bundle</h4>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Create tasks from your reusable bundle templates.</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-150"
+          >
+            <X size={18} />
+          </button>
+        </div>
+        <div className="p-5 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Bundle</label>
+            <select
+              value={form.bundle_id}
+              onChange={(e) => setForm((prev) => ({ ...prev, bundle_id: e.target.value }))}
+              disabled={loadingBundles}
+              className="w-full px-3 py-2.5 text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Select a bundle</option>
+              {bundles.map((bundle) => (
+                <option key={bundle.id} value={bundle.id}>
+                  {bundle.name} {bundle.is_active ? "" : "(inactive)"}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Due base date (optional)</label>
+            <input
+              type="date"
+              value={form.due_base_date}
+              onChange={(e) => setForm((prev) => ({ ...prev, due_base_date: e.target.value }))}
+              className="w-full px-3 py-2.5 text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+            <input
+              type="checkbox"
+              checked={form.skip_duplicates}
+              onChange={(e) => setForm((prev) => ({ ...prev, skip_duplicates: e.target.checked }))}
+            />
+            Skip duplicate task titles
+          </label>
+        </div>
+        <div className="px-5 py-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-end gap-2">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onImport}
+            disabled={importing || loadingBundles}
+            className="px-4 py-2 text-sm rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white"
+          >
+            {importing ? "Importing..." : "Import Bundle"}
           </button>
         </div>
       </div>
@@ -354,8 +438,10 @@ export const TaskManagementModal = ({
   const [subtaskParentId, setSubtaskParentId] = useState(null)
   const [assigningTask, setAssigningTask] = useState(null)
 
+  const dedupedTasks = useMemo(() => dedupeTasks(initialTasks), [initialTasks])
+
   const taskTree = useMemo(() => {
-    const tasks = [...initialTasks]
+    const tasks = [...dedupedTasks]
     const taskMap = new Map(tasks.map((t) => [t.id, { ...t, children: [] }]))
 
     const tree = []
@@ -367,7 +453,7 @@ export const TaskManagementModal = ({
       }
     }
     return tree
-  }, [initialTasks])
+  }, [dedupedTasks])
 
   if (!isOpen) return null
 
@@ -491,14 +577,26 @@ export const TaskManagementPanel = ({
   onTaskDelete,
   onTaskAssign,
   onTaskVoiceNote,
+  onTaskBundleImported,
   isReadOnly = false,
 }) => {
   const [newTaskTitle, setNewTaskTitle] = useState("")
   const [subtaskParentId, setSubtaskParentId] = useState(null)
   const [assigningTask, setAssigningTask] = useState(null)
+  const [isImportBundleOpen, setIsImportBundleOpen] = useState(false)
+  const [bundleOptions, setBundleOptions] = useState([])
+  const [loadingBundleOptions, setLoadingBundleOptions] = useState(false)
+  const [isImportingBundle, setIsImportingBundle] = useState(false)
+  const [importForm, setImportForm] = useState({
+    bundle_id: "",
+    due_base_date: "",
+    skip_duplicates: true,
+  })
+
+  const dedupedTasks = useMemo(() => dedupeTasks(initialTasks), [initialTasks])
 
   const taskTree = useMemo(() => {
-    const tasks = [...initialTasks]
+    const tasks = [...dedupedTasks]
     const taskMap = new Map(tasks.map((t) => [t.id, { ...t, children: [] }]))
 
     const tree = []
@@ -510,7 +608,7 @@ export const TaskManagementPanel = ({
       }
     }
     return tree
-  }, [initialTasks])
+  }, [dedupedTasks])
 
   const handleCreateTask = (parentId = null) => {
     const title = newTaskTitle.trim()
@@ -531,14 +629,85 @@ export const TaskManagementPanel = ({
     return (task.assignments || []).map((name) => teamMembers.find((m) => m.name === name)?.id).filter(Boolean)
   }
 
+  const openImportBundleModal = async () => {
+    if (isReadOnly) return
+    setIsImportBundleOpen(true)
+    setLoadingBundleOptions(true)
+    try {
+      const bundles = await listTaskBundles()
+      const sorted = [...(Array.isArray(bundles) ? bundles : [])].sort((a, b) => {
+        const activeDelta = Number(!!b.is_active) - Number(!!a.is_active)
+        if (activeDelta !== 0) return activeDelta
+        return String(a.name || "").localeCompare(String(b.name || ""))
+      })
+      setBundleOptions(sorted)
+      setImportForm((prev) => ({
+        ...prev,
+        bundle_id: prev.bundle_id || (sorted[0]?.id ? String(sorted[0].id) : ""),
+      }))
+    } catch (error) {
+      console.error("Failed to fetch task bundles:", error)
+      alert(error.message || "Could not load bundles. Please try again.")
+    } finally {
+      setLoadingBundleOptions(false)
+    }
+  }
+
+  const handleImportBundle = async () => {
+    if (!importForm.bundle_id) {
+      alert("Please select a bundle to import.")
+      return
+    }
+
+    setIsImportingBundle(true)
+    try {
+      const response = await importTaskBundleToDeliverable(deliverable.id, {
+        bundle_id: Number(importForm.bundle_id),
+        due_base_date: importForm.due_base_date || null,
+        skip_duplicates: !!importForm.skip_duplicates,
+      })
+
+      if (typeof onTaskBundleImported === "function") {
+        await onTaskBundleImported()
+      }
+
+      alert(`Imported ${response?.created_count || 0} task(s). Skipped ${response?.skipped_count || 0}.`)
+      setIsImportBundleOpen(false)
+      setImportForm({
+        bundle_id: "",
+        due_base_date: "",
+        skip_duplicates: true,
+      })
+    } catch (error) {
+      console.error("Task bundle import failed:", error)
+      if (error.status === 404) {
+        alert("This bundle no longer exists.")
+        return
+      }
+      alert(error.message || "Could not import bundle. Please try again.")
+    } finally {
+      setIsImportingBundle(false)
+    }
+  }
+
   return (
-    <div className="relative bg-white z-[-1] dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700">
+    <div className="relative bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700">
       <AssigneeModal
         isOpen={!!assigningTask}
         onClose={() => setAssigningTask(null)}
         teamMembers={teamMembers}
         currentAssignees={assigningTask ? getAssigneeIdsForTask(assigningTask) : []}
         onSave={handleAssignSave}
+      />
+      <ImportBundleModal
+        isOpen={isImportBundleOpen}
+        onClose={() => setIsImportBundleOpen(false)}
+        bundles={bundleOptions}
+        loadingBundles={loadingBundleOptions}
+        form={importForm}
+        setForm={setImportForm}
+        onImport={handleImportBundle}
+        importing={isImportingBundle}
       />
 
       <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
@@ -549,6 +718,13 @@ export const TaskManagementPanel = ({
             <p className="text-xs text-gray-500 dark:text-gray-400">{deliverable.title}</p>
           </div>
         </div>
+        <button
+          onClick={openImportBundleModal}
+          disabled={isReadOnly}
+          className="px-3 py-1.5 text-xs rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white"
+        >
+          Import Bundle
+        </button>
       </div>
 
       <div className="max-h-[520px] overflow-y-auto">
