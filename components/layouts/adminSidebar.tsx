@@ -207,6 +207,15 @@ const AdminSidebar = () => {
                                         </Link>
                                     </li>
 
+                                    <li className="nav-item">
+                                        <Link href="/admin/facebook-lead/test" className="group">
+                                            <div className="flex items-center">
+                                                <IconCaretsDown className="shrink-0 group-hover:!text-primary" />
+                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:text-gray-200 dark:group-hover:text-white-dark">{t('Facebook Lead')}</span>
+                                            </div>
+                                        </Link>
+                                    </li>
+
                                       <li className="nav-item">
                                         <Link href="/admin/gopo" className="group">
                                             <div className="flex items-center">
