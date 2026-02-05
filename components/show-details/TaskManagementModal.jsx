@@ -1,88 +1,141 @@
 "use client"
 import { useState, useMemo, useEffect } from "react"
-import { ListTodo, X, Plus, Trash2, UserPlus, ChevronDown, ChevronRight, Mic, Play } from "lucide-react"
+import { ListTodo, X, Plus, Trash2, UserPlus, ChevronDown, ChevronRight, Mic, Play, CheckCircle2, CornerDownRight } from "lucide-react"
 import { dedupeTasks } from "@/lib/taskUtils"
-import { importTaskBundleToDeliverable, listTaskBundles } from "@/lib/taskBundlesApi"
 
-// --- Sub-Component: Assignee Modal (Nested inside the main modal) ---
+const DATE_FORMATTER = new Intl.DateTimeFormat("en-US", {
+  day: "numeric",
+  month: "short",
+})
+
+const getDueDateMeta = (task) => {
+  const value = task?.due_date || task?.dueDate || task?.due_at || task?.deadline || null
+  if (!value) return null
+
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) return null
+
+  const dueDay = new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate())
+  const now = new Date()
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+
+  return {
+    label: DATE_FORMATTER.format(parsed),
+    isOverdue: dueDay.getTime() < today.getTime(),
+    iso: parsed.toISOString(),
+  }
+}
+
+const getInitials = (name) => {
+  if (!name) return "?"
+  return name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .substring(0, 2)
+    .toUpperCase()
+}
+
+const getAssigneeIdsForTask = (task, teamMembers) => {
+  return (task.assignments || []).map((name) => teamMembers.find((m) => m.name === name)?.id).filter(Boolean)
+}
+
+const getDateInputValue = (task) => {
+  const value = task?.due_date || task?.dueDate || task?.due_at || task?.deadline
+  if (!value) return ""
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) return ""
+  return parsed.toISOString().slice(0, 10)
+}
+
+const UserAvatar = ({ name, size = "sm" }) => {
+  const colors = [
+    "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
+    "bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300",
+    "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300",
+    "bg-rose-100 text-rose-700 dark:bg-rose-900 dark:text-rose-300",
+  ]
+  const safeName = name || "unknown"
+  const colorClass = colors[safeName.length % colors.length]
+  const sizeClass = size === "xs" ? "w-5 h-5 text-[9px]" : "w-7 h-7 text-[10px]"
+
+  return (
+    <div
+      className={`${sizeClass} rounded-full flex items-center justify-center font-bold ring-2 ring-white dark:ring-gray-900 ${colorClass}`}
+      title={name}
+    >
+      {getInitials(name)}
+    </div>
+  )
+}
+
 const AssigneeModal = ({ isOpen, onClose, teamMembers, currentAssignees, onSave }) => {
-  const [selectedIds, setSelectedIds] = useState([]);
+  const [selectedIds, setSelectedIds] = useState([])
 
   useEffect(() => {
-    if (isOpen) {
-      setSelectedIds(currentAssignees);
-    }
-  }, [isOpen, currentAssignees]);
+    if (isOpen) setSelectedIds(currentAssignees)
+  }, [isOpen, currentAssignees])
 
-  if (!isOpen) return null;
+  if (!isOpen) return null
 
   const handleSelect = (memberId) => {
     setSelectedIds((prev) => (prev.includes(memberId) ? prev.filter((id) => id !== memberId) : [...prev, memberId]))
   }
 
-
   return (
-    <div className="absolute inset-0 bg-black/50 z-10 flex items-center justify-center p-4 backdrop-blur-sm">
-      <div className="bg-white dark:bg-gray-900 rounded-xl w-full max-w-md border border-gray-200 dark:border-gray-700">
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-          <h4 className="text-lg font-medium text-gray-900 dark:text-white">Assign Team Members</h4>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Select members to assign to this task</p>
+    <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/45 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full max-w-md bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-2xl">
+        <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center">
+          <h4 className="text-sm font-semibold text-gray-900 dark:text-white">Assign Members</h4>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+            <X size={16} />
+          </button>
         </div>
-        <div className="p-4 max-h-80 overflow-y-auto">
+
+        <div className="p-2 max-h-[360px] overflow-y-auto">
           {teamMembers.map((member) => {
             const isSelected = selectedIds.includes(member.id)
             return (
-              <label
+              <div
                 key={member.id}
-                className="flex items-center p-3 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-150"
+                onClick={() => handleSelect(member.id)}
+                className={`flex items-center p-2 rounded-lg cursor-pointer transition-colors duration-150 ${
+                  isSelected ? "bg-blue-50 dark:bg-blue-900/20" : "hover:bg-gray-50 dark:hover:bg-gray-800"
+                }`}
               >
-                <div className="relative">
-                  <input
-                    type="checkbox"
-                    checked={isSelected}
-                    onChange={() => handleSelect(member.id)}
-                    className="peer sr-only"
-                    id={`member-${member.id}`}
-                  />
-                  <div
-                    className={`w-4 h-4 rounded border transition-colors duration-150 flex items-center justify-center ${
-                      isSelected ? "border-blue-500 bg-blue-500" : "border-gray-300 dark:border-gray-600"
-                    }`}
-                  >
-                    {isSelected && (
-                      <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                        <path
-                          fillRule="evenodd"
-                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                    )}
-                  </div>
+                <div
+                  className={`w-4 h-4 rounded border flex items-center justify-center mr-3 transition-colors ${
+                    isSelected ? "border-blue-500 bg-blue-500" : "border-gray-300 dark:border-gray-600"
+                  }`}
+                >
+                  {isSelected && <CheckCircle2 size={10} className="text-white" />}
                 </div>
-              <div className="ml-3">
-    <span className="text-sm font-medium text-gray-900 dark:text-white">{member.name}</span>
-    <span className="block text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-        {member.roles.filter(role => role.code === 2).map(role => role.role).join(', ') || member.primaryRole || 'No relevant roles'}
-    </span>
-</div>
-                
-              </label>
+                <UserAvatar name={member.name} size="xs" />
+                <p
+                  className={`ml-3 text-sm font-medium ${
+                    isSelected ? "text-blue-700 dark:text-blue-300" : "text-gray-700 dark:text-gray-200"
+                  }`}
+                >
+                  {member.name}
+                </p>
+              </div>
             )
           })}
         </div>
-        <div className="flex justify-end gap-3 p-4 border-t border-gray-200 dark:border-gray-700">
+
+        <div className="flex justify-end gap-2 p-4 border-t border-gray-100 dark:border-gray-800">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-150"
+            className="px-3 py-1.5 text-xs font-medium rounded-md border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200"
           >
             Cancel
           </button>
           <button
             onClick={() => onSave(selectedIds)}
-            className="px-4 py-2 text-sm text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors duration-150"
+            className="px-3 py-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm shadow-blue-500/20"
           >
-            Save
+            Apply Assignments
           </button>
         </div>
       </div>
@@ -90,99 +143,32 @@ const AssigneeModal = ({ isOpen, onClose, teamMembers, currentAssignees, onSave 
   )
 }
 
-const ImportBundleModal = ({
-  isOpen,
-  onClose,
-  bundles,
-  loadingBundles,
-  form,
-  setForm,
-  onImport,
-  importing,
-}) => {
-  if (!isOpen) return null
+const ActionButton = ({ onClick, icon, label, tooltip, color, active = false, disabled = false }) => (
+  <button
+    onClick={onClick}
+    title={tooltip}
+    disabled={disabled}
+    className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${color} ${
+      active ? "text-blue-600 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800" : ""
+    }`}
+  >
+    {icon}
+    <span>{label}</span>
+  </button>
+)
 
-  return (
-    <div className="absolute inset-0 bg-black/50 z-10 flex items-center justify-center p-4 backdrop-blur-sm">
-      <div className="bg-white dark:bg-gray-900 rounded-xl w-full max-w-lg border border-gray-200 dark:border-gray-700">
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-          <div>
-            <h4 className="text-lg font-medium text-gray-900 dark:text-white">Import Task Bundle</h4>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Create tasks from your reusable bundle templates.</p>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-150"
-          >
-            <X size={18} />
-          </button>
-        </div>
-        <div className="p-5 space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Bundle</label>
-            <select
-              value={form.bundle_id}
-              onChange={(e) => setForm((prev) => ({ ...prev, bundle_id: e.target.value }))}
-              disabled={loadingBundles}
-              className="w-full px-3 py-2.5 text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">Select a bundle</option>
-              {bundles.map((bundle) => (
-                <option key={bundle.id} value={bundle.id}>
-                  {bundle.name} {bundle.is_active ? "" : "(inactive)"}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Due base date (optional)</label>
-            <input
-              type="date"
-              value={form.due_base_date}
-              onChange={(e) => setForm((prev) => ({ ...prev, due_base_date: e.target.value }))}
-              className="w-full px-3 py-2.5 text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-            <input
-              type="checkbox"
-              checked={form.skip_duplicates}
-              onChange={(e) => setForm((prev) => ({ ...prev, skip_duplicates: e.target.checked }))}
-            />
-            Skip duplicate task titles
-          </label>
-        </div>
-        <div className="px-5 py-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-end gap-2">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={onImport}
-            disabled={importing || loadingBundles}
-            className="px-4 py-2 text-sm rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white"
-          >
-            {importing ? "Importing..." : "Import Bundle"}
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// --- Sub-Component: A single, fully-interactive Task Item ---
-const TaskItem = ({
+const TaskRow = ({
   task,
+  depth = 0,
   onUpdate,
   onDelete,
   onAssign,
   onVoiceNote,
   onAddSubtask,
-  isSubtask = false,
-  teamMembers = [],
-  isReadOnly = false,
+  onToggleSubtasks,
+  showSubtasks,
+  hasSubtasks,
+  isReadOnly,
 }) => {
   const [isEditing, setIsEditing] = useState(false)
   const [title, setTitle] = useState(task.title)
@@ -194,236 +180,198 @@ const TaskItem = ({
     setIsEditing(false)
   }
 
-  const handleCheckboxChange = (e) => {
-    if (isReadOnly) return
-    onUpdate(task.id, { status: e.target.checked ? "completed" : "to_do" })
-  }
-
-  const assignedNames = (task.assignments || []).join(", ")
+  const assignedNames = Array.from(new Set(task.assignments || []))
   const isCompleted = task.status === "completed"
+  const dueDate = getDueDateMeta(task)
+
+  const gridTemplate = "32px minmax(180px, 1fr) 170px 110px 160px 290px"
 
   return (
-    <div
-      className={`flex items-center py-3 group hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors duration-150 ${isSubtask ? "pl-8" : "pl-4"}`}
-    >
-      {/* Checkbox */}
-      <div className="relative flex-shrink-0">
-        <input
-          type="checkbox"
-          checked={isCompleted}
-          onChange={handleCheckboxChange}
-          disabled={isReadOnly}
-          className="peer sr-only"
-          id={`task-${task.id}`}
-        />
-        <label
-          htmlFor={`task-${task.id}`}
-          className={`relative flex items-center justify-center w-5 h-5 border-2 rounded-full cursor-pointer transition-all duration-150 ${
-            isCompleted
-              ? "border-green-500 bg-green-500"
-              : "border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500"
-          }`}
+    <div className="group relative border-b border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900">
+      <div
+        className="grid items-center py-2 relative z-10"
+        style={{ gridTemplateColumns: gridTemplate }}
+      >
+        <div
+          className="flex justify-center pr-2 border-r border-gray-200 dark:border-slate-700"
+          style={{ paddingLeft: `${depth * 24 + 12}px` }}
         >
-          {isCompleted && (
-            <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-              <path
-                fillRule="evenodd"
-                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                clipRule="evenodd"
-              />
-            </svg>
-          )}
-        </label>
-      </div>
-
-      {/* Task Content */}
-      <div className="flex-grow ml-3 min-w-0">
-        <div onDoubleClick={() => !isReadOnly && setIsEditing(true)}>
-          {isEditing ? (
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              onBlur={handleTitleBlur}
-              onKeyPress={(e) => e.key === "Enter" && handleTitleBlur()}
-              autoFocus
-              className="w-full bg-transparent p-1 border-b border-blue-500 text-gray-900 dark:text-white focus:outline-none"
-            />
-          ) : (
-            <p
-              className={`text-gray-900 dark:text-white transition-all duration-150 ${
-                isCompleted ? "line-through text-gray-500 dark:text-gray-400" : ""
-              }`}
-            >
-              {task.title}
-            </p>
-          )}
-
-          {/* Assigned members - simple text display */}
-          {assignedNames && (
-            <div className="mt-1">
-              <span className="text-xs text-gray-500 dark:text-gray-400">Assigned to: {assignedNames}</span>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Actions */}
-      <div className="flex items-center gap-1 opacity-100 group-hover:opacity-80 transition-opacity duration-150 ml-2">
-        <button
-          onClick={() => onAssign(task)}
-          title="Assign members"
-          disabled={isReadOnly}
-          className="p-1.5 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <UserPlus size={16} />
-        </button>
-        <button
-    onClick={() => onVoiceNote(task)}
-    title={task.voice_note_url ? "Play Voice Note" : "Add Voice Note"}
-    disabled={isReadOnly}
-    className={`p-1.5 rounded transition-colors duration-150 ${
-        task.voice_note_url 
-        ? 'text-blue-500 hover:text-blue-600' 
-        : 'text-gray-400 hover:text-gray-600'
-    }`}
->
-    {/* --- THE FIX: Conditionally render the icon based on the presence of a URL --- */}
-    {task.voice_note_url ? <Play size={16} /> : <Mic size={16} />}
-</button>
-
-        {!isSubtask && (
           <button
-            onClick={() => onAddSubtask(task.id)}
-            title="Add subtask"
+            onClick={() => !isReadOnly && onUpdate(task.id, { status: isCompleted ? "to_do" : "completed" })}
             disabled={isReadOnly}
-            className="p-1.5 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
+            className={`w-5 h-5 min-w-5 min-h-5 aspect-square shrink-0 rounded-full border-2 flex items-center justify-center leading-none transition-all duration-200 ${
+              isCompleted
+                ? "bg-emerald-500 border-emerald-500 text-white"
+                : "border-gray-300 dark:border-gray-600 hover:border-emerald-400"
+            }`}
           >
-            <Plus size={16} />
+            {isCompleted && <CheckCircle2 size={12} />}
           </button>
-        )}
+        </div>
 
-        <button
-          onClick={() => onDelete(task.id)}
-          title="Delete task"
-          disabled={isReadOnly}
-          className="p-1.5 rounded text-gray-400 hover:text-red-500 transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <Trash2 size={16} />
-        </button>
+        <div className="flex items-center gap-2 px-3 overflow-hidden border-r border-gray-200 dark:border-slate-700">
+          {hasSubtasks && (
+            <button
+              onClick={onToggleSubtasks}
+              className="p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400"
+            >
+              {showSubtasks ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+            </button>
+          )}
+          {!hasSubtasks && depth > 0 && <div className="w-4" />}
+
+          <div className="flex-1 min-w-0" onDoubleClick={() => !isReadOnly && setIsEditing(true)}>
+            {isEditing ? (
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                onBlur={handleTitleBlur}
+                onKeyDown={(e) => e.key === "Enter" && handleTitleBlur()}
+                autoFocus
+                className="w-full bg-transparent border-b-2 border-blue-500 text-sm py-0.5 focus:outline-none text-gray-900 dark:text-white"
+              />
+            ) : (
+              <div className="flex items-center gap-2">
+                <span
+                  className={`text-sm truncate cursor-text ${
+                    isCompleted
+                      ? "text-gray-400 line-through decoration-gray-300"
+                      : "text-gray-800 dark:text-gray-200 font-medium"
+                  }`}
+                >
+                  {task.title}
+                </span>
+                {task.voice_note_url && <Mic size={12} className="text-blue-500 flex-shrink-0" />}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="px-3 border-r border-gray-200 dark:border-slate-700">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex -space-x-2 overflow-hidden">
+            {assignedNames.length > 0 ? (
+              assignedNames.slice(0, 3).map((name) => <UserAvatar key={`${task.id}-${name}`} name={name} size="sm" />)
+            ) : (
+              <span className="text-[11px] text-gray-400 italic">Unassigned</span>
+            )}
+            {assignedNames.length > 3 && (
+              <div className="w-7 h-7 rounded-full bg-gray-100 dark:bg-gray-800 border-2 border-white dark:border-gray-900 flex items-center justify-center text-[9px] text-gray-500 font-bold">
+                +{assignedNames.length - 3}
+              </div>
+            )}
+            </div>
+            <button
+              onClick={() => onAssign(task)}
+              disabled={isReadOnly}
+              title="Assign members"
+              className="p-1 rounded-md text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 disabled:opacity-40"
+            >
+              <UserPlus size={14} />
+            </button>
+          </div>
+        </div>
+        <div className="px-3 border-r border-gray-200 dark:border-slate-700">
+          <span
+            className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide border ${
+              isCompleted
+                ? "bg-emerald-50 border-emerald-100 text-emerald-600 dark:bg-emerald-900/20 dark:border-emerald-900 dark:text-emerald-400"
+                : "bg-amber-50 border-amber-100 text-amber-600 dark:bg-amber-900/20 dark:border-amber-900 dark:text-amber-400"
+            }`}
+          >
+            {isCompleted ? "Done" : "Pending"}
+          </span>
+        </div>
+
+        <div className="px-3 border-r border-gray-200 dark:border-slate-700">
+          <input
+            type="date"
+            value={getDateInputValue(task)}
+            onChange={(e) => onUpdate(task.id, { due_date: e.target.value || null })}
+            disabled={isReadOnly}
+            className="w-full px-2.5 py-1.5 text-xs rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-900 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50"
+          />
+        </div>
+
+        <div className="flex items-center justify-end gap-0.5 px-2">
+          <ActionButton
+            onClick={() => onVoiceNote(task)}
+            icon={task.voice_note_url ? <Play size={14} /> : <Mic size={14} />}
+            label={task.voice_note_url ? "Play" : "Record"}
+            tooltip="Voice Note"
+            active={!!task.voice_note_url}
+            color="text-slate-500 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+            disabled={isReadOnly}
+          />
+          <ActionButton
+            onClick={() => onAddSubtask(task.id)}
+            icon={<CornerDownRight size={14} />}
+            label="Subtask"
+            tooltip="Add Subtask"
+            color="text-slate-500 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+            disabled={isReadOnly}
+          />
+          <ActionButton
+            onClick={() => onDelete(task.id)}
+            icon={<Trash2 size={14} />}
+            label="Delete"
+            tooltip="Delete"
+            color="text-rose-500 border border-rose-200 dark:border-rose-800 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20"
+            disabled={isReadOnly}
+          />
+        </div>
       </div>
     </div>
   )
 }
 
-// --- Sub-Component: Task Group with Subtasks ---
-const TaskGroup = ({
-  task,
-  onUpdate,
-  onDelete,
-  onAssign,
-  onAddSubtask,
-  subtaskParentId,
-  setSubtaskParentId,
-  newTaskTitle,
-  setNewTaskTitle,
-  onVoiceNote,
-  handleCreateTask,
-  teamMembers,
-  isReadOnly = false,
-}) => {
-  const [showSubtasks, setShowSubtasks] = useState(true)
+const TaskTreeRenderer = ({ task, depth = 0, ...rest }) => {
+  const [showSubtasks, setShowSubtasks] = useState(false)
   const hasSubtasks = task.children && task.children.length > 0
-  const completedSubtasks = hasSubtasks ? task.children.filter((child) => child.status === "completed").length : 0
 
   return (
-    <div className="border-b border-gray-100 dark:border-gray-800 last:border-b-0">
-      {/* Main Task */}
-      <TaskItem
+    <>
+      <TaskRow
+        {...rest}
         task={task}
-        onUpdate={onUpdate}
-        onDelete={onDelete}
-        onAssign={onAssign}
-        onVoiceNote={onVoiceNote}  
-        onAddSubtask={setSubtaskParentId}
-        teamMembers={teamMembers}
-        isReadOnly={isReadOnly}
+        depth={depth}
+        showSubtasks={showSubtasks}
+        onToggleSubtasks={() => setShowSubtasks((prev) => !prev)}
+        hasSubtasks={hasSubtasks}
       />
 
-      {/* Subtasks Section */}
-      {hasSubtasks && (
-        <div className="pl-4">
-          {/* Subtasks Header */}
-          <button
-            onClick={() => setShowSubtasks(!showSubtasks)}
-            className="flex items-center gap-2 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors duration-150"
-          >
-            {showSubtasks ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-            <span>
-              Sub-tasks {completedSubtasks}/{task.children.length}
-            </span>
-          </button>
-
-          {/* Subtasks List */}
-      {showSubtasks && (
-            <div>
-              {task.children.map((subtask) => (
-                <TaskItem
-                  key={subtask.id}
-                  task={subtask}
-                  onUpdate={onUpdate}
-                  onDelete={onDelete}
-                  onAssign={onAssign}
-                  onVoiceNote={onVoiceNote}
-                  isSubtask={true}
-                  teamMembers={teamMembers}
-                  isReadOnly={isReadOnly}
-                />
-              ))}
-            </div>
-          )}
+      {hasSubtasks && showSubtasks && (
+        <div>
+          {task.children.map((child) => (
+            <TaskTreeRenderer key={child.id} task={child} depth={depth + 1} {...rest} />
+          ))}
         </div>
       )}
 
-      {/* Add Subtask Input */}
-      {subtaskParentId === task.id && !isReadOnly && (
-        <div className="pl-8 pb-3">
-          <div className="flex items-center gap-3">
-            <div className="w-5 h-5 border-2 border-gray-300 dark:border-gray-600 rounded-full flex-shrink-0"></div>
+      {rest.subtaskParentId === task.id && !rest.isReadOnly && (
+        <div className="border-b border-gray-100 dark:border-gray-800 bg-gray-50/30 dark:bg-gray-900/20">
+          <div className="grid items-center py-2 px-4" style={{ gridTemplateColumns: "36px 1fr" }}>
+            <div className="flex justify-end pr-2" style={{ paddingLeft: `${(depth + 1) * 24}px` }}>
+              <CornerDownRight size={14} className="text-gray-400" />
+            </div>
             <input
-              type="text"
               autoFocus
-              placeholder="Add a subtask..."
-              value={newTaskTitle}
-              onChange={(e) => setNewTaskTitle(e.target.value)}
-              onKeyPress={(e) => e.key === "Enter" && handleCreateTask(task.id)}
-              onBlur={() => setSubtaskParentId(null)}
-              className="flex-1 p-1 text-sm bg-transparent border-b border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:border-blue-500 transition-colors duration-150"
+              placeholder="Type subtask name and press Enter..."
+              value={rest.newTaskTitle}
+              onChange={(e) => rest.setNewTaskTitle(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && rest.handleCreateTask(task.id)}
+              onBlur={() => rest.setSubtaskParentId(null)}
+              className="w-full bg-transparent text-sm p-1 placeholder-gray-400 focus:outline-none text-gray-900 dark:text-gray-100"
             />
           </div>
         </div>
       )}
-
-      {/* Add Subtask Button */}
-      {!subtaskParentId && !isReadOnly && (hasSubtasks ? showSubtasks : true) && (
-        <div className="pl-8 pb-3">
-          <button
-            onClick={() => setSubtaskParentId(task.id)}
-            className="flex items-center gap-2 text-sm text-red-500 hover:text-red-600 transition-colors duration-150"
-          >
-            <Plus size={16} />
-            Add sub-task
-          </button>
-        </div>
-      )}
-    </div>
+    </>
   )
 }
 
-// --- The Main, Fully-Featured Task Management Modal ---
-export const TaskManagementModal = ({
-  isOpen,
-  onClose,
+const TaskManagementContent = ({
   deliverable,
   initialTasks = [],
   teamMembers = [],
@@ -432,6 +380,10 @@ export const TaskManagementModal = ({
   onTaskDelete,
   onTaskAssign,
   onTaskVoiceNote,
+  showTaskListLabel = true,
+  unifiedMode = false,
+  hideTableHeader = false,
+  showAddTaskButton = true,
   isReadOnly = false,
 }) => {
   const [newTaskTitle, setNewTaskTitle] = useState("")
@@ -443,8 +395,8 @@ export const TaskManagementModal = ({
   const taskTree = useMemo(() => {
     const tasks = [...dedupedTasks]
     const taskMap = new Map(tasks.map((t) => [t.id, { ...t, children: [] }]))
-
     const tree = []
+
     for (const task of tasks) {
       if (task.parent_task_id && taskMap.has(task.parent_task_id)) {
         taskMap.get(task.parent_task_id).children.push(taskMap.get(task.id))
@@ -455,14 +407,12 @@ export const TaskManagementModal = ({
     return tree
   }, [dedupedTasks])
 
-  if (!isOpen) return null
-
   const handleCreateTask = (parentId = null) => {
-    const title = newTaskTitle.trim()
-    if (title === "") return
+    const sourceTitle = parentId ? newTaskTitle : window.prompt("Enter task name")
+    const title = (sourceTitle || "").trim()
+    if (title === "" || isReadOnly) return
 
     onTaskCreate({ title, deliverable_id: deliverable.id, parent_task_id: parentId })
-
     setNewTaskTitle("")
     setSubtaskParentId(null)
   }
@@ -472,312 +422,128 @@ export const TaskManagementModal = ({
     setAssigningTask(null)
   }
 
-  // Convert assigned names back to IDs for the modal
-  const getAssigneeIdsForTask = (task) => {
-    return (task.assignments || []).map((name) => teamMembers.find((m) => m.name === name)?.id).filter(Boolean)
-  }
+  const gridTemplate = "32px minmax(180px, 1fr) 170px 110px 160px 290px"
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex justify-center items-center p-4">
-      <div
-        className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-4xl flex flex-col border border-gray-200 dark:border-gray-700"
-        style={{ height: "90vh", maxHeight: "800px" }}
-      >
-        {/* Nested Assignee Modal */}
-        <AssigneeModal
-          isOpen={!!assigningTask}
-          onClose={() => setAssigningTask(null)}
-          teamMembers={teamMembers}
-          currentAssignees={assigningTask ? getAssigneeIdsForTask(assigningTask) : []}
-          onSave={handleAssignSave}
-        />
+    <div
+      className={`relative flex flex-col h-full max-h-[800px] overflow-hidden ${
+        unifiedMode
+          ? "bg-transparent border-0 rounded-none shadow-none"
+          : "bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm"
+      }`}
+    >
+      <AssigneeModal
+        isOpen={!!assigningTask}
+        onClose={() => setAssigningTask(null)}
+        teamMembers={teamMembers}
+        currentAssignees={assigningTask ? getAssigneeIdsForTask(assigningTask, teamMembers) : []}
+        onSave={handleAssignSave}
+      />
 
-        {/* Header */}
-        <div className="flex justify-between items-center p-6 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex items-center gap-3">
-            <ListTodo size={20} className="text-blue-600" />
-            <div>
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white">{deliverable.title}</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Task Management</p>
+      {(showTaskListLabel || !unifiedMode) && (
+        <div
+          className={`px-6 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between ${
+            unifiedMode ? "bg-slate-50/60 dark:bg-slate-900/40" : "bg-white dark:bg-slate-900"
+          } ${showTaskListLabel ? "py-4" : "py-2.5"}`}
+        >
+          {showTaskListLabel ? (
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-blue-600">
+                <ListTodo size={20} />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-gray-900 dark:text-white leading-tight">Task List</h3>
+                <p className="text-xs text-gray-500 font-medium dark:text-gray-400">{deliverable.title}</p>
+              </div>
             </div>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-150"
-          >
-            <X size={20} />
-          </button>
+          ) : (
+            <div />
+          )}
+          <div />
         </div>
+      )}
 
-        {/* Task List */}
-        <div className="flex-grow overflow-y-auto">
+     
+
+      <div className={`${unifiedMode ? "border-b border-gray-200 dark:border-slate-700" : "mx-4 mb-3 border border-gray-200 dark:border-slate-700 rounded-lg"} overflow-hidden`}>
+        {!hideTableHeader && (
+        <div
+          className="grid py-2 bg-gray-50/80 dark:bg-slate-800/50 border-b border-gray-200 dark:border-gray-800 text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 select-none"
+          style={{ gridTemplateColumns: gridTemplate }}
+        >
+          <div className="pl-4 pr-2 border-r border-gray-200 dark:border-slate-700">#</div>
+          <div className="px-3 border-r border-gray-200 dark:border-slate-700">Tasks To Be Done</div>
+          <div className="px-3 border-r border-gray-200 dark:border-slate-700">Assignees</div>
+          <div className="px-3 border-r border-gray-200 dark:border-slate-700">Task Status</div>
+          <div className="px-3 border-r border-gray-200 dark:border-slate-700">Due Date</div>
+          <div className="px-2 text-right">Actions</div>
+        </div>
+        )}
+
+        <div className="flex-1 overflow-y-auto">
           {taskTree.length > 0 ? (
             <div>
               {taskTree.map((task) => (
-                <TaskGroup
+                <TaskTreeRenderer
                   key={task.id}
                   task={task}
                   onUpdate={onTaskUpdate}
                   onDelete={onTaskDelete}
                   onAssign={setAssigningTask}
+                  onVoiceNote={onTaskVoiceNote}
                   onAddSubtask={setSubtaskParentId}
                   subtaskParentId={subtaskParentId}
                   setSubtaskParentId={setSubtaskParentId}
                   newTaskTitle={newTaskTitle}
                   setNewTaskTitle={setNewTaskTitle}
                   handleCreateTask={handleCreateTask}
-                  onVoiceNote={onTaskVoiceNote}
-                  teamMembers={teamMembers}
                   isReadOnly={isReadOnly}
                 />
               ))}
             </div>
           ) : (
-            <div className="text-center py-20">
-              <ListTodo size={48} className="mx-auto text-gray-300 dark:text-gray-600 mb-4" />
-              <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No tasks yet</h4>
-              <p className="text-gray-500 dark:text-gray-400">Create your first task to start organizing your work.</p>
+            <div className="flex flex-col items-center justify-center py-20 text-gray-400 dark:text-gray-500">
+              <div className="w-16 h-16 bg-gray-50 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
+                <ListTodo size={32} className="opacity-50" />
+              </div>
+              <p className="text-sm font-medium">No tasks found</p>
+              <p className="text-xs opacity-70 mt-1">Add a task below to get started</p>
             </div>
           )}
         </div>
-
-        {/* Add Task Input */}
-        <div className="p-6 border-t border-gray-200 dark:border-gray-700">
-          <div className="flex gap-3">
-            <input
-              type="text"
-              value={newTaskTitle}
-              onChange={(e) => setNewTaskTitle(e.target.value)}
-              placeholder="What needs to be done?"
-              disabled={isReadOnly}
-              className="flex-1 px-4 py-3 text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-150 placeholder-gray-500 dark:placeholder-gray-400"
-              onKeyPress={(e) => e.key === "Enter" && handleCreateTask(null)}
-            />
-            <button
-              onClick={() => handleCreateTask(null)}
-              disabled={isReadOnly || !newTaskTitle.trim()}
-              className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 transition-colors duration-150"
-            >
-              <Plus size={16} />
-              Add Task
-            </button>
-          </div>
-        </div>
       </div>
+      {!isReadOnly && showAddTaskButton && (
+        <div className="px-6 py-2 border-b border-gray-200 dark:border-gray-800 flex justify-end bg-white dark:bg-slate-900">
+          <button
+            onClick={() => handleCreateTask(null)}
+            className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
+          >
+            Add New Task
+          </button>
+        </div>
+      )}
+
     </div>
   )
 }
 
-export const TaskManagementPanel = ({
-  deliverable,
-  initialTasks = [],
-  teamMembers = [],
-  onTaskCreate,
-  onTaskUpdate,
-  onTaskDelete,
-  onTaskAssign,
-  onTaskVoiceNote,
-  onTaskBundleImported,
-  isReadOnly = false,
-}) => {
-  const [newTaskTitle, setNewTaskTitle] = useState("")
-  const [subtaskParentId, setSubtaskParentId] = useState(null)
-  const [assigningTask, setAssigningTask] = useState(null)
-  const [isImportBundleOpen, setIsImportBundleOpen] = useState(false)
-  const [bundleOptions, setBundleOptions] = useState([])
-  const [loadingBundleOptions, setLoadingBundleOptions] = useState(false)
-  const [isImportingBundle, setIsImportingBundle] = useState(false)
-  const [importForm, setImportForm] = useState({
-    bundle_id: "",
-    due_base_date: "",
-    skip_duplicates: true,
-  })
+export const TaskManagementPanel = (props) => {
+  return <TaskManagementContent {...props} />
+}
 
-  const dedupedTasks = useMemo(() => dedupeTasks(initialTasks), [initialTasks])
-
-  const taskTree = useMemo(() => {
-    const tasks = [...dedupedTasks]
-    const taskMap = new Map(tasks.map((t) => [t.id, { ...t, children: [] }]))
-
-    const tree = []
-    for (const task of tasks) {
-      if (task.parent_task_id && taskMap.has(task.parent_task_id)) {
-        taskMap.get(task.parent_task_id).children.push(taskMap.get(task.id))
-      } else {
-        tree.push(taskMap.get(task.id))
-      }
-    }
-    return tree
-  }, [dedupedTasks])
-
-  const handleCreateTask = (parentId = null) => {
-    const title = newTaskTitle.trim()
-    if (title === "" || isReadOnly) return
-
-    onTaskCreate({ title, deliverable_id: deliverable.id, parent_task_id: parentId })
-
-    setNewTaskTitle("")
-    setSubtaskParentId(null)
-  }
-
-  const handleAssignSave = (assigneeIds) => {
-    onTaskAssign(assigningTask.id, assigneeIds)
-    setAssigningTask(null)
-  }
-
-  const getAssigneeIdsForTask = (task) => {
-    return (task.assignments || []).map((name) => teamMembers.find((m) => m.name === name)?.id).filter(Boolean)
-  }
-
-  const openImportBundleModal = async () => {
-    if (isReadOnly) return
-    setIsImportBundleOpen(true)
-    setLoadingBundleOptions(true)
-    try {
-      const bundles = await listTaskBundles()
-      const sorted = [...(Array.isArray(bundles) ? bundles : [])].sort((a, b) => {
-        const activeDelta = Number(!!b.is_active) - Number(!!a.is_active)
-        if (activeDelta !== 0) return activeDelta
-        return String(a.name || "").localeCompare(String(b.name || ""))
-      })
-      setBundleOptions(sorted)
-      setImportForm((prev) => ({
-        ...prev,
-        bundle_id: prev.bundle_id || (sorted[0]?.id ? String(sorted[0].id) : ""),
-      }))
-    } catch (error) {
-      console.error("Failed to fetch task bundles:", error)
-      alert(error.message || "Could not load bundles. Please try again.")
-    } finally {
-      setLoadingBundleOptions(false)
-    }
-  }
-
-  const handleImportBundle = async () => {
-    if (!importForm.bundle_id) {
-      alert("Please select a bundle to import.")
-      return
-    }
-
-    setIsImportingBundle(true)
-    try {
-      const response = await importTaskBundleToDeliverable(deliverable.id, {
-        bundle_id: Number(importForm.bundle_id),
-        due_base_date: importForm.due_base_date || null,
-        skip_duplicates: !!importForm.skip_duplicates,
-      })
-
-      if (typeof onTaskBundleImported === "function") {
-        await onTaskBundleImported()
-      }
-
-      alert(`Imported ${response?.created_count || 0} task(s). Skipped ${response?.skipped_count || 0}.`)
-      setIsImportBundleOpen(false)
-      setImportForm({
-        bundle_id: "",
-        due_base_date: "",
-        skip_duplicates: true,
-      })
-    } catch (error) {
-      console.error("Task bundle import failed:", error)
-      if (error.status === 404) {
-        alert("This bundle no longer exists.")
-        return
-      }
-      alert(error.message || "Could not import bundle. Please try again.")
-    } finally {
-      setIsImportingBundle(false)
-    }
-  }
+export const TaskManagementModal = ({ isOpen, onClose, ...props }) => {
+  if (!isOpen) return null
 
   return (
-    <div className="relative bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700">
-      <AssigneeModal
-        isOpen={!!assigningTask}
-        onClose={() => setAssigningTask(null)}
-        teamMembers={teamMembers}
-        currentAssignees={assigningTask ? getAssigneeIdsForTask(assigningTask) : []}
-        onSave={handleAssignSave}
-      />
-      <ImportBundleModal
-        isOpen={isImportBundleOpen}
-        onClose={() => setIsImportBundleOpen(false)}
-        bundles={bundleOptions}
-        loadingBundles={loadingBundleOptions}
-        form={importForm}
-        setForm={setImportForm}
-        onImport={handleImportBundle}
-        importing={isImportingBundle}
-      />
-
-      <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <ListTodo size={18} className="text-blue-600" />
-          <div>
-            <p className="text-sm font-medium text-gray-900 dark:text-white">Task Management</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">{deliverable.title}</p>
-          </div>
-        </div>
+    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm p-4 flex items-center justify-center">
+      <div className="relative w-full max-w-6xl h-[90vh] max-h-[860px]">
         <button
-          onClick={openImportBundleModal}
-          disabled={isReadOnly}
-          className="px-3 py-1.5 text-xs rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white"
+          onClick={onClose}
+          className="absolute top-3 right-3 z-20 p-2 rounded-lg bg-white/90 dark:bg-slate-900/90 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
         >
-          Import Bundle
+          <X size={18} />
         </button>
-      </div>
-
-      <div className="max-h-[520px] overflow-y-auto">
-        {taskTree.length > 0 ? (
-          <div>
-            {taskTree.map((task) => (
-              <TaskGroup
-                key={task.id}
-                task={task}
-                onUpdate={onTaskUpdate}
-                onDelete={onTaskDelete}
-                onAssign={setAssigningTask}
-                onAddSubtask={setSubtaskParentId}
-                subtaskParentId={subtaskParentId}
-                setSubtaskParentId={setSubtaskParentId}
-                newTaskTitle={newTaskTitle}
-                setNewTaskTitle={setNewTaskTitle}
-                handleCreateTask={handleCreateTask}
-                onVoiceNote={onTaskVoiceNote}
-                teamMembers={teamMembers}
-                isReadOnly={isReadOnly}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-10">
-            <ListTodo size={40} className="mx-auto text-gray-300 dark:text-gray-600 mb-3" />
-            <h4 className="text-base font-medium text-gray-900 dark:text-white mb-1">No tasks yet</h4>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Create your first task for this deliverable.</p>
-          </div>
-        )}
-      </div>
-
-      <div className="p-4 border-t border-gray-200 dark:border-gray-700">
-        <div className="flex gap-3">
-          <input
-            type="text"
-            value={newTaskTitle}
-            onChange={(e) => setNewTaskTitle(e.target.value)}
-            placeholder="Add a task..."
-            disabled={isReadOnly}
-            className="flex-1 px-4 py-2.5 text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-150 placeholder-gray-500 dark:placeholder-gray-400"
-            onKeyPress={(e) => e.key === "Enter" && handleCreateTask(null)}
-          />
-          <button
-            onClick={() => handleCreateTask(null)}
-            disabled={isReadOnly || !newTaskTitle.trim()}
-            className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-5 py-2.5 rounded-lg font-medium flex items-center gap-2 transition-colors duration-150"
-          >
-            <Plus size={16} />
-            Add Task
-          </button>
-        </div>
+        <TaskManagementContent {...props} />
       </div>
     </div>
   )
