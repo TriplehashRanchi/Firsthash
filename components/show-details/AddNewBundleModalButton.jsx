@@ -66,8 +66,8 @@ const AddNewBundleModalButton = ({ onCreated }) => {
                 validItems.map((item) =>
                     createTaskBundleItem(bundle.id, {
                         title: item.title.trim(),
-                        priority: item.priority,
-                        due_in_days: item.due_in_days === '' ? null : Number(item.due_in_days),
+                        priority: 'medium',
+                        due_in_days: null,
                         sort_order: Number(item.sort_order) || 0,
                         parent_item_id: null,
                     }),
@@ -159,7 +159,7 @@ const AddNewBundleModalButton = ({ onCreated }) => {
                                                 placeholder={`Item ${index + 1} title`}
                                                 className="col-span-6 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2.5 py-2 text-sm"
                                             />
-                                            <select
+                                            {/* <select
                                                 value={item.priority}
                                                 onChange={(e) => updateItem(index, { priority: e.target.value })}
                                                 className="col-span-3 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 py-2 text-sm"
@@ -175,7 +175,7 @@ const AddNewBundleModalButton = ({ onCreated }) => {
                                                 onChange={(e) => updateItem(index, { due_in_days: e.target.value })}
                                                 placeholder="Due days"
                                                 className="col-span-2 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 py-2 text-sm"
-                                            />
+                                            /> */}
                                             <button
                                                 onClick={() => removeItemRow(index)}
                                                 className="col-span-1 inline-flex items-center justify-center rounded-md border border-rose-200 dark:border-rose-800 text-rose-500 py-2"
