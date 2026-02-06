@@ -478,6 +478,23 @@ function ProjectReviewPage() {
         fetchProjectData();
     }, [projectId, currentUser]);
 
+    const handleEnableQuotationDeliverables = async () => {
+        if (!currentUser || !projectId) return;
+        try {
+            const token = await currentUser.getIdToken();
+            await axios.put(
+                `${API_URL}/api/projects/${projectId}/quotation-deliverables/enable`,
+                {},
+                { headers: { Authorization: `Bearer ${token}` } },
+            );
+            toast.success('Quotation deliverables enabled.');
+            await fetchProjectData();
+        } catch (err) {
+            console.error('Failed to enable quotation deliverables:', err);
+            toast.error(err?.response?.data?.message || 'Could not enable quotation deliverables.');
+        }
+    };
+
     // --- END: ADDED/MODIFIED FOR API INTEGRATION ---
 
     const handleEditProject = () => {
@@ -557,6 +574,11 @@ function ProjectReviewPage() {
      */
     const handleTaskCreate = async (taskData) => {
         if (!currentUser || !projectId) return alert('Cannot create task: Missing user or project context.');
+
+        const hasDeliverableLink = taskData?.deliverable_id || taskData?.deliverable_2_id;
+        if (!hasDeliverableLink) {
+            return alert('Cannot create task: Missing deliverable link.');
+        }
 
         // Optimistic UI Update: Add the new task to the state immediately for a fast UX.
         // We create a temporary ID for the React key and mark it as 'syncing'.
@@ -1246,7 +1268,10 @@ function ProjectReviewPage() {
                     <DeliverablesDetails
                         projectId={projectId}
                         isReadOnly={isReadOnly}
-                        deliverables={fullProjectData.deliverables.deliverableItems}
+                        deliverables2={fullProjectData.deliverables2?.deliverableItems || []}
+                        quotationDeliverables={fullProjectData.deliverables?.deliverableItems || []}
+                        showQuotationDeliverables={Number(fullProjectData.showQuotationDeliverables) === 1}
+                        onEnableQuotationDeliverables={handleEnableQuotationDeliverables}
                         tasks={fullProjectData.tasks || []}
                         sectionTitleStyles={sectionTitleStyles}
                         teamMembers={eligibleDeliverableTeam}
