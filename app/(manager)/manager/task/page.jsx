@@ -601,11 +601,11 @@ export default function TaskPage() {
                                         </div>
                                     </section>
                                 )}
-                                {Array.isArray(details?.deliverables?.deliverableItems) && details.deliverables.deliverableItems.length > 0 && (
+                                {Array.isArray(details?.deliverables2?.deliverableItems) && details.deliverables2.deliverableItems.length > 0 && (
                                     <section className="mb-6 dark:bg-gray-900">
                                         <h4 className="text-sm dark:text-gray-200 font-semibold text-gray-900 mb-2">Deliverables</h4>
                                         <div className="space-y-1 text-sm dark:text-gray-200">
-                                            {details.deliverables.deliverableItems.map((d) => (
+                                            {details.deliverables2.deliverableItems.map((d) => (
                                                 <div key={d.id} className="flex items-center dark:text-gray-200 justify-between border-b py-1">
                                                     <div>{d.title}</div>
                                                     <div className="text-xs dark:text-gray-200 text-gray-500">{statusLabel(d.status || '')}</div>

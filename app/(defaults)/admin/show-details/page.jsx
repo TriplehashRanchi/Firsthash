@@ -360,7 +360,18 @@ function ProjectReviewPage() {
             case TABS.SHOOTS:
                 return <Shoots shoots={shootsObject.shootList} sectionTitleStyles={sectionTitleStyles} DetailPairStylishComponent={DetailPairStylish} ContentListItemComponent={ContentListItem} onUpdateShootAssignment={handleUpdateShootAssignment} />;
             case TABS.DELIVERABLES:
-                return <DeliverablesDetails deliverables={deliverables.deliverableItems} sectionTitleStyles={sectionTitleStyles} onUpdateDeliverableAssignment={handleUpdateDeliverableAssignment} />;
+                return (
+                    <DeliverablesDetails
+                        projectId={fullProjectData?.id || fullProjectData?.projectId || ''}
+                        isReadOnly={true}
+                        deliverables2={fullProjectData?.deliverables2?.deliverableItems || []}
+                        quotationDeliverables={fullProjectData?.deliverables?.deliverableItems || []}
+                        showQuotationDeliverables={Number(fullProjectData?.showQuotationDeliverables) === 1}
+                        tasks={fullProjectData?.tasks || []}
+                        sectionTitleStyles={sectionTitleStyles}
+                        onUpdateDeliverableAssignment={handleUpdateDeliverableAssignment}
+                    />
+                );
             case TABS.EXPENES:
                 return <Expence expenses={fullProjectData.expenses || []} onAddExpense={handleAddExpense} onUpdateExpense={handleUpdateExpense} onDeleteExpense={handleDeleteExpense} sectionTitleStyles={sectionTitleStyles} />;
             case TABS.FINANCIALS:
