@@ -1,15 +1,19 @@
 'use client';
 import React, { useEffect, useMemo, useState } from 'react';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
 const Page = () => {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [token, setToken] = useState(null);
   const [connectedPages, setConnectedPages] = useState([]);
   const [availablePages, setAvailablePages] = useState([]);
   const [selected, setSelected] = useState(new Set());
   const [connectionStatus, setConnectionStatus] = useState('checking');
+  const [oauthConnectedHint, setOauthConnectedHint] = useState(false);
   const [connectedError, setConnectedError] = useState('');
   const [loadingConnected, setLoadingConnected] = useState(false);
   const [loadingAvailable, setLoadingAvailable] = useState(false);
@@ -67,10 +71,10 @@ const Page = () => {
 
       setConnectedPages(rows);
       setSelected(new Set(rows.map((p) => p.page_id)));
-      setConnectionStatus(rows.length > 0 ? 'connected' : 'not-connected');
+      setConnectionStatus(rows.length > 0 || oauthConnectedHint ? 'connected' : 'not-connected');
     } catch (err) {
       setConnectedPages([]);
-      setConnectionStatus('not-connected');
+      setConnectionStatus(oauthConnectedHint ? 'connected' : 'not-connected');
       setConnectedError(err.message || 'Failed to load connected pages');
     } finally {
       setLoadingConnected(false);
@@ -142,6 +146,14 @@ const Page = () => {
       setSaving(false);
     }
   };
+
+  useEffect(() => {
+    if (searchParams.get('connected') === 'true') {
+      setOauthConnectedHint(true);
+      setConnectionStatus('connected');
+      router.replace('/admin/facebook-lead/test');
+    }
+  }, [searchParams, router]);
 
   useEffect(() => {
     const auth = getAuth();
