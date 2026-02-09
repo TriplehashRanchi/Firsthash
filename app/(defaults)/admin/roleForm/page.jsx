@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { UserPlus, Briefcase, Users, Star, Loader, Phone, Mail, Key, User, X } from 'lucide-react';
+import { UserPlus, Briefcase, Users, Star, Loader, Phone, Mail, Key, User, X, Search } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { getAuth } from 'firebase/auth';
 import toast from 'react-hot-toast';
@@ -10,10 +10,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 const RoleSelectionModal = ({ isOpen, onClose, availableRoles, initialSelectedRoles, onSave }) => {
     const [tempSelectedRoles, setTempSelectedRoles] = useState(initialSelectedRoles);
+    const [searchQuery, setSearchQuery] = useState('');
 
     useEffect(() => {
         if (isOpen) {
             setTempSelectedRoles(initialSelectedRoles);
+            setSearchQuery('');
         }
     }, [isOpen, initialSelectedRoles]);
 
@@ -26,6 +28,8 @@ const RoleSelectionModal = ({ isOpen, onClose, availableRoles, initialSelectedRo
         onSave(tempSelectedRoles);
         onClose();
     };
+
+    const filteredRoles = availableRoles.filter((role) => role.type_name?.toLowerCase().includes(searchQuery.toLowerCase()));
 
     if (!isOpen) return null;
 
@@ -52,9 +56,21 @@ const RoleSelectionModal = ({ isOpen, onClose, availableRoles, initialSelectedRo
                             <X size={20} />
                         </button>
                     </div>
+                    <div className="mb-4">
+                        <div className="relative">
+                            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                            <input
+                                type="text"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                placeholder="Search roles..."
+                                className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            />
+                        </div>
+                    </div>
                     <div className="max-h-80 overflow-y-auto space-y-2 p-1">
-                        {availableRoles.length > 0 ? (
-                            availableRoles.map((role) => (
+                        {availableRoles.length > 0 && filteredRoles.length > 0 ? (
+                            filteredRoles.map((role) => (
                                 <label key={role.id} className="flex items-center p-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer">
                                     <input
                                         type="checkbox"
@@ -66,6 +82,8 @@ const RoleSelectionModal = ({ isOpen, onClose, availableRoles, initialSelectedRo
                                     <span className="ml-3 text-sm font-medium text-slate-800 dark:text-slate-200">{role.type_name}</span>
                                 </label>
                             ))
+                        ) : availableRoles.length > 0 ? (
+                            <p className="text-sm text-center text-slate-500 p-4">No matching roles found.</p>
                         ) : (
                             <p className="text-sm text-center text-slate-500 p-4">No roles available for this category.</p>
                         )}

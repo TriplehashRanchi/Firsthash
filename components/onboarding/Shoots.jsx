@@ -512,10 +512,18 @@ const Shoots = ({ company, onValidChange, onDataChange, initialData }) => {
             }
 
             let allShootsAreValid = true;
-            if (shoots.length === 1 && shoots[0].title.trim() === '' && shoots[0].date.trim() === '' && shoots[0].city.trim() === '' && Object.keys(shoots[0].selectedRoles).length === 0) {
+            if (
+                shoots.length === 1 &&
+                shoots[0].title.trim() === '' &&
+                shoots[0].date.trim() === '' &&
+                shoots[0].time.trim() === '' &&
+                shoots[0].city.trim() === '' &&
+                Object.keys(shoots[0].selectedRoles).length === 0
+            ) {
                 allShootsAreValid = true;
             } else {
-                allShootsAreValid = shoots.every((s) => s && s.title?.trim() !== '' && s.date?.trim() !== '' && s.selectedRoles && Object.keys(s.selectedRoles).length > 0);
+                // Date, time, and venue are optional.
+                allShootsAreValid = shoots.every((s) => s && s.title?.trim() !== '' && s.selectedRoles && Object.keys(s.selectedRoles).length > 0);
             }
             onValidChange(allShootsAreValid);
         }

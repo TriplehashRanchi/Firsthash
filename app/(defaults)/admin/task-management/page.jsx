@@ -199,7 +199,7 @@ const AddTaskForm = ({ onAddTask, projects, deliverables, members, parentTasks, 
                         isDisabled={!!linkedDeliverableId}
                     />
                 </div>
-                <div>
+                {/* <div>
                     <label className="block text-sm dark:text-gray-200 font-medium text-gray-600 mb-1.5">Deliverable</label>
                     <Select
                         styles={customSelectStyles}
@@ -211,7 +211,7 @@ const AddTaskForm = ({ onAddTask, projects, deliverables, members, parentTasks, 
                         // Disable if a project is already selected
                         isDisabled={!!linkedProjectId}
                     />
-                </div>
+                </div> */}
             </div>
             {/* Additional Details */}
             <div>
