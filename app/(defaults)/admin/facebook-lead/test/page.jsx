@@ -67,7 +67,7 @@ const Page = () => {
 
       setConnectedPages(rows);
       setSelected(new Set(rows.map((p) => p.page_id)));
-      setConnectionStatus('connected');
+      setConnectionStatus(rows.length > 0 ? 'connected' : 'not-connected');
     } catch (err) {
       setConnectedPages([]);
       setConnectionStatus('not-connected');
