@@ -44,7 +44,7 @@ const ComingSoonCover = () => {
                             </div>
                             <ComponentsPagesComingSoonForm />
                         </div>
-                        <p className="absolute bottom-6 w-full text-center dark:text-white">© {new Date().getFullYear()}.FIRSTHASH All Rights Reserved.</p>
+                        <p className="absolute bottom-6 w-full text-center dark:text-white">© {new Date().getFullYear()}.IPCStudios All Rights Reserved.</p>
                     </div>
                 </div>
             </div>

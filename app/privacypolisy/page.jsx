@@ -10,7 +10,7 @@ const PrivacyPolicyPage = () => {
       <section className="mx-auto max-w-4xl px-6 py-12">
         <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
           <p className="text-sm uppercase tracking-widest text-slate-500">
-            FIRSTHASH
+            IPCStudios
           </p>
           <h1 className="mt-2 text-3xl font-bold">Privacy Policy</h1>
           <p className="mt-2 text-sm text-slate-600">
@@ -18,7 +18,7 @@ const PrivacyPolicyPage = () => {
           </p>
 
           <p className="mt-6 text-slate-700">
-            This Privacy Policy explains how FIRSTHASH ("we", "us", "our")
+            This Privacy Policy explains how IPCStudios ("we", "us", "our")
             collects, uses, and shares information when you use our website,
             products, and services (collectively, the "Service").
           </p>
@@ -96,7 +96,7 @@ const PrivacyPolicyPage = () => {
           <h2 className="mt-8 text-xl font-semibold">Contact Us</h2>
           <p className="mt-3 text-slate-700">
             If you have questions about this Privacy Policy, contact us at
-            support@firsthash.com.
+            support@IPCStudios.com.
           </p>
         </div>
       </section>

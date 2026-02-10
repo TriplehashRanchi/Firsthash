@@ -138,7 +138,7 @@ export default function LoginPage() {
         <div className="min-h-screen flex items-center justify-center bg-white px-4 py-12">
             <Script src="https://verify.msg91.com/otp-provider.js" strategy="afterInteractive" onLoad={() => console.log('MSG91 script loaded')} />
             <div className="w-full max-w-md space-y-6">
-                <h2 className="text-2xl font-semibold text-center">Login to FirstHash</h2>
+                <h2 className="text-2xl font-semibold text-center">Login to IPCStudios</h2>
                 {!forgotOpen ? (
                     <>
                         <input type="email" name="email" placeholder="Email" className="w-full p-3 border rounded" value={form.email} onChange={handleChange} />

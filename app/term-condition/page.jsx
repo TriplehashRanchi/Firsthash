@@ -10,7 +10,7 @@ const TermsConditionPage = () => {
       <section className="mx-auto max-w-4xl px-6 py-12">
         <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
           <p className="text-sm uppercase tracking-widest text-slate-500">
-            FIRSTHASH
+            IPCStudios
           </p>
           <h1 className="mt-2 text-3xl font-bold">Terms &amp; Conditions</h1>
           <p className="mt-2 text-sm text-slate-600">
@@ -19,7 +19,7 @@ const TermsConditionPage = () => {
 
           <p className="mt-6 text-slate-700">
             These Terms &amp; Conditions ("Terms") govern your access to and use
-            of the FIRSTHASH website, products, and services (collectively, the
+            of the IPCStudios website, products, and services (collectively, the
             "Service"). By accessing or using the Service, you agree to be bound
             by these Terms.
           </p>
@@ -46,7 +46,7 @@ const TermsConditionPage = () => {
 
           <h2 className="mt-8 text-xl font-semibold">Intellectual Property</h2>
           <p className="mt-3 text-slate-700">
-            The Service and its content are owned by FIRSTHASH or its licensors
+            The Service and its content are owned by IPCStudios or its licensors
             and are protected by applicable laws. You may not copy, modify, or
             distribute any part of the Service without permission.
           </p>
@@ -65,7 +65,7 @@ const TermsConditionPage = () => {
 
           <h2 className="mt-8 text-xl font-semibold">Limitation of Liability</h2>
           <p className="mt-3 text-slate-700">
-            To the maximum extent permitted by law, FIRSTHASH will not be liable
+            To the maximum extent permitted by law, IPCStudios will not be liable
             for any indirect, incidental, or consequential damages arising from
             your use of the Service.
           </p>
@@ -79,7 +79,7 @@ const TermsConditionPage = () => {
           <h2 className="mt-8 text-xl font-semibold">Contact Us</h2>
           <p className="mt-3 text-slate-700">
             If you have questions about these Terms, contact us at
-            support@firsthash.com.
+            support@IPCStudios.com.
           </p>
         </div>
       </section>

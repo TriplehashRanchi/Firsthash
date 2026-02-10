@@ -6,8 +6,8 @@ import { Nunito } from 'next/font/google';
 
 export const metadata: Metadata = {
     title: {
-        template: '%s | FIRSTHASH - Make dream a reality',
-        default: 'FIRSTHASH - Your task your dictionary',
+        template: '%s | IPCStudios - Make dream a reality',
+        default: 'IPCStudios - Your task your dictionary',
     },
 };
 const nunito = Nunito({

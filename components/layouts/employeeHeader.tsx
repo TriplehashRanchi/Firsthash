@@ -108,7 +108,7 @@ const EmployeeHeader: React.FC = () => {
             <Link href="/" className="main-logo flex shrink-0 items-center">
               <img className="inline w-8 ltr:-ml-1 rtl:-mr-1" src="/assets/images/logo.png" alt="logo" />
               <span className="hidden align-middle text-2xl font-semibold transition-all duration-300 ltr:ml-1.5 rtl:mr-1.5 dark:text-white-light md:inline">
-                FIRSTHASH
+                IPCStudios
               </span>
             </Link>
             <button

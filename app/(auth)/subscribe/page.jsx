@@ -103,7 +103,7 @@ export default function SubscribePage() {
         key: razorpay_key_id,
         amount: amount.toString(),
         currency: 'INR',
-        name: 'FirstHash',
+        name: 'IPCStudios',
         description: `Plan: ${selectedPlan.name}`,
         order_id,
         handler: async function (response) {

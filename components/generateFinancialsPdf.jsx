@@ -14,7 +14,7 @@ export const generateFinancialsPdf = ({
   // ====== Title ======
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(22);
-  doc.text('FirstHash', 105, y, { align: 'center' });
+  doc.text('IPCStudios', 105, y, { align: 'center' });
 
   y += lineGap + 2;
   doc.setFont('helvetica', 'normal');
@@ -93,5 +93,5 @@ export const generateFinancialsPdf = ({
   doc.text(`💰 Final Balance Due: ₹ ${Number(finalBalance).toLocaleString('en-IN')}`, 14, y);
 
   // ====== Save PDF ======
-  doc.save('FirstHash_Financial_Report.pdf');
+  doc.save('IPCStudios_report.pdf');
 };
