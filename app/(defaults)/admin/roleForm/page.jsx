@@ -321,8 +321,8 @@ export default function MemberForm() {
                                     false,
                                 )}
                                 {renderInputField('email', 'Email Address', 'email', email, setEmail, 'email@example.com', <Mail size={16} className="text-gray-400 dark:text-gray-200" />)}
-                                {renderInputField('password', 'Password', 'password', password, setPassword, '••••••••', <Key size={16} className="text-gray-400 dark:text-gray-200" />)}
-                                {renderInputField('confirmPwd', 'Confirm Password', 'password', confirmPwd, setConfirmPwd, '••••••••', <Key size={16} className="text-gray-400 dark:text-gray-200" />)}
+                                {renderInputField('password', 'Set Password', 'password', password, setPassword, '••••••••', <Key size={16} className="text-gray-400 dark:text-gray-200" />)}
+                                {renderInputField('confirmPwd', 'Set Confirm Password', 'password', confirmPwd, setConfirmPwd, '••••••••', <Key size={16} className="text-gray-400 dark:text-gray-200" />)}
                             </div>
                             <div className="flex justify-end pt-8 border-t">
                                 <button
