@@ -178,7 +178,7 @@ const AdminSidebar = () => {
                                         <Link href="/admin/roleForm" className="group">
                                             <div className="flex items-center">
                                                 <IconUserPlus className="shrink-0 group-hover:!text-primary" />
-                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:text-gray-200 dark:group-hover:text-white-dark">{t('Add Employee')}</span>
+                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:text-gray-200 dark:group-hover:text-white-dark">{t('Add Team')}</span>
                                             </div>
                                         </Link>
                                     </li>
@@ -194,7 +194,7 @@ const AdminSidebar = () => {
                                         <Link href="/admin/employee" className="group">
                                             <div className="flex items-center">
                                                 <IconMenuUsers className="shrink-0 group-hover:!text-primary" />
-                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:text-gray-200 dark:group-hover:text-white-dark">{t('New Roles')}</span>
+                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:text-gray-200 dark:group-hover:text-white-dark">{t('Roles')}</span>
                                             </div>
                                         </Link>
                                     </li>

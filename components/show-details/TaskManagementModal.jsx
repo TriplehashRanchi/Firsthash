@@ -3,29 +3,6 @@ import { useState, useMemo, useEffect } from "react"
 import { ListTodo, X, Plus, Trash2, UserPlus, ChevronDown, ChevronRight, Mic, Play, CheckCircle2, CornerDownRight } from "lucide-react"
 import { dedupeTasks } from "@/lib/taskUtils"
 
-const DATE_FORMATTER = new Intl.DateTimeFormat("en-US", {
-  day: "numeric",
-  month: "short",
-})
-
-const getDueDateMeta = (task) => {
-  const value = task?.due_date || task?.dueDate || task?.due_at || task?.deadline || null
-  if (!value) return null
-
-  const parsed = new Date(value)
-  if (Number.isNaN(parsed.getTime())) return null
-
-  const dueDay = new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate())
-  const now = new Date()
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-
-  return {
-    label: DATE_FORMATTER.format(parsed),
-    isOverdue: dueDay.getTime() < today.getTime(),
-    iso: parsed.toISOString(),
-  }
-}
-
 const getInitials = (name) => {
   if (!name) return "?"
   return name
@@ -46,6 +23,33 @@ const getDateInputValue = (task) => {
   const parsed = new Date(value)
   if (Number.isNaN(parsed.getTime())) return ""
   return parsed.toISOString().slice(0, 10)
+}
+
+const DEFAULT_STATUSES = ["to_do", "in_progress", "completed", "finalize"]
+
+const normalizeStatus = (status) => String(status || "").toLowerCase().trim()
+
+const getStatusValue = (status) => {
+  const trimmed = String(status || "").trim()
+  return trimmed || "to_do"
+}
+
+const statusLabel = (status) => {
+  const safe = getStatusValue(status)
+  if (safe.includes("_")) {
+    return safe
+      .toLowerCase()
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (char) => char.toUpperCase())
+  }
+  return safe
+}
+
+const STATUS_BADGE_STYLES = {
+  to_do: "bg-amber-50 border-amber-100 text-amber-600 dark:bg-amber-900/20 dark:border-amber-900 dark:text-amber-400",
+  in_progress: "bg-blue-50 border-blue-100 text-blue-600 dark:bg-blue-900/20 dark:border-blue-900 dark:text-blue-400",
+  completed: "bg-emerald-50 border-emerald-100 text-emerald-600 dark:bg-emerald-900/20 dark:border-emerald-900 dark:text-emerald-400",
+  finalize: "bg-slate-100 border-slate-200 text-slate-700 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300",
 }
 
 const UserAvatar = ({ name, size = "sm" }) => {
@@ -169,9 +173,11 @@ const TaskRow = ({
   showSubtasks,
   hasSubtasks,
   isReadOnly,
+  statusOptions = [],
 }) => {
   const [isEditing, setIsEditing] = useState(false)
   const [title, setTitle] = useState(task.title)
+  const [statusDraft, setStatusDraft] = useState(getStatusValue(task.status))
 
   const handleTitleBlur = () => {
     if (title.trim() !== "" && title !== task.title) {
@@ -180,9 +186,23 @@ const TaskRow = ({
     setIsEditing(false)
   }
 
+  useEffect(() => {
+    setStatusDraft(getStatusValue(task.status))
+  }, [task.id, task.status])
+
   const assignedNames = Array.from(new Set(task.assignments || []))
-  const isCompleted = task.status === "completed"
-  const dueDate = getDueDateMeta(task)
+  const currentStatusValue = getStatusValue(task.status)
+  const normalizedStatus = normalizeStatus(currentStatusValue)
+  const isCompleted = normalizedStatus === "completed"
+
+  const handleStatusCommit = () => {
+    const nextStatus = getStatusValue(statusDraft)
+    if (normalizeStatus(nextStatus) === normalizeStatus(currentStatusValue)) {
+      setStatusDraft(currentStatusValue)
+      return
+    }
+    onUpdate(task.id, { status: nextStatus })
+  }
 
   const gridTemplate = "32px minmax(180px, 1fr) 170px 110px 160px 290px"
 
@@ -273,15 +293,46 @@ const TaskRow = ({
           </div>
         </div>
         <div className="px-3 border-r border-gray-200 dark:border-slate-700">
-          <span
-            className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide border ${
-              isCompleted
-                ? "bg-emerald-50 border-emerald-100 text-emerald-600 dark:bg-emerald-900/20 dark:border-emerald-900 dark:text-emerald-400"
-                : "bg-amber-50 border-amber-100 text-amber-600 dark:bg-amber-900/20 dark:border-amber-900 dark:text-amber-400"
-            }`}
-          >
-            {isCompleted ? "Done" : "Pending"}
-          </span>
+          {isReadOnly ? (
+            <span
+              className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide border ${
+                STATUS_BADGE_STYLES[normalizedStatus] || "bg-gray-50 border-gray-200 text-gray-600 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300"
+              }`}
+            >
+              {statusLabel(currentStatusValue)}
+            </span>
+          ) : (
+            <div className="flex items-center gap-1.5">
+              <input
+                list={`task-status-options-${task.id}`}
+                value={statusDraft}
+                onChange={(e) => setStatusDraft(e.target.value)}
+                onBlur={handleStatusCommit}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault()
+                    handleStatusCommit()
+                  }
+                }}
+                placeholder="Set status..."
+                className="w-full px-2.5 py-1.5 text-xs rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-900 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+              {normalizedStatus === "finalize" && (
+                <button
+                  onClick={() => onUpdate(task.id, { status: "completed" })}
+                  className="px-2.5 py-1.5 text-[10px] font-semibold rounded-md bg-emerald-600 text-white hover:bg-emerald-700 whitespace-nowrap"
+                  title="Approve and mark completed"
+                >
+                  Approve
+                </button>
+              )}
+              <datalist id={`task-status-options-${task.id}`}>
+                {statusOptions.map((option) => (
+                  <option key={option} value={option} />
+                ))}
+              </datalist>
+            </div>
+          )}
         </div>
 
         <div className="px-3 border-r border-gray-200 dark:border-slate-700">
@@ -391,6 +442,31 @@ const TaskManagementContent = ({
   const [assigningTask, setAssigningTask] = useState(null)
 
   const dedupedTasks = useMemo(() => dedupeTasks(initialTasks), [initialTasks])
+  const statusOptions = useMemo(() => {
+    const options = []
+    const seen = new Set()
+
+    for (const status of DEFAULT_STATUSES) {
+      const value = getStatusValue(status)
+      const key = normalizeStatus(value)
+      if (!seen.has(key)) {
+        seen.add(key)
+        options.push(value)
+      }
+    }
+
+    for (const task of dedupedTasks) {
+      const rawStatus = String(task?.status || "").trim()
+      if (!rawStatus) continue
+      const key = normalizeStatus(rawStatus)
+      if (!seen.has(key)) {
+        seen.add(key)
+        options.push(rawStatus)
+      }
+    }
+
+    return options
+  }, [dedupedTasks])
 
   const taskTree = useMemo(() => {
     const tasks = [...dedupedTasks]
@@ -497,6 +573,7 @@ const TaskManagementContent = ({
                   newTaskTitle={newTaskTitle}
                   setNewTaskTitle={setNewTaskTitle}
                   handleCreateTask={handleCreateTask}
+                  statusOptions={statusOptions}
                   isReadOnly={isReadOnly}
                 />
               ))}
