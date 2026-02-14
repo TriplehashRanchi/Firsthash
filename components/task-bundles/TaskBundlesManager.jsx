@@ -159,6 +159,7 @@ const TaskBundlesManager = () => {
     const [bundleForm, setBundleForm] = useState(emptyBundleForm);
     const [savingBundle, setSavingBundle] = useState(false);
     const [editingBundle, setEditingBundle] = useState(null);
+    const [bundleModalOpen, setBundleModalOpen] = useState(false);
 
     const [itemsModalOpen, setItemsModalOpen] = useState(false);
     const [activeBundle, setActiveBundle] = useState(null);
@@ -212,6 +213,7 @@ const TaskBundlesManager = () => {
     const openCreateBundle = () => {
         setEditingBundle(null);
         setBundleForm(emptyBundleForm);
+        setBundleModalOpen(true);
     };
 
     const openEditBundle = (bundle) => {
@@ -221,6 +223,13 @@ const TaskBundlesManager = () => {
             description: bundle.description || '',
             is_active: toBoolean(bundle.is_active),
         });
+        setBundleModalOpen(true);
+    };
+
+    const closeBundleModal = () => {
+        setBundleModalOpen(false);
+        setEditingBundle(null);
+        setBundleForm(emptyBundleForm);
     };
 
     const saveBundle = async () => {
@@ -243,8 +252,7 @@ const TaskBundlesManager = () => {
                 await createTaskBundle(payload);
             }
 
-            setEditingBundle(null);
-            setBundleForm(emptyBundleForm);
+            closeBundleModal();
             await fetchBundles();
         } catch (error) {
             console.error('Failed to save task bundle:', error);
@@ -357,44 +365,6 @@ const TaskBundlesManager = () => {
                         <Plus className="w-4 h-4" />
                         New Bundle
                     </button>
-                </div>
-
-                <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-4 bg-slate-50 dark:bg-slate-900/60">
-                    <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
-                        <input
-                            value={bundleForm.name}
-                            onChange={(e) => setBundleForm((prev) => ({ ...prev, name: e.target.value }))}
-                            placeholder="Bundle name"
-                            className="md:col-span-4 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm"
-                        />
-                        <input
-                            value={bundleForm.description}
-                            onChange={(e) => setBundleForm((prev) => ({ ...prev, description: e.target.value }))}
-                            placeholder="Description (optional)"
-                            className="md:col-span-5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm"
-                        />
-                        <label className="md:col-span-2 inline-flex items-center gap-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-slate-700 dark:text-slate-200">
-                            <input
-                                type="checkbox"
-                                checked={bundleForm.is_active}
-                                onChange={(e) => setBundleForm((prev) => ({ ...prev, is_active: e.target.checked }))}
-                            />
-                            Active
-                        </label>
-                        <button
-                            onClick={saveBundle}
-                            disabled={savingBundle}
-                            className="md:col-span-1 inline-flex items-center justify-center gap-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-400 text-white px-3 py-2 text-sm font-medium"
-                        >
-                            {savingBundle ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                            Save
-                        </button>
-                    </div>
-                    {editingBundle ? (
-                        <p className="text-xs text-slate-500 mt-2">
-                            Editing: <span className="font-medium">{editingBundle.name}</span>
-                        </p>
-                    ) : null}
                 </div>
 
                 <div className="mt-6 space-y-3">
@@ -550,6 +520,75 @@ const TaskBundlesManager = () => {
                                     ))}
                                 </div>
                             )}
+                        </div>
+                    </div>
+                </div>
+            ) : null}
+
+            {bundleModalOpen ? (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/25 ">
+                    <div className="relative w-full max-w-3xl overflow-hidden rounded-3xl border border-white/50 dark:border-slate-700/70 bg-white/90 dark:bg-slate-900/90 shadow-[0_18px_45px_rgba(15,23,42,0.22)]">
+
+                        <div className="relative flex items-center justify-between px-6 py-5 border-b border-slate-200/80 dark:border-slate-700/80 bg-gradient-to-r from-indigo-50/50 via-white/60 to-cyan-50/45 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800">
+                            <div>
+                                <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
+                                    {editingBundle ? 'Edit Bundle' : 'New Bundle'}
+                                </h3>
+                                <p className="text-sm text-slate-600 dark:text-slate-300">Create reusable task templates and nested checklist items.</p>
+                            </div>
+                            <button
+                                onClick={closeBundleModal}
+                                disabled={savingBundle}
+                                className="p-2.5 rounded-xl hover:bg-white/80 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-300 ring-1 ring-slate-200 dark:ring-slate-700 disabled:opacity-50 transition-all"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+                        <div className="relative p-6 space-y-5">
+                            <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
+                                <input
+                                    value={bundleForm.name}
+                                    onChange={(e) => setBundleForm((prev) => ({ ...prev, name: e.target.value }))}
+                                    placeholder="Bundle name"
+                                    className="md:col-span-5 rounded-xl border border-slate-300/90 dark:border-slate-600 bg-white/80 dark:bg-slate-800 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/70"
+                                />
+                                <input
+                                    value={bundleForm.description}
+                                    onChange={(e) => setBundleForm((prev) => ({ ...prev, description: e.target.value }))}
+                                    placeholder="Description (optional)"
+                                    className="md:col-span-5 rounded-xl border border-slate-300/90 dark:border-slate-600 bg-white/80 dark:bg-slate-800 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/70"
+                                />
+                                <label className="md:col-span-2 inline-flex items-center gap-2 rounded-xl border border-slate-300/90 dark:border-slate-600 bg-white/80 dark:bg-slate-800 px-4 py-3 text-sm font-medium text-slate-700 dark:text-slate-200">
+                                    <input
+                                        type="checkbox"
+                                        checked={bundleForm.is_active}
+                                        onChange={(e) => setBundleForm((prev) => ({ ...prev, is_active: e.target.checked }))}
+                                    />
+                                    Active
+                                </label>
+                            </div>
+                            {editingBundle ? (
+                                <p className="text-xs text-slate-500">
+                                    Editing: <span className="font-medium">{editingBundle.name}</span>
+                                </p>
+                            ) : null}
+                            <div className="flex justify-end gap-2 pt-2">
+                                <button
+                                    onClick={closeBundleModal}
+                                    disabled={savingBundle}
+                                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 px-5 py-2.5 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 transition-all"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={saveBundle}
+                                    disabled={savingBundle}
+                                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-cyan-500 hover:from-indigo-700 hover:to-cyan-600 disabled:from-slate-400 disabled:to-slate-400 text-white px-5 py-2.5 text-sm font-semibold shadow-lg shadow-indigo-500/25 transition-all"
+                                >
+                                    {savingBundle ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                                    Save
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
