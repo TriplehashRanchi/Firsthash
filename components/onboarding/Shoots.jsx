@@ -292,7 +292,7 @@ const ShootRow = ({
                 />
                 <Settings2 size={18} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 pointer-events-none" />
             </div>
-            <input placeholder="Venue" className={fullInputStyle} value={shoot.city || ''} onChange={(e) => onChange('city', e.target.value)} />
+            <input placeholder="Venue(location)" className={fullInputStyle} value={shoot.city || ''} onChange={(e) => onChange('city', e.target.value)} />
             {!isFirst && canDelete && (
                 <button
                     onClick={onDelete}
@@ -689,7 +689,7 @@ const Shoots = ({ company, onValidChange, onDataChange, initialData }) => {
                     <AddShootModal onAddShoot={handleAddMasterTitle} />
                 </div>
                 <button onClick={addShoot} className={addShootButtonStyles} title="Add Another Shoot" type="button">
-                    <Plus size={16} className="mr-1.5" /> Add Shoot
+                    <Plus size={16} className="mr-1.5" /> Add Shoot Schedule
                 </button>
             </div>
             {shoots.map((shootItem, idx) => (

@@ -290,7 +290,7 @@ export default function MemberForm() {
 
                                 {category !== 'manager' && (
                                     <div className="space-y-2">
-                                        <label className="block text-sm font-medium dark:text-gray-200 text-gray-600 mb-1">
+                                        <label className="block text-sm font-medium dark:text-gray-200 text-gray-800 mb-1">
                                             Specific Roles <span className="text-gray-500 dark:text-gray-200 text-xs">(select one or more)</span>
                                         </label>
                                         <div className="relative">
@@ -298,7 +298,7 @@ export default function MemberForm() {
                                             <button
                                                 type="button"
                                                 onClick={() => setIsRoleModalOpen(true)}
-                                                className="w-full dark:text-gray-200 px-4 py-2 border rounded-md text-left bg-white dark:bg-slate-800 hover:bg-gray-50 focus:outline-none focus:ring"
+                                                className="w-full dark:text-gray-200 px-4 py-2 border rounded-md text-left font-semibold  bg-white dark:bg-slate-800 hover:bg-gray-50   ring"
                                             >
                                                 {selectedRoles.length > 0 ? `${selectedRoles.length} role(s) selected` : 'Click to select roles...'}
                                             </button>

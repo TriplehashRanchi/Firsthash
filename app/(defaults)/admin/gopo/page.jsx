@@ -362,12 +362,20 @@ function Page() {
     const breadcrumbLinkStyles = 'text-blue-600 hover:underline dark:text-blue-400';
     const breadcrumbCurrentPageStyles = 'text-gray-600 dark:text-gray-400';
     const breadcrumbSeparatorStyles = "before:content-['/'] ltr:before:mr-2 rtl:before:ml-2 text-gray-500 dark:text-gray-500";
-    const projectNameInputStyles = 'bg-transparent text-3xl font-bold focus:outline-none flex-grow placeholder-gray-500 text-gray-900 dark:text-white dark:placeholder-gray-400';
-    const successButtonStyles =
+     const successButtonStyles =
         'bg-blue-600 text-white px-6 py-3 rounded-lg text-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 focus:ring-4 focus:ring-blue-300 dark:focus:ring-blue-800 transition-colors';
     const totalCostSectionStyles = 'mt-10 pt-6 border-t border-gray-300 dark:border-gray-700';
     const totalCostLabelStyles = 'text-xl font-semibold text-gray-700 dark:text-gray-200';
     const totalCostValueStyles = 'text-3xl font-bold text-green-600 dark:text-green-400 ml-2';
+    const projectNameInputStyles =
+  "bg-transparent text-2xl font-bold focus:outline-none rounded-lg px-3 py-2 " +
+  "w-full max-w-[520px] " + // 👈 controls width (change 520px as you like)
+  "border border-gray-200 dark:border-gray-700/60 " +
+  "placeholder:text-gray-600 dark:placeholder:text-gray-500 " +
+  "text-gray-900 dark:text-white " +
+  "ring-2 ring-blue-500 dark:ring-blue-400 " +
+  "border-blue-500 dark:border-blue-400 " +
+  "transition";
 
     return (
         <div className={pageContainerStyles}>
@@ -384,22 +392,19 @@ function Page() {
                 </li>
             </ul>
 
-            <div className="text-left relative">
-                <div className="flex items-center justify-between mb-6 relative">
-                    {/* Input Field */}
-                    <input type="text" value={projectName} onChange={(e) => setProjectName(e.target.value)} placeholder="Enter Project Name" className={projectNameInputStyles} />
+       <div className="text-left relative bg-white dark:bg-gray-900 rounded-t-lg p-4 pb-0">
+  <div className="flex items-center justify-between">
+    <input
+      type="text"
+      value={projectName}
+      onChange={(e) => setProjectName(e.target.value)}
+      placeholder="Enter Project Name"
+      className={projectNameInputStyles}
+    />
+  </div>
+</div>
 
-                    {/* Tooltip shown ONLY when creating & name not entered */}
-                    {!isEditMode && !projectName && (
-                        <div className="absolute top-full left-0 mt-2 bg-yellow-100 border border-yellow-400 text-yellow-800 text-sm rounded-md px-3 py-2 shadow-md animate-fade-in w-max z-50">
-                            💡 <span className="font-semibold">Tip:</span> Please enter your project name before proceeding.
-                            <div className="absolute -top-1 left-4 w-2 h-2 bg-yellow-100 border-l border-t border-yellow-400 rotate-45"></div>
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            <div className="grid mt-6 pt-5">
+            <div className="grid  ">
                 <div>
                     {/* --- PASS onDataChange TO EACH CHILD --- */}
                     <Clients company={company} onValidChange={setIsClientsValid} onDataChange={setClientsData} initialData={clientsData} />

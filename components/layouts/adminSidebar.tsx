@@ -135,7 +135,14 @@ const AdminSidebar = () => {
                                             </div>
                                         </Link>
                                     </li>
-
+                                    <li className="nav-item">
+                                        <Link href="/admin/facebook-lead/test" className="group">
+                                            <div className="flex items-center">
+                                                <IconCaretsDown className="shrink-0 group-hover:!text-primary" />
+                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:text-gray-200 dark:group-hover:text-white-dark">{t('Meta Leads')}</span>
+                                            </div>
+                                        </Link>
+                                    </li>
                                     <li className="menu nav-item">
                                         <button type="button" className={`${currentMenu === 'customer_tab' ? 'active' : ''} nav-link group w-full`} onClick={() => toggleMenu('customer_tab')}>
                                             <div className="flex items-center">
@@ -186,7 +193,7 @@ const AdminSidebar = () => {
                                         <Link href="/admin/team_view" className="group">
                                             <div className="flex items-center">
                                                 <IconUsersGroup className="shrink-0 group-hover:!text-primary" />
-                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:text-gray-200 dark:group-hover:text-white-dark">{t('Employee List')}</span>
+                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:text-gray-200 dark:group-hover:text-white-dark">{t('Team List')}</span>
                                             </div>
                                         </Link>
                                     </li>
@@ -194,7 +201,7 @@ const AdminSidebar = () => {
                                         <Link href="/admin/employee" className="group">
                                             <div className="flex items-center">
                                                 <IconMenuUsers className="shrink-0 group-hover:!text-primary" />
-                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:text-gray-200 dark:group-hover:text-white-dark">{t('Roles')}</span>
+                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:text-gray-200 dark:group-hover:text-white-dark">{t('Team Roles')}</span>
                                             </div>
                                         </Link>
                                     </li>
@@ -207,14 +214,7 @@ const AdminSidebar = () => {
                                         </Link>
                                     </li>
 
-                                    <li className="nav-item">
-                                        <Link href="/admin/facebook-lead/test" className="group">
-                                            <div className="flex items-center">
-                                                <IconCaretsDown className="shrink-0 group-hover:!text-primary" />
-                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:text-gray-200 dark:group-hover:text-white-dark">{t('Facebook Lead')}</span>
-                                            </div>
-                                        </Link>
-                                    </li>
+                                  
 
                                       <li className="nav-item">
                                         <Link href="/admin/gopo" className="group">

@@ -256,7 +256,7 @@ const DeliverablesDetails = ({
                                 setIsEnablingQuotationDeliverables(false);
                             }}
                             disabled={isReadOnly || typeof onEnableQuotationDeliverables !== 'function' || isEnablingQuotationDeliverables}
-                            className="px-3 py-1 text-sm rounded-md border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50"
+                            className="px-3 py-1 text-sm rounded-md border border-slate-300 bg-gradient-to-r from-indigo-600 to-purple-600 dark:border-slate-600 text-white dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50"
                         >
                             {isEnablingQuotationDeliverables ? 'Importing...' : 'Import Quotation Deliverable'}
                         </button>

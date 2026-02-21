@@ -203,8 +203,30 @@ const TaskRow = ({
     }
     onUpdate(task.id, { status: nextStatus })
   }
+  const STATUS_INPUT_STYLES = {
+  to_do:
+    "bg-slate-50 border-slate-200 text-slate-700 placeholder:text-slate-400 focus:ring-slate-400/40 dark:bg-slate-900/40 dark:border-slate-700 dark:text-slate-200 dark:placeholder:text-slate-500",
+  in_progress:
+    "bg-blue-50 border-blue-200 text-blue-700 placeholder:text-blue-400 focus:ring-blue-500/30 dark:bg-blue-950/30 dark:border-blue-800/60 dark:text-blue-200 dark:placeholder:text-blue-400",
+  completed:
+    "bg-emerald-50 border-emerald-200 text-emerald-700 placeholder:text-emerald-400 focus:ring-emerald-500/30 dark:bg-emerald-950/25 dark:border-emerald-800/60 dark:text-emerald-200 dark:placeholder:text-emerald-400",
+  finalize:
+    "bg-purple-50 border-purple-200 text-purple-700 placeholder:text-purple-400 focus:ring-purple-500/30 dark:bg-purple-950/25 dark:border-purple-800/60 dark:text-purple-200 dark:placeholder:text-purple-400",
+};
 
-  const gridTemplate = "32px minmax(180px, 1fr) 170px 110px 160px 290px"
+const STATUS_DOT_STYLES = {
+  to_do: "bg-slate-400",
+  in_progress: "bg-blue-500",
+  completed: "bg-emerald-500",
+  finalize: "bg-purple-500",
+};
+
+const STATUS_APPROVE_BTN = {
+  finalize:
+    "bg-emerald-600 text-white hover:bg-emerald-700 focus:ring-emerald-500/30 dark:focus:ring-emerald-400/30",
+};
+
+const gridTemplate = "32px minmax(180px, 1fr) 170px 160px 160px 290px"
 
   return (
     <div className="group relative border-b border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900">
@@ -292,48 +314,74 @@ const TaskRow = ({
             </button>
           </div>
         </div>
-        <div className="px-3 border-r border-gray-200 dark:border-slate-700">
-          {isReadOnly ? (
-            <span
-              className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide border ${
-                STATUS_BADGE_STYLES[normalizedStatus] || "bg-gray-50 border-gray-200 text-gray-600 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300"
-              }`}
-            >
-              {statusLabel(currentStatusValue)}
-            </span>
-          ) : (
-            <div className="flex items-center gap-1.5">
-              <input
-                list={`task-status-options-${task.id}`}
-                value={statusDraft}
-                onChange={(e) => setStatusDraft(e.target.value)}
-                onBlur={handleStatusCommit}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault()
-                    handleStatusCommit()
-                  }
-                }}
-                placeholder="Set status..."
-                className="w-full px-2.5 py-1.5 text-xs rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-900 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              />
-              {normalizedStatus === "finalize" && (
-                <button
-                  onClick={() => onUpdate(task.id, { status: "completed" })}
-                  className="px-2.5 py-1.5 text-[10px] font-semibold rounded-md bg-emerald-600 text-white hover:bg-emerald-700 whitespace-nowrap"
-                  title="Approve and mark completed"
-                >
-                  Approve
-                </button>
-              )}
-              <datalist id={`task-status-options-${task.id}`}>
-                {statusOptions.map((option) => (
-                  <option key={option} value={option} />
-                ))}
-              </datalist>
-            </div>
-          )}
-        </div>
+      <div className="px-3 border-r border-gray-200 dark:border-slate-700">
+  {isReadOnly ? (
+    <span
+      className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide border shadow-sm ${
+        STATUS_BADGE_STYLES[normalizedStatus] ||
+        "bg-gray-50 border-gray-200 text-gray-600 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300"
+      }`}
+    >
+      <span
+        className={`h-1.5 w-1.5 rounded-full ${
+          STATUS_DOT_STYLES[normalizedStatus] || "bg-gray-400"
+        }`}
+      />
+      {statusLabel(currentStatusValue)}
+    </span>
+  ) : (
+    <div className="flex items-center gap-2">
+      {/* Status input as a pill with dot */}
+      <div className="relative flex-1">
+        <span
+          className={`pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 h-2 w-2 rounded-full ${
+            STATUS_DOT_STYLES[normalizedStatus] || "bg-gray-400"
+          }`}
+        />
+        <input
+          list={`task-status-options-${task.id}`}
+          value={statusDraft}
+          onChange={(e) => setStatusDraft(e.target.value)}
+          onBlur={handleStatusCommit}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              handleStatusCommit();
+            }
+          }}
+          placeholder="Set status..."
+          className={[
+            "w-full pl-7 pr-2.5 py-1.5 text-xs rounded-lg border shadow-sm",
+            "focus:outline-none focus:ring-2 transition-colors",
+            STATUS_INPUT_STYLES[normalizedStatus] ||
+              "bg-white border-gray-200 text-gray-700 placeholder:text-gray-400 focus:ring-blue-500/30 dark:bg-slate-900 dark:border-gray-700 dark:text-gray-200 dark:placeholder:text-gray-500",
+          ].join(" ")}
+        />
+      </div>
+
+      {/* Approve button (only for finalize) */}
+      {normalizedStatus === "finalize" && (
+        <button
+          onClick={() => onUpdate(task.id, { status: "completed" })}
+          className={[
+            "px-3 py-1.5 text-[10px] font-semibold rounded-full shadow-sm whitespace-nowrap",
+            "focus:outline-none focus:ring-2 transition-colors",
+            STATUS_APPROVE_BTN.finalize,
+          ].join(" ")}
+          title="Approve and mark completed"
+        >
+          Approve
+        </button>
+      )}
+
+      <datalist id={`task-status-options-${task.id}`}>
+        {statusOptions.map((option) => (
+          <option key={option} value={option} />
+        ))}
+      </datalist>
+    </div>
+  )}
+</div>
 
         <div className="px-3 border-r border-gray-200 dark:border-slate-700">
           <input

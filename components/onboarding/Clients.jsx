@@ -165,7 +165,7 @@ const Clients = ({ company, onValidChange, onDataChange, initialData }) => {
         paddingRight: '2.5rem',
     };
     const labelStyles = 'block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300';
-    const sectionWrapperStyles = 'mb-6 p-4 bg-white dark:bg-gray-900/50 rounded-lg shadow-md dark:shadow-gray-700/50';
+    const sectionWrapperStyles = 'mb-6 p-4 bg-white dark:bg-gray-900/50 rounded-b-lg shadow-md dark:shadow-gray-700/50';
     const sectionHeadingStyles = 'text-xl font-semibold mb-4 text-gray-700 dark:text-gray-200';
 
     return (

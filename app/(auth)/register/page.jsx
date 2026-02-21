@@ -141,7 +141,7 @@ export default function RegisterPage() {
                 <p className="text-xs text-center text-gray-400">
                     <p className="text-sm text-center text-gray-500">
                         Already have an account?{' '}
-                        <a href="/login" className="underline">
+                        <a href="/login" className="underline text-blue-600 ">
                             Login
                         </a>
                     </p>
