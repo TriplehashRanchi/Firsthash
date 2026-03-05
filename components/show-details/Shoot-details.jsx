@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Camera, CalendarDays, Clock, MapPin, Edit3, X, UserPlus, Users as UsersIcon, CheckCircle, Search } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -13,9 +13,102 @@ const AssignmentModalContent = ({
     currentAssignedMemberIds,
     onSaveChanges,
     teamMembers, // <-- This prop name is what we will use consistently
+    shootDate,
+    shootTime,
+    initialStartAt,
+    initialEndAt,
+    shootId,
+    onCheckShootAvailability,
 }) => {
     const [selectedMemberIds, setSelectedMemberIds] = useState([...currentAssignedMemberIds]);
     const [searchTerm, setSearchTerm] = useState('');
+    const [startAt, setStartAt] = useState(initialStartAt || '');
+    const [endAt, setEndAt] = useState(initialEndAt || '');
+    const [timeError, setTimeError] = useState('');
+    const [unavailableMemberIds, setUnavailableMemberIds] = useState([]);
+    const [availabilityLoading, setAvailabilityLoading] = useState(false);
+
+    const toDateTimeLocalInput = (value) => {
+        if (!value) return '';
+        if (typeof value === 'string') {
+            const trimmed = value.trim();
+            if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(trimmed)) return trimmed.replace(' ', 'T').slice(0, 16);
+            if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/.test(trimmed)) return trimmed.slice(0, 16);
+        }
+        const parsed = new Date(value);
+        if (Number.isNaN(parsed.getTime())) return '';
+        const yyyy = parsed.getFullYear();
+        const mm = String(parsed.getMonth() + 1).padStart(2, '0');
+        const dd = String(parsed.getDate()).padStart(2, '0');
+        const hh = String(parsed.getHours()).padStart(2, '0');
+        const mi = String(parsed.getMinutes()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd}T${hh}:${mi}`;
+    };
+
+    const buildDefaultSlotWindow = () => {
+        if (!shootDate) return { defaultStartAt: '', defaultEndAt: '' };
+        const datePart = String(shootDate).slice(0, 10);
+        const timePart = shootTime ? String(shootTime).slice(0, 5) : '09:00';
+        const start = new Date(`${datePart}T${timePart}`);
+        if (Number.isNaN(start.getTime())) return { defaultStartAt: '', defaultEndAt: '' };
+        const end = new Date(start.getTime() + 2 * 60 * 60 * 1000);
+        return { defaultStartAt: toDateTimeLocalInput(start), defaultEndAt: toDateTimeLocalInput(end) };
+    };
+
+    const { defaultStartAt, defaultEndAt } = buildDefaultSlotWindow();
+    const addTwoHours = (dateTimeLocal) => {
+        if (!dateTimeLocal) return '';
+        const dt = new Date(dateTimeLocal);
+        if (Number.isNaN(dt.getTime())) return '';
+        const plusTwo = new Date(dt.getTime() + 2 * 60 * 60 * 1000);
+        return toDateTimeLocalInput(plusTwo);
+    };
+
+    useEffect(() => {
+        if (!startAt && defaultStartAt) setStartAt(defaultStartAt);
+        if (!endAt && defaultEndAt) setEndAt(defaultEndAt);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [defaultStartAt, defaultEndAt]);
+
+    useEffect(() => {
+        if (!startAt) return;
+        if (!endAt || new Date(endAt) <= new Date(startAt)) {
+            const autoEnd = addTwoHours(startAt);
+            if (autoEnd) setEndAt(autoEnd);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [startAt]);
+
+    useEffect(() => {
+        const runAvailabilityCheck = async () => {
+            const effectiveStartAt = startAt || defaultStartAt;
+            const effectiveEndAt = endAt || defaultEndAt;
+
+            if (!effectiveStartAt || !effectiveEndAt || !shootId || typeof onCheckShootAvailability !== 'function') {
+                setUnavailableMemberIds([]);
+                return;
+            }
+
+            if (new Date(effectiveEndAt) <= new Date(effectiveStartAt)) {
+                setUnavailableMemberIds([]);
+                return;
+            }
+
+            setAvailabilityLoading(true);
+            try {
+                const availability = await onCheckShootAvailability(shootId, serviceName, effectiveStartAt, effectiveEndAt);
+                const unavailable = Array.isArray(availability?.unavailableMemberIds) ? availability.unavailableMemberIds : [];
+                setUnavailableMemberIds(unavailable);
+                setSelectedMemberIds((prev) => prev.filter((id) => !unavailable.includes(id)));
+            } catch (error) {
+                setUnavailableMemberIds([]);
+            } finally {
+                setAvailabilityLoading(false);
+            }
+        };
+
+        runAvailabilityCheck();
+    }, [startAt, endAt, defaultStartAt, defaultEndAt, shootId, serviceName, onCheckShootAvailability]);
 
 
     const handleMemberSelect = (memberId) => {
@@ -42,7 +135,28 @@ const AssignmentModalContent = ({
     };
 
     const handleSaveChangesClick = () => {
-        onSaveChanges(selectedMemberIds);
+        const effectiveStartAt = startAt || defaultStartAt;
+        const effectiveEndAt = endAt || defaultEndAt;
+
+        if (selectedMemberIds.length > 0) {
+            if (selectedMemberIds.some((id) => unavailableMemberIds.includes(id))) {
+                setTimeError('Some selected members are unavailable in this time window.');
+                return;
+            }
+            if (!effectiveStartAt || !effectiveEndAt) {
+                setTimeError('Start and end time are required.');
+                return;
+            }
+            if (new Date(effectiveEndAt) <= new Date(effectiveStartAt)) {
+                setTimeError('End time must be later than start time.');
+                return;
+            }
+        }
+        setTimeError('');
+        onSaveChanges(selectedMemberIds, {
+            startAt: effectiveStartAt,
+            endAt: effectiveEndAt,
+        });
     };
 
     // Now correctly uses the 'teamMembers' prop for lookups
@@ -62,6 +176,11 @@ const AssignmentModalContent = ({
                 .includes(lower),
         );
     }, [teamMembersToDisplay, searchTerm]);
+
+    const availableTeamMembers = useMemo(
+        () => filteredTeamMembers.filter((member) => !unavailableMemberIds.includes(member.id)),
+        [filteredTeamMembers, unavailableMemberIds],
+    );
 
     return (
         <div className="fixed inset-0 bg-gray-600 dark:bg-slate-900 bg-opacity-50 dark:bg-opacity-80 flex items-center justify-center p-4 z-[60] backdrop-blur-sm">
@@ -104,6 +223,38 @@ const AssignmentModalContent = ({
                     />
                 </div>
 
+                <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">Start Time</label>
+                        <input
+                            type="datetime-local"
+                            value={startAt}
+                            onChange={(e) => {
+                                const nextStart = e.target.value;
+                                setStartAt(nextStart);
+                                if (!endAt || (nextStart && new Date(endAt) <= new Date(nextStart))) {
+                                    const autoEnd = addTwoHours(nextStart);
+                                    if (autoEnd) setEndAt(autoEnd);
+                                }
+                            }}
+                            placeholder={defaultStartAt || ''}
+                            className="w-full px-3 py-2 rounded-md border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-sm text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 outline-none"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">End Time</label>
+                        <input
+                            type="datetime-local"
+                            value={endAt}
+                            onChange={(e) => setEndAt(e.target.value)}
+                            min={startAt || undefined}
+                            placeholder={defaultEndAt || ''}
+                            className="w-full px-3 py-2 rounded-md border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-sm text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 outline-none"
+                        />
+                    </div>
+                </div>
+                {timeError ? <p className="text-xs text-red-500 mb-3">{timeError}</p> : null}
+
                 {currentAssignedMemberIds.length > 0 && (
                     <div className="mb-4 p-3 bg-slate-100 dark:bg-slate-700/50 rounded-md">
                         <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Currently assigned:</p>
@@ -121,9 +272,18 @@ const AssignmentModalContent = ({
                 )}
 
 
-                {filteredTeamMembers.length > 0 ? (
+                {availabilityLoading && (
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">Checking team availability...</p>
+                )}
+                {!availabilityLoading && unavailableMemberIds.length > 0 && (
+                    <p className="text-xs text-amber-600 dark:text-amber-400 mb-3">
+                        {unavailableMemberIds.length} member(s) hidden because they are already booked in this time window.
+                    </p>
+                )}
+
+                {availableTeamMembers.length > 0 ? (
                     <div className="max-h-80 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-3 pr-1 mb-6 border border-slate-300 dark:border-slate-700 rounded-md p-3 bg-slate-50 dark:bg-slate-800/50">
-                        {filteredTeamMembers.map((member) => (
+                        {availableTeamMembers.map((member) => (
                             <div key={member.id}>
                                 <label
                                     htmlFor={`member-${member.id}-${serviceName}`}
@@ -169,7 +329,7 @@ const AssignmentModalContent = ({
 };
 
 // --- MAIN COMPONENT (with corrected props and logic) ---
-const ShootsTab = ({ projectId, isReadOnly, shoots, eligibleTeamMembers, sectionTitleStyles, DetailPairStylishComponent, ContentListItemComponent, onUpdateShootAssignment, onEditCity }) => {
+const ShootsTab = ({ projectId, isReadOnly, shoots, eligibleTeamMembers, sectionTitleStyles, DetailPairStylishComponent, ContentListItemComponent, onUpdateShootAssignment, onEditCity, onCheckShootAvailability }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [assignmentContext, setAssignmentContext] = useState(null);
     const searchParams = useSearchParams();
@@ -200,9 +360,9 @@ const ShootsTab = ({ projectId, isReadOnly, shoots, eligibleTeamMembers, section
                 : `${formatDate(sortedShoots[0].date)} - ${formatDate(sortedShoots[sortedShoots.length - 1].date)}`
             : '';
 
-    const openAssignmentModal = (shootId, serviceName, currentAssignments, requiredCount) => {
+    const openAssignmentModal = (shoot, serviceName, currentAssignments, requiredCount) => {
         console.log('Opening assignment modal:', {
-            shootId,
+            shootId: shoot?.id,
             serviceName,
             currentAssignments,
             requiredCount,
@@ -222,7 +382,18 @@ const ShootsTab = ({ projectId, isReadOnly, shoots, eligibleTeamMembers, section
 
         console.log('Current assigned IDs:', currentIds);
 
-        setAssignmentContext({ shootId, serviceName, currentAssignedMemberIds: currentIds, requiredCount });
+        const currentSlotWindow = shoot?.assignmentWindows?.[serviceName] || {};
+
+        setAssignmentContext({
+            shootId: shoot?.id,
+            serviceName,
+            currentAssignedMemberIds: currentIds,
+            requiredCount,
+            shootDate: shoot?.date || null,
+            shootTime: shoot?.time || null,
+            startAt: currentSlotWindow?.startAt || '',
+            endAt: currentSlotWindow?.endAt || '',
+        });
         setIsModalOpen(true);
     };
 
@@ -231,7 +402,7 @@ const ShootsTab = ({ projectId, isReadOnly, shoots, eligibleTeamMembers, section
         setAssignmentContext(null);
     };
 
-    const handleSaveChangesFromModal = (selectedMemberIdsArray) => {
+    const handleSaveChangesFromModal = (selectedMemberIdsArray, slotWindow) => {
         console.log('Saving changes:', {
             shootId: assignmentContext?.shootId,
             serviceName: assignmentContext?.serviceName,
@@ -245,6 +416,7 @@ const ShootsTab = ({ projectId, isReadOnly, shoots, eligibleTeamMembers, section
                 assignmentContext.shootId,
                 assignmentContext.serviceName,
                 selectedMemberIdsArray, // Pass IDs directly
+                slotWindow,
             );
         }
         closeAssignmentModal();
@@ -378,7 +550,7 @@ const ShootsTab = ({ projectId, isReadOnly, shoots, eligibleTeamMembers, section
                                                 <div className="flex items-center group">
                                                     <button
                                                         disabled={isReadOnly}
-                                                        onClick={() => openAssignmentModal(shoot.id, serviceName, currentAssignments, quantity)}
+                                                        onClick={() => openAssignmentModal(shoot, serviceName, currentAssignments, quantity)}
                                                         className="flex items-center text-left w-full p-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700"
                                                     >
                                                         <Edit3 size={16} className="mr-2 text-slate-500 flex-shrink-0 group-hover:text-indigo-500" />
@@ -413,6 +585,12 @@ const ShootsTab = ({ projectId, isReadOnly, shoots, eligibleTeamMembers, section
                     currentAssignedMemberIds={assignmentContext.currentAssignedMemberIds}
                     onSaveChanges={handleSaveChangesFromModal}
                     teamMembers={eligibleTeamMembers}
+                    shootDate={assignmentContext.shootDate}
+                    shootTime={assignmentContext.shootTime}
+                    initialStartAt={assignmentContext.startAt}
+                    initialEndAt={assignmentContext.endAt}
+                    shootId={assignmentContext.shootId}
+                    onCheckShootAvailability={onCheckShootAvailability}
                 />
             )}
         </>

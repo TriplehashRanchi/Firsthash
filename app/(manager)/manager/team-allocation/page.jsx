@@ -48,17 +48,31 @@ function AllocationsPage() {
         return () => unsubscribe();
     }, []);
 
-    const handleSaveAllocation = async (shootId, role, teamMemberIds) => {
+    const handleSaveAllocation = async (shootId, role, teamMemberIds, slotWindow) => {
         try {
             const auth = getAuth();
             const token = await auth.currentUser.getIdToken();
             await axios.put(
                 `${API_URL}/api/shoots/${shootId}/assignments`,
-                { serviceName: role, assigneeIds: teamMemberIds },
+                {
+                    serviceName: role,
+                    assigneeIds: teamMemberIds,
+                    startAt: slotWindow?.startAt || null,
+                    endAt: slotWindow?.endAt || null,
+                },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
         } catch (e) {
-            alert(e?.response?.data?.error || 'Failed to save assignment. Reverting changes.');
+            const apiError = e?.response?.data;
+            if (e?.response?.status === 409 && Array.isArray(apiError?.conflicts)) {
+                const lines = apiError.conflicts
+                    .slice(0, 5)
+                    .map((c) => `${c.member_name || c.member_uid} is busy on ${c.shoot_title || c.shoot_id} (${c.start_at} to ${c.end_at})`)
+                    .join('\n');
+                alert(`${apiError?.error || 'Conflicting assignment found.'}\n${lines}`);
+            } else {
+                alert(apiError?.error || 'Failed to save assignment. Reverting changes.');
+            }
             fetchAllocationData(); 
         }
     };
