@@ -1,6 +1,6 @@
 'use client';
-import React, { useState, useMemo, useEffect } from 'react';
-import { Camera, CalendarDays, Clock, MapPin, Edit3, X, UserPlus, Users as UsersIcon, CheckCircle, Search } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Camera, UserPen ,CalendarDays,Link as LinkIcon , Clock, UserRound , MapPin, Edit3, X, UserPlus, Users as UsersIcon, CheckCircle, Search } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
@@ -502,7 +502,8 @@ const ShootsTab = ({ projectId, isReadOnly, shoots, eligibleTeamMembers, section
                                 <DetailPairStylishComponent label="Date" value={shoot.date} isDate icon={CalendarDays} />
                                 <DetailPairStylishComponent label="Time" value={shoot.time} icon={Clock} />
                                 <div className="flex items-center justify-between">
-                                    <DetailPairStylishComponent label="City" value={shoot.city} icon={MapPin} />
+                                    {/* <DetailPairStylishComponent label="City" value={shoot.city} icon={MapPin} /> */}
+                                    {shoot.city?.startsWith("http") ? <a href={shoot.city} target="_blank" rel="noopener noreferrer" className="text-indigo-600 underline flex  font-bold items-center gap-4"><LinkIcon size={16} className='text-slate-500 hover:text-indigo-500'/> Open Location</a> : <DetailPairStylishComponent label="City" value={shoot.city} icon={MapPin} />}
                                     {!isReadOnly && (
                                         <button
                                             onClick={() => onEditCity && onEditCity(shoot)}
@@ -553,16 +554,25 @@ const ShootsTab = ({ projectId, isReadOnly, shoots, eligibleTeamMembers, section
                                                         onClick={() => openAssignmentModal(shoot, serviceName, currentAssignments, quantity)}
                                                         className="flex items-center text-left w-full p-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700"
                                                     >
-                                                        <Edit3 size={16} className="mr-2 text-slate-500 flex-shrink-0 group-hover:text-indigo-500" />
+                                                        {/* <Edit3 size={16} className="mr-2 text-slate-500 flex-shrink-0 group-hover:text-indigo-500" /> */}
+                                                        {/* <UsersRound size={16} className="mr-2 font-bold  text-slate-700 flex-shrink-0 group-hover:text-indigo-500" /> */}
+                                                        {/* <UserPen size={16} className="mr-2 font-bold text-slate-700 flex-shrink-0 group-hover:text-indigo-500" /> */}
+                                                        {
+                                                            assignedPersonNames.length>0?(
+                                                                <UserRound size={18} className="mr-2 font-extrabold text-emerald-800 flex-shrink-0 group-hover:text-indigo-500" />
+                                                            ) : (
+                                                                <UserPen size={18} className="mr-2 font-bold text-slate-700 flex-shrink-0 group-hover:text-indigo-500" />
+                                                            )
+                                                        }
                                                         {assignedPersonNames.length > 0 ? (
-                                                            <div className="text-sm font-medium text-slate-700 dark:text-slate-200 flex-grow group-hover:text-indigo-500">
+                                                            <div className="text-sm font-bold text-violet-700 dark:text-slate-200 flex-grow group-hover:text-indigo-500">
                                                                 {assignedPersonNames.join(', ')}
                                                                 {assignedPersonNames.length < quantity && (
                                                                     <span className="text-xs text-amber-600 ml-1">({quantity - assignedPersonNames.length} more needed)</span>
                                                                 )}
                                                             </div>
                                                         ) : (
-                                                            <span className="text-sm italic text-slate-500 flex-grow group-hover:text-indigo-500">Assign Team</span>
+                                                            <span className="text-sm italic font-bold text-green-700 flex-grow group-hover:text-indigo-500">Assign Team</span>
                                                         )}
                                                     </button>
                                                 </div>
