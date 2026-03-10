@@ -15,11 +15,70 @@ const getAvatarUrl = (name) => {
     return `https://ui-avatars.com/api/?name=${initials}&background=random&color=fff&size=64`;
 };
 
-const AssignmentModal = ({ isOpen, onClose, teamMembers, role, currentAssignedMemberIds, requiredCount = 1, onSaveChanges }) => {
+const toDateTimeLocalInput = (value) => {
+    if (!value) return '';
+    if (typeof value === 'string') {
+        const trimmed = value.trim();
+        if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(trimmed)) {
+            return trimmed.replace(' ', 'T').slice(0, 16);
+        }
+        if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/.test(trimmed)) {
+            return trimmed.slice(0, 16);
+        }
+    }
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return '';
+    const yyyy = parsed.getFullYear();
+    const mm = String(parsed.getMonth() + 1).padStart(2, '0');
+    const dd = String(parsed.getDate()).padStart(2, '0');
+    const hh = String(parsed.getHours()).padStart(2, '0');
+    const mi = String(parsed.getMinutes()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}T${hh}:${mi}`;
+};
+
+const buildDefaultSlotWindow = (shoot) => {
+    const date = typeof shoot?.eventDate === 'string' ? shoot.eventDate.slice(0, 10) : '';
+    const time = typeof shoot?.eventTime === 'string' ? shoot.eventTime.slice(0, 5) : '';
+    if (!date) return { startAt: '', endAt: '' };
+
+    const startCandidate = `${date}T${time || '09:00'}`;
+    const startDate = new Date(startCandidate);
+    if (Number.isNaN(startDate.getTime())) return { startAt: '', endAt: '' };
+
+    const endDate = new Date(startDate.getTime() + 2 * 60 * 60 * 1000);
+    return {
+        startAt: toDateTimeLocalInput(startDate),
+        endAt: toDateTimeLocalInput(endDate),
+    };
+};
+
+const AssignmentModal = ({
+    isOpen,
+    onClose,
+    teamMembers,
+    role,
+    currentAssignedMemberIds,
+    requiredCount = 1,
+    onSaveChanges,
+    initialStartAt,
+    initialEndAt,
+    defaultStartAt,
+    defaultEndAt,
+}) => {
     const [selectedIds, setSelectedIds] = useState([]);
     const [toAdd, setToAdd] = useState([]);
     const [toRemove, setToRemove] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
+    const [startAt, setStartAt] = useState('');
+    const [endAt, setEndAt] = useState('');
+    const [timeError, setTimeError] = useState('');
+    const addTwoHours = (dateTimeLocal) => {
+        if (!dateTimeLocal) return '';
+        const dt = new Date(dateTimeLocal);
+        if (Number.isNaN(dt.getTime())) return '';
+        const plusTwo = new Date(dt.getTime() + 2 * 60 * 60 * 1000);
+        return toDateTimeLocalInput(plusTwo);
+    };
 
     const isAtCapacity = selectedIds.length >= requiredCount;
 
@@ -30,8 +89,20 @@ const AssignmentModal = ({ isOpen, onClose, teamMembers, role, currentAssignedMe
             setToAdd([]);
             setToRemove([]);
             setSearchTerm('');
+            setStartAt(initialStartAt || defaultStartAt || '');
+            setEndAt(initialEndAt || defaultEndAt || '');
+            setTimeError('');
         }
-    }, [isOpen, currentAssignedMemberIds]);
+    }, [isOpen, currentAssignedMemberIds, initialStartAt, initialEndAt, defaultStartAt, defaultEndAt]);
+
+    useEffect(() => {
+        if (!isOpen || !startAt) return;
+        if (!endAt || new Date(endAt) <= new Date(startAt)) {
+            const autoEnd = addTwoHours(startAt);
+            if (autoEnd) setEndAt(autoEnd);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [startAt, isOpen]);
 
     useEffect(() => {
         if (!isOpen) return;
@@ -60,7 +131,20 @@ const AssignmentModal = ({ isOpen, onClose, teamMembers, role, currentAssignedMe
         });
     };
 
-    const handleSaveChangesClick = () => onSaveChanges(selectedIds);
+    const handleSaveChangesClick = () => {
+        if (selectedIds.length > 0) {
+            if (!startAt || !endAt) {
+                setTimeError('Start and end time are required.');
+                return;
+            }
+            if (new Date(endAt) <= new Date(startAt)) {
+                setTimeError('End time must be later than start time.');
+                return;
+            }
+        }
+        setTimeError('');
+        onSaveChanges(selectedIds, { startAt, endAt });
+    };
 
     const filteredMembers = teamMembers.filter((member) => {
         const search = searchTerm.toLowerCase();
@@ -161,6 +245,36 @@ const AssignmentModal = ({ isOpen, onClose, teamMembers, role, currentAssignedMe
                         </ul>
                     </div>
                     <div className="bg-slate-50 dark:bg-slate-800/60 rounded-xl p-4 h-fit sticky top-6">
+                        <h4 className="text-lg font-semibold text-slate-700 dark:text-slate-200 mb-4 border-b border-slate-200 dark:border-slate-700 pb-2">Assignment Window</h4>
+                        <div className="space-y-3 mb-5">
+                            <div>
+                                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Start Time</label>
+                                <input
+                                    type="datetime-local"
+                                    value={startAt}
+                                    onChange={(e) => {
+                                        const nextStart = e.target.value;
+                                        setStartAt(nextStart);
+                                        if (!endAt || (nextStart && new Date(endAt) <= new Date(nextStart))) {
+                                            const autoEnd = addTwoHours(nextStart);
+                                            if (autoEnd) setEndAt(autoEnd);
+                                        }
+                                    }}
+                                    className="w-full rounded-md bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm text-slate-700 dark:text-slate-200"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">End Time</label>
+                                <input
+                                    type="datetime-local"
+                                    value={endAt}
+                                    onChange={(e) => setEndAt(e.target.value)}
+                                    min={startAt || undefined}
+                                    className="w-full rounded-md bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm text-slate-700 dark:text-slate-200"
+                                />
+                            </div>
+                            {timeError ? <p className="text-xs text-red-500">{timeError}</p> : null}
+                        </div>
                         <h4 className="text-lg font-semibold text-slate-700 dark:text-slate-200 mb-4 border-b border-slate-200 dark:border-slate-700 pb-2">Assignment Changes</h4>
                         {toAdd.length === 0 && toRemove.length === 0 ? (
                             <div className="text-center py-8">
@@ -223,20 +337,8 @@ const AssignmentModal = ({ isOpen, onClose, teamMembers, role, currentAssignedMe
 
 // --- (MODIFIED) Allocation Slot now displays the required count ---
 const AllocationSlot = ({ role, assignedMembers, requiredCount, onClick }) => {
-    const displayMembers = assignedMembers.slice(0, 3);
-    const remainingCount = assignedMembers.length - displayMembers.length;
     const isRequirementMet = assignedMembers.length >= requiredCount;
-    const [open, setOpen] = useState(false);
     const [openModal, setOpenModal] = useState(false);
-
-    useEffect(() => {
-        const safeRoleId = role.replace(/\s+/g, '-').toLowerCase(); // make safe ID
-        const handleClickOutside = (e) => {
-            if (!e.target.closest(`#dropdown-${safeRoleId}`)) setOpen(false);
-        };
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, [role]);
 
 
     return (
@@ -412,7 +514,7 @@ const TeamAllocationCalendar = ({ initialShoots, teamMembers, roles, onSaveAlloc
             .sort((a, b) => new Date(a.eventDate) - new Date(b.eventDate));
     }, [shootsData, currentDate]);
 
-    const handleUpdateAllocation = (shootId, role, teamMemberIds) => {
+    const handleUpdateAllocation = (shootId, role, teamMemberIds, slotWindow) => {
         setShootsData((prevShoots) =>
             prevShoots.map((shoot) => {
                 if (shoot.id === shootId) {
@@ -422,6 +524,8 @@ const TeamAllocationCalendar = ({ initialShoots, teamMembers, roles, onSaveAlloc
                             ...shoot.allocations[role],
                             required: shoot.allocations[role]?.required || 1,
                             assigned: teamMemberIds || [],
+                            startAt: slotWindow?.startAt || null,
+                            endAt: slotWindow?.endAt || null,
                         },
                     };
                     return { ...shoot, allocations: newAllocations };
@@ -431,7 +535,7 @@ const TeamAllocationCalendar = ({ initialShoots, teamMembers, roles, onSaveAlloc
         );
 
         if (typeof onSaveAllocation === 'function') {
-            onSaveAllocation(shootId, role, teamMemberIds);
+            onSaveAllocation(shootId, role, teamMemberIds, slotWindow);
         }
 
         // ✅ Close modal after successful update
@@ -446,6 +550,7 @@ const TeamAllocationCalendar = ({ initialShoots, teamMembers, roles, onSaveAlloc
     const currentAllocation = currentShootForModal?.allocations[modalContext?.role];
     const currentAllocationIds = currentAllocation?.assigned || [];
     const currentRequiredCount = currentAllocation?.required || 1;
+    const defaultSlotWindow = buildDefaultSlotWindow(currentShootForModal);
 
     const navButtonStyles = 'p-2 rounded-md text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-800 dark:hover:text-white transition-colors';
 
@@ -493,9 +598,13 @@ const TeamAllocationCalendar = ({ initialShoots, teamMembers, roles, onSaveAlloc
                 role={modalContext?.role || ''}
                 currentAssignedMemberIds={currentAllocationIds}
                 requiredCount={currentRequiredCount}
-                onSaveChanges={(teamMemberIds) => {
+                initialStartAt={toDateTimeLocalInput(currentAllocation?.startAt)}
+                initialEndAt={toDateTimeLocalInput(currentAllocation?.endAt)}
+                defaultStartAt={defaultSlotWindow.startAt}
+                defaultEndAt={defaultSlotWindow.endAt}
+                onSaveChanges={(teamMemberIds, slotWindow) => {
                     if (modalContext) {
-                        handleUpdateAllocation(modalContext.shootId, modalContext.role, teamMemberIds);
+                        handleUpdateAllocation(modalContext.shootId, modalContext.role, teamMemberIds, slotWindow);
                     }
                 }}
             />
