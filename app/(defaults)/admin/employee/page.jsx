@@ -126,6 +126,7 @@ const CreateRoleModal = ({ isOpen, onClose, companyId, onRoleCreated }) => {
                                 >
                                     <option value={1}>On Production</option>
                                     <option value={2}>Post Production</option>
+                                    <option value={3}>Pre Production</option>
                                     {/* <option value={0}>Manager</option> */}
                                 </select>
                             </div>
@@ -288,6 +289,7 @@ export default function EmployeeRolesPage({ searchParams }) {
                                     <select className="w-full p-2 border-gray-300  rounded-md" value={editCode} onChange={e => setEditCode(e.target.value)}>
                                         <option value={1}>On Production (1)</option>
                                         <option value={2}>Post Production (2)</option>
+                                        <option value={3}>Pre Production (3)</option>
                                         {/* <option value={0}>Manager (0)</option> */}
                                     </select>
                                 </td>
@@ -305,7 +307,11 @@ export default function EmployeeRolesPage({ searchParams }) {
                                   {r.type_name}
                                   {r.is_predefined && (<span className="flex items-center gap-1.5 text-xs text-green-700 bg-green-100 px-2 py-0.5 rounded-full font-medium"><ShieldCheck size={14} /> Predefined</span>)}
                                 </td>
-                                <td className="px-4 py-3 dark:text-gray-200 text-gray-600">{r.role_code === 1 ? 'On Production' : r.role_code === 2 ? 'Post Production' : 'Manager'}</td>
+                                <td className="px-4 py-3 dark:text-gray-200 text-gray-600">{
+                                     r.role_code === 1 ? 'On Production' :
+                                     r.role_code === 2 ? 'Post Production' :
+                                     r.role_code === 3 ? 'Pre Production' : 'Manager'}
+                                     </td>
                                 <td className="px-4 py-3 text-right">
                                     <div className="flex justify-end space-x-2">
                                         <button onClick={() => startEdit(r)} disabled={r.is_predefined} className="p-2 text-gray-500 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"><Edit size={16} /></button>
