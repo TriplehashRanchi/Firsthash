@@ -743,7 +743,7 @@ function ProjectReviewPage() {
     // };
 
     // --- START: NEW, API-CONNECTED SHOOT ASSIGNMENT HANDLER ---
-    const handleUpdateShootAssignment = async (shootId, serviceName, assigneeIds) => {
+    const handleUpdateShootAssignment = async (shootId, serviceName, assigneeIds, slotWindow) => {
         if (!currentUser) return alert('Cannot update assignment: Missing user context.');
 
         const originalShoots = fullProjectData.shoots.shootList;
@@ -758,7 +758,14 @@ function ProjectReviewPage() {
             const updatedShootList = prevData.shoots.shootList.map((shoot) => {
                 if (shoot.id === shootId) {
                     const newAssignments = { ...shoot.assignments, [serviceName]: assigneeObjects };
-                    return { ...shoot, assignments: newAssignments };
+                    const newWindows = {
+                        ...(shoot.assignmentWindows || {}),
+                        [serviceName]: {
+                            startAt: slotWindow?.startAt || null,
+                            endAt: slotWindow?.endAt || null,
+                        },
+                    };
+                    return { ...shoot, assignments: newAssignments, assignmentWindows: newWindows };
                 }
                 return shoot;
             });
@@ -767,7 +774,16 @@ function ProjectReviewPage() {
 
         try {
             const token = await currentUser.getIdToken();
-            await axios.put(`${API_URL}/api/shoots/${shootId}/assignments`, { serviceName, assigneeIds }, { headers: { Authorization: `Bearer ${token}` } });
+            await axios.put(
+                `${API_URL}/api/shoots/${shootId}/assignments`,
+                {
+                    serviceName,
+                    assigneeIds,
+                    startAt: slotWindow?.startAt || null,
+                    endAt: slotWindow?.endAt || null,
+                },
+                { headers: { Authorization: `Bearer ${token}` } },
+            );
             // Success! The optimistic update is now confirmed.
         } catch (err) {
             console.error('Failed to update shoot assignment:', err);
@@ -778,6 +794,16 @@ function ProjectReviewPage() {
                 shoots: { ...prevData.shoots, shootList: originalShoots },
             }));
         }
+    };
+
+    const handleCheckShootAvailability = async (shootId, serviceName, startAt, endAt) => {
+        if (!currentUser) return { unavailableMemberIds: [], conflicts: [] };
+        const token = await currentUser.getIdToken();
+        const res = await axios.get(`${API_URL}/api/shoots/${shootId}/assignments/availability`, {
+            params: { serviceName, startAt, endAt },
+            headers: { Authorization: `Bearer ${token}` },
+        });
+        return res.data;
     };
 
     const handleUpdateDeliverableAssignment = (deliverableId, assignedPersonNamesArray) => {
@@ -1260,6 +1286,7 @@ function ProjectReviewPage() {
                         DetailPairStylishComponent={DetailPairStylish}
                         ContentListItemComponent={ContentListItem}
                         onUpdateShootAssignment={handleUpdateShootAssignment}
+                        onCheckShootAvailability={handleCheckShootAvailability}
                         onEditCity={openCityModal}
                     />
                 );

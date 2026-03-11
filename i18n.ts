@@ -50,6 +50,5 @@ export const getTranslation = () => {
             cookies.set('i18nextLng', lang);
         },
     };
-
     return { t, i18n, initLocale };
 };
