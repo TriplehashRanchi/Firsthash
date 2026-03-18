@@ -241,8 +241,8 @@ export default function EmployeeRolesPage({ searchParams }) {
     await handleApiCall(`${API_URL}/api/roles/${id}`, { method: 'PUT', body: JSON.stringify({ type_name: editName, role_code: Number(editCode) }) }, 'Role updated');
     setEditingId(null);
   };
+  const [deleteId, setDeleteId] = useState(null);
   const handleDelete = async id => {
-    if (!confirm('Are you sure you want to delete this role? This cannot be undone.')) return;
     await handleApiCall(`${API_URL}/api/roles/${id}`, { method: 'DELETE' }, 'Role deleted');
   };
 
@@ -314,8 +314,8 @@ export default function EmployeeRolesPage({ searchParams }) {
                                      </td>
                                 <td className="px-4 py-3 text-right">
                                     <div className="flex justify-end space-x-2">
-                                        <button onClick={() => startEdit(r)} disabled={r.is_predefined} className="p-2 text-gray-500 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"><Edit size={16} /></button>
-                                        <button onClick={() => handleDelete(r.id)} disabled={r.is_predefined} className="p-2 text-gray-500 rounded-md hover:bg-red-100 hover:text-red-600 disabled:opacity-40 disabled:cursor-not-allowed"><Trash2 size={16} /></button>
+                                        <button onClick={() => startEdit(r)} className="p-2 text-gray-500 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"><Edit size={16} /></button>
+                                        <button onClick={() => setDeleteId(r.id)} className="p-2 text-gray-500 rounded-md hover:bg-red-100 hover:text-red-600 disabled:opacity-40 disabled:cursor-not-allowed"><Trash2 size={16} /></button>
                                     </div>
                                 </td>
                             </tr>
@@ -337,6 +337,41 @@ export default function EmployeeRolesPage({ searchParams }) {
         companyId={companyId}
         onRoleCreated={loadRoles} // Pass the loadRoles function to refresh the list after creation
       />
+
+      {deleteId && (
+  <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50">
+    <div className="bg-white rounded-lg shadow-lg w-80 p-5">
+      
+      <h3 className="text-lg font-semibold mb-3">
+        Delete Role
+      </h3>
+
+      <p className="text-sm text-gray-600 mb-5">
+        Are you sure you want to delete this role?
+      </p>
+
+      <div className="flex justify-end gap-3">
+        <button
+          onClick={() => setDeleteId(null)}
+          className="px-4 py-2 bg-gray-100 rounded-md"
+        >
+          Cancel
+        </button>
+
+        <button
+          onClick={() => {
+            handleDelete(deleteId);
+            setDeleteId(null);
+          }}
+          className="px-4 py-2 bg-red-600 text-white rounded-md"
+        >
+          Delete
+        </button>
+      </div>
+
+    </div>
+  </div>
+)}
     </>
   );
 }

@@ -5,7 +5,7 @@ import { toast } from 'react-toastify';
 import { TaskManagementPanel } from '@/components/show-details/TaskManagementModal';
 import AddNewBundleModalButton from '@/components/show-details/AddNewBundleModalButton';
 import { dedupeTasks } from '@/lib/taskUtils';
-import { importTaskBundleToDeliverable, importTaskBundleToDeliverable2, listTaskBundles, updateDeliverable2DueDate } from '@/lib/taskBundlesApi';
+import { importTaskBundleToDeliverable, importTaskBundleToDeliverable2, listTaskBundles, updateDeliverable2DueDate ,deleteAllDeliverables2 } from '@/lib/taskBundlesApi';
 
 const DeliverablesDetails = ({
     projectId,
@@ -41,6 +41,7 @@ const DeliverablesDetails = ({
     const [editingDueDateId, setEditingDueDateId] = useState(null);
     const [editingDueDateValue, setEditingDueDateValue] = useState('');
     const [savingDueDateId, setSavingDueDateId] = useState(null);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
     const deliverableItems = useMemo(() => (Array.isArray(deliverables2) ? deliverables2 : []), [deliverables2]);
     const quotationItems = useMemo(
@@ -180,6 +181,24 @@ const DeliverablesDetails = ({
         }
     };
 
+const handleDeleteAllDeliverables = async () => {
+    if (!projectId) return;
+
+    try {
+        await deleteAllDeliverables2(projectId);
+        toast.success('All deliverables deleted successfully');
+
+        if (typeof onTaskBundleImported === 'function') {
+            await onTaskBundleImported();
+        }
+
+        setShowDeleteConfirm(false); 
+    } catch (error) {
+        console.error('Failed to delete deliverables:', error);
+        toast.error(error.message || 'Failed to delete deliverables');
+    }
+};
+
     const handleQuotationImportBundle = async () => {
         if (!activeQuotationDeliverableId || !quotationImportForm.bundle_id) {
             alert('Please select a bundle to import.');
@@ -269,6 +288,54 @@ const DeliverablesDetails = ({
                     >
                         Import Bundles
                     </button>
+
+                    <div className="relative inline-block">
+                        <button
+                            onClick={() => setShowDeleteConfirm(true)}
+                            className="px-3 py-1.5 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+                        >
+                        Delete All
+                        </button>
+
+                    {showDeleteConfirm && (
+                        <div className="absolute right-0 mt-2 w-64 
+                    bg-white/80 backdrop-blur-lg 
+                    border border-red-100 
+                    shadow-xl rounded-xl p-4 z-50
+                    animate-in fade-in zoom-in-95 duration-150"
+                    >
+           
+            <div className="absolute right-4 -top-2 w-3 h-3 
+                bg-white/80 border-l border-t border-red-100 
+                rotate-45 backdrop-blur-lg" 
+            />
+
+            <p className="text-sm font-medium text-gray-800 mb-3">
+                Delete all deliverables?
+            </p>
+
+            <p className="text-xs text-gray-500 mb-4">
+                This action cannot be undone.
+            </p>
+
+            <div className="flex justify-end gap-2">
+                <button
+                    onClick={() => setShowDeleteConfirm(false)}
+                    className="px-3 py-1 text-xs bg-gray-100 rounded-md hover:bg-gray-200 transition"
+                >
+                    Cancel
+                </button>
+
+                <button
+                    onClick={handleDeleteAllDeliverables}
+                    className="px-3 py-1 text-xs bg-red-600 text-white rounded-md hover:bg-red-700 transition"
+                >
+                    Delete
+                </button>
+            </div>
+        </div>
+    )}
+</div>
                 </div>
             </div>
 
