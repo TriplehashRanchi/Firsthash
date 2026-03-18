@@ -13,19 +13,29 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 /* ----------------------------- Helpers & UI Components ----------------------------- */
 // ✅ Replace your existing getAuthHeaders function with this:
 
-const getAuthHeaders = async () => {
-    const auth = getAuth();
-    const u = auth.currentUser;
-    if (!u) return {};
-
-    // ✅ Try cached token first
-    let token = localStorage.getItem('authToken');
-    if (!token) {
-        token = await u.getIdToken();
-        localStorage.setItem('authToken', token);
+const makeRequestWithRetry = async (requestFn) => {
+    try {
+        let headers = await getAuthHeaders(false);
+        return await requestFn(headers);
+    } catch (error) {
+        if (error?.response?.status === 401) {
+            const freshHeaders = await getAuthHeaders(true);
+            return await requestFn(freshHeaders);
+        }
+        throw error;
     }
+};
 
-    return { Authorization: `Bearer ${token}` };
+const getAuthHeaders = async (forceRefresh = false) => {
+    const auth = getAuth();
+    const user = auth.currentUser;
+
+    if (!user) return {};
+
+    const token = await user.getIdToken(forceRefresh);
+    return {
+        Authorization: `Bearer ${token}`,
+    };
 };
 
 const formatDate = (d) => {
@@ -335,31 +345,47 @@ export default function TaskPage() {
         try {
             setLoading(true);
             setErr('');
-            const headers = await getAuthHeaders();
-            if (!headers.Authorization) {
+
+            const auth = getAuth();
+            if (!auth.currentUser) {
                 setErr('Please sign in to view your work.');
                 setLoading(false);
                 return;
             }
 
-            // ✅ Fetch tasks first for faster render
-            const tRes = await axios.get(`${API_URL}/api/employee/tasks/assigned`, { headers });
+            const tRes = await makeRequestWithRetry((headers) =>
+                axios.get(`${API_URL}/api/employee/tasks/assigned`, { headers })
+            );
+
             setTasks(Array.isArray(tRes.data) ? tRes.data : []);
             setLoading(false);
 
-            // ✅ Then load projects and custom statuses in background (non-blocking)
-            axios
-                .get(`${API_URL}/api/employee/projects/assigned`, { headers })
+            makeRequestWithRetry((headers) =>
+                axios.get(`${API_URL}/api/employee/projects/assigned`, { headers })
+            )
                 .then((pRes) => setProjects(Array.isArray(pRes.data) ? pRes.data : []))
-                .catch(console.error);
+                .catch((e) => {
+                    console.error('Projects fetch failed:', e);
+                });
 
-            axios
-                .get(`${API_URL}/api/employee/tasks/custom-statuses`, { headers })
+            makeRequestWithRetry((headers) =>
+                axios.get(`${API_URL}/api/employee/tasks/custom-statuses`, { headers })
+            )
                 .then((csRes) => setCustomStatuses(Array.isArray(csRes.data) ? csRes.data : []))
-                .catch(console.error);
+                .catch((e) => {
+                    console.error('Custom statuses fetch failed:', e);
+                });
         } catch (e) {
-            console.error(e);
-            setErr('Failed to connect to the server.');
+            console.error('fetchAll error:', e);
+
+            if (e?.response?.status === 401) {
+                setErr('Session expired. Please login again.');
+            } else if (e?.request) {
+                setErr('Server not reachable. Check backend or API URL.');
+            } else {
+                setErr('Failed to load your work.');
+            }
+
             setLoading(false);
         }
     }, []);
@@ -389,17 +415,34 @@ export default function TaskPage() {
 
     const handleUpdateTaskStatus = async (task, newStatus) => {
         const toastId = toast.loading('Updating status...');
+        const oldStatus = task.status;
+
         try {
-            const headers = await getAuthHeaders();
+            setTasks((prev) =>
+                prev.map((t) => (t.id === task.id ? { ...t, status: newStatus } : t))
+            );
 
-            // ✅ Optimistically update UI before API call finishes
-            setTasks((prev) => prev.map((t) => (t.id === task.id ? { ...t, status: newStatus } : t)));
+            await makeRequestWithRetry((headers) =>
+                axios.put(
+                    `${API_URL}/api/employee/tasks/${task.id}/status`,
+                    { status: newStatus },
+                    { headers }
+                )
+            );
 
-            await axios.put(`${API_URL}/api/employee/tasks/${task.id}/status`, { status: newStatus }, { headers });
             toast.success('Status updated!', { id: toastId });
         } catch (e) {
             console.error(e);
-            toast.error('Failed to update.', { id: toastId });
+
+            setTasks((prev) =>
+                prev.map((t) => (t.id === task.id ? { ...t, status: oldStatus } : t))
+            );
+
+            if (e?.response?.status === 401) {
+                toast.error('Session expired. Please login again.', { id: toastId });
+            } else {
+                toast.error('Failed to update.', { id: toastId });
+            }
         }
     };
 
@@ -460,12 +503,15 @@ export default function TaskPage() {
         setDetails(null);
         setDetailsLoading(true);
         setDetailsOpen(true);
+
         try {
-            const headers = await getAuthHeaders();
-            const pr = await axios.get(`${API_URL}/api/employee/projects/${projectId}/view`, { headers });
+            const pr = await makeRequestWithRetry((headers) =>
+                axios.get(`${API_URL}/api/employee/projects/${projectId}/view`, { headers })
+            );
+
             setDetails(pr.data);
         } catch (e) {
-            console.error(e);
+            console.error('Project details fetch failed:', e);
             setDetails(null);
         } finally {
             setDetailsLoading(false);
