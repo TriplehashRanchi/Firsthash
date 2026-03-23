@@ -64,18 +64,22 @@ const ErrorState = ({ message }) => (
 );
 
 const StatCard = ({ title, value, icon: Icon, color }) => (
-    <div className="panel flex items-start justify-between">
+    <div className="panel w-52 h-40 p-5 rounded-2xl shadow-md flex flex-col justify-between bg-indigo-100">
+      
+        <div className="flex justify-between items-start mt-2">
+            <p className="text-gray-500 font-semibold text-sm">{title}</p>
+            <div className={`p-3 rounded-full ${color}`}>
+                <Icon className="w-6 h-6 text-white" />
+            </div>
+        </div>
+
+     
         <div>
-            <p className="text-gray-500 font-semibold">{title}</p>
-            <p className="text-3xl font-bold mt-1">{value}</p>
+            <p className="text-3xl font-bold mb-2">{value}</p>
         </div>
-        <div className={`p-3 rounded-full ${color}`}>
-            <Icon className="w-6 h-6 text-white" />
-        </div>
+
     </div>
 );
-
-
 // --- Main Dashboard Page Component ---
 const  EmployeeDashboardPage = () => {
     const [loading, setLoading] = useState(true);
@@ -154,119 +158,298 @@ const  EmployeeDashboardPage = () => {
         };
     }, [summaryData.projects]);
 
-    const chartOptions = {
-    chart: { type: 'bar', height: 350, toolbar: { show: false } },
-    plotOptions: { bar: { borderRadius: 4, horizontal: false, columnWidth: '55%' } },
-    dataLabels: { enabled: false },
-    stroke: { show: true, width: 2, colors: ['transparent'] },
-    xaxis: { categories: chartData.categories },
-    yaxis: { title: { text: 'Number of Projects' } },
-    fill: { opacity: 1 },
-    tooltip: { y: { formatter: (val) => `${val} projects` } },
-};
+const chartOptions = {
+    chart: {
+        type: 'bar',
+        toolbar: { show: false },
+    },
 
+    plotOptions: {
+        bar: {
+            borderRadius: 8,
+            columnWidth: '45%',
+        },
+    },
+
+    dataLabels: {
+        enabled: false,
+    },
+
+    stroke: {
+        show: true,
+        width: 2,
+        colors: ['transparent'],
+    },
+
+    xaxis: {
+        categories: chartData.categories,
+        axisBorder: {
+            show: true,
+            color: '#6B7280', 
+        },
+        axisTicks: {
+            show: true,
+            color: '#6B7280',
+        },
+        labels: {
+            style: {
+                colors: '#374151', 
+                fontSize: '13px',
+                fontWeight: 500,
+            },
+        },
+    },
+
+    yaxis: {
+        title: {
+            text: 'Number of Projects',
+            style: {
+                color: '#374151',
+                fontSize: '13px',
+                fontWeight: 600,
+            },
+        },
+        labels: {
+            style: {
+                colors: '#374151', 
+                fontSize: '13px',
+                fontWeight: 500,
+            },
+        },
+    },
+
+    grid: {
+        borderColor: '#D1D5DB', 
+        strokeDashArray: 3,
+    },
+
+    fill: {
+        opacity: 1,
+        colors: ['#6366F1'],
+    },
+
+    tooltip: {
+        theme: 'light',
+        y: {
+            formatter: (val) => `${val} projects`,
+        },
+    },
+};
 
     return (
         <div className="p-4 sm:p-6 space-y-6">
-            <div className="mb-2">
-                <h1 className="text-3xl font-bold">My Dashboard</h1>
-                <p className="text-gray-500">An overview of your schedule, tasks, and financials.</p>
-            </div>
+    <div className="mb-2">
+        <h1 className="text-3xl font-bold">My Dashboard</h1>
+        <p className="text-gray-500">
+            An overview of your schedule, tasks, and financials.
+        </p>
+    </div>
 
-            {loading && <LoadingState />}
-            {error && <ErrorState message={error} />}
+    {loading && <LoadingState />}
+    {error && <ErrorState message={error} />}
 
-            {!loading && !error && (
-                <>
-                    {/* --- Top-Level Stat Cards --- */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+    {!loading && !error && (
+        <>
+            {/* ✅ MAIN 2 COLUMN LAYOUT */}
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
+
+                {/* LEFT SIDE  */}
+                <div className="space-y-6">
+
+                    {/* CARDS */}
+                    <div className="flex gap-2">
                         <StatCard title="Active Projects" value={totalProjects} icon={Briefcase} color="bg-blue-500" />
                         <StatCard title="Pending Tasks" value={pendingTasks} icon={ClipboardList} color="bg-amber-500" />
                         <StatCard title="Total Earned" value={formatCurrency(totalPaid)} icon={TrendingUp} color="bg-green-500" />
                     </div>
 
-                    {/* --- Workload Chart --- */}
-                    <div className="panel">
-                        <h2 className="text-lg font-semibold flex items-center gap-2 mb-4"><BarChart2 className="w-5 h-5" /> Monthly Workload</h2>
-                        <Chart options={chartOptions} series={chartData.series} type="bar" height={350} />
+                    {/* UPCOMING */}
+                    
+                    <div className="panel bg-indigo-100 rounded-2xl p-5 shadow-md">
+
+                    {/* Header */}
+                    <div className="flex items-center justify-between mb-4">
+
+                        <div className="flex items-center gap-3">
+                    {/* Icon like StatCard */}
+                            <div className="p-3 rounded-full bg-indigo-400">
+                                <Calendar className="w-5 h-5 text-black" />
+                            </div>
+
+                        <h2 className="text-lg font-semibold text-black">
+                            Upcoming Schedule
+                        </h2>
                     </div>
 
-                    {/* ✅ NEW: Grid for all four summary cards with links */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        
-                        {/* Card 1: Upcoming Schedule */}
-                        <div className="panel">
-                            <div className="flex items-center justify-between mb-4">
-                                <h2 className="text-lg font-semibold flex items-center gap-2"><Calendar className="w-5 h-5" /> Upcoming Schedule</h2>
-                                <Link href="/employee/calendar" className="btn btn-sm btn-outline-primary">View Calendar</Link>
-                            </div>
-                            <div className="space-y-3">
-                                {summaryData.projects.slice(0, 5).map((project) => (
-                                    <div key={project.id} className="flex items-center justify-between p-3 rounded-md bg-gray-50 hover:bg-gray-100">
-                                        <div><p className="font-semibold">{project.name}</p><p className="text-xs text-gray-500">Client: {project.clientName}</p></div>
-                                        <div className="text-right"><p className="font-medium text-sm">{formatDate(project.minDate)}</p><StatusBadge status={project.status} /></div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
+        
+        <Link
+            href="/employee/calendar"
+            className="px-4 py-1.5 text-sm font-medium rounded-full bg-white text-indigo-600 shadow-sm hover:bg-indigo-50 transition"
+        >
+            View Calendar
+        </Link>
+    </div>
 
-                        {/* Card 2: My Tasks */}
-                        <div className="panel">
-                            <div className="flex items-center justify-between mb-4">
-                                <h2 className="text-lg font-semibold flex items-center gap-2"><ClipboardList className="w-5 h-5" /> My Tasks</h2>
-                                <Link href="/employee/task" className="btn btn-sm btn-outline-primary">View All</Link>
-                            </div>
-                            <div className="divide-y">
-                                {summaryData.tasks.slice(0, 5).map((task) => (
-                                    <div key={task.id} className="py-3">
-                                        <div className="flex items-center justify-between"><p className="font-semibold text-sm truncate pr-2">{task.title}</p><StatusBadge status={task.status} /></div>
-                                        <p className="text-xs text-gray-500 mt-1">Due: {formatDate(task.due_date)}</p>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
 
-                        {/* Card 3: My Salary Summary */}
-                        <div className="panel">
-                            <div className="flex items-center justify-between mb-4">
-                                <h2 className="text-lg font-semibold flex items-center gap-2"><Wallet className="w-5 h-5" /> My Salary</h2>
-                                <Link href="/employee/expense" className="btn btn-sm btn-outline-primary">View History</Link>
-                            </div>
-                            <div className="space-y-4">
-                                <div className="p-4 bg-green-50 rounded-lg text-center">
-                                    <p className="text-sm text-green-800">Total Paid to Date</p>
-                                    <p className="text-2xl font-bold text-green-900">{formatCurrency(totalPaid)}</p>
-                                </div>
-                                <div className="p-4 bg-red-50 rounded-lg text-center">
-                                    <p className="text-sm text-red-800">Current Balance Due</p>
-                                    <p className="text-2xl font-bold text-red-900">{formatCurrency(salaryBalance)}</p>
-                                </div>
-                            </div>
-                        </div>
+    <div className="space-y-3">
+        {summaryData.projects.slice(0, 5).map((project) => (
+            <div
+                key={project.id}
+                className="flex justify-between items-center p-3 rounded-3xl bg-white hover:shadow-sm transition"
+            >
+                <div>
+                    <p className="font-semibold text-gray-800">
+                        {project.name}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                        Client: {project.clientName}
+                    </p>
+                </div>
 
-                        {/* Card 4: My Recent Expenses */}
-                        {/* <div className="panel">
-                            <div className="flex items-center justify-between mb-4">
-                                <h2 className="text-lg font-semibold flex items-center gap-2"><Receipt className="w-5 h-5" /> My Recent Expenses</h2>
-                                <Link href="/employee/expense" className="btn btn-sm btn-outline-primary">View All</Link>
-                            </div>
-                            <div className="divide-y">
-                                {summaryData.expenses.slice(0, 4).map((expense) => (
-                                    <div key={expense.id} className="py-3">
-                                        <div className="flex items-start justify-between">
-                                            <div><p className="font-semibold text-sm">{expense.description}</p><p className="text-xs text-gray-500">{expense.projectName}</p></div>
-                                            <p className="font-bold text-sm flex-shrink-0 ml-4">{formatCurrency(expense.amount)}</p>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div> */}
+                <div className="text-right">
+                    <p className="text-sm text-gray-700">
+                        {formatDate(project.minDate)}
+                    </p>
+                    <StatusBadge status={project.status} />
+                </div>
+            </div>
+        ))}
+    </div>
+</div>
 
-                    </div>
-                </>
-            )}
+                    {/* SALARY */}
+                   <div className="bg-indigo-100 rounded-2xl p-4 shadow-md">
+
+    {/* Header */}
+    <div className="flex items-center justify-between mb-3">
+
+        <div className="flex items-center gap-2">
+            <div className="p-2 rounded-full bg-indigo-400">
+                <Wallet className="w-4 h-4 text-black" />
+            </div>
+
+            <h2 className="text-sm font-semibold text-black">
+                My Salary
+            </h2>
         </div>
+
+       <Link
+    href="/employee/expense"
+    className="px-3 py-1 text-xs font-medium rounded-full bg-white text-indigo-600 shadow-sm hover:bg-indigo-50 transition"
+>
+    View
+</Link>
+
+    </div>
+
+    {/* Content */}
+    <div className="flex gap-3">
+
+        {/* Paid */}
+        <div className="flex-1 p-3 bg-white rounded-xl shadow-sm">
+            <p className="text-xs text-gray-500">Paid</p>
+            <p className="text-lg font-bold text-green-600">
+                {formatCurrency(totalPaid)}
+            </p>
+        </div>
+
+        {/* Due */}
+        <div className="flex-1 p-3 bg-white rounded-xl shadow-sm">
+            <p className="text-xs text-gray-500">Due</p>
+            <p className="text-lg font-bold text-red-500">
+                {formatCurrency(salaryBalance)}
+            </p>
+        </div>
+
+    </div>
+</div>
+</div>
+
+                {/* ================= RIGHT SIDE ================= */}
+                <div className="space-y-6">
+
+                  
+                    <div className="rounded-2xl p-5 bg-indigo-100 shadow-md">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="p-3 rounded-full bg-indigo-400">
+                                <BarChart2 className="w-5 h-5 text-black" />
+                            </div>
+                            <h2 className="text-lg font-semibold text-black">
+                                Monthly Workload
+                            </h2>
+                        </div>
+
+                        <div className="bg-white rounded-xl p-4">
+                            <Chart
+                                options={chartOptions}
+                                series={chartData.series}
+                                type="bar"
+                                height={260}   
+                            />
+                        </div>
+                    </div>
+
+                    {/* ✅ TASKS */}
+                  
+                    <div className="panel bg-indigo-100 rounded-2xl p-5 shadow-md">
+
+    {/* Header */}
+    <div className="flex items-center justify-between mb-4">
+
+        <div className="flex items-center gap-3">
+            {/* Icon like Upcoming */}
+            <div className="p-3 rounded-full bg-indigo-400">
+                <ClipboardList className="w-5 h-5 text-black" />
+            </div>
+
+            <h2 className="text-lg font-semibold text-black">
+                My Tasks
+            </h2>
+        </div>
+
+        <Link
+            href="/employee/task"
+            className="px-4 py-1.5 text-sm font-medium rounded-full bg-white text-indigo-600 shadow-sm hover:bg-indigo-50 transition"
+        >
+            View All
+        </Link>
+    </div>
+
+
+    <div className="space-y-3">
+        {summaryData.tasks.slice(0, 5).map((task) => (
+            <div
+                key={task.id}
+                className="flex justify-between items-center p-3 rounded-3xl bg-white hover:shadow-sm transition"
+            >
+                <div>
+                    <p className="font-semibold text-gray-800 truncate max-w-[180px]">
+                        {task.title}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                        Due: {formatDate(task.due_date)}
+                    </p>
+                </div>
+
+                <div className="text-right">
+                    <StatusBadge status={task.status} />
+                </div>
+            </div>
+        ))}
+    </div>
+</div>
+
+
+                </div>
+
+            </div>
+        </>
+    )}
+</div>
     );
 };
+
+
+
 
 export default EmployeeDashboardPage;
