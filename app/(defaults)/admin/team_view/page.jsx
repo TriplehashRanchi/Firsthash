@@ -46,6 +46,34 @@ const IconTrash = () => (
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 const TYPE_LABELS = { 0: 'Freelancer', 1: 'In-house', 2: 'Manager' };
 
+const getAssignedRoleNames = (roles, rolesList = []) => {
+    let rolesArray = [];
+
+    try {
+        if (Array.isArray(roles)) {
+            rolesArray = roles;
+        } else if (typeof roles === 'string' && roles.startsWith('[')) {
+            const parsed = JSON.parse(roles);
+            if (Array.isArray(parsed) && parsed[0] !== null) {
+                rolesArray = parsed;
+            }
+        }
+    } catch (error) {
+        return [];
+    }
+
+    return rolesArray
+        .map((role) => {
+            if (typeof role === 'string') return role;
+            if (role?.role_name) return role.role_name;
+            if (role?.type_name) return role.type_name;
+
+            const matchedRole = rolesList.find((item) => String(item.id) === String(role?.role_id));
+            return matchedRole?.type_name || null;
+        })
+        .filter(Boolean);
+};
+
 const Toast = ({ message, type, onClose }) => {
     if (!message) return null;
     const styles = {
@@ -417,30 +445,7 @@ export default function TeamViewPage() {
                         </thead>
                         <tbody className="divide-y dark:bg-gray-900 dark:divide-gray-700 divide-gray-200">
                             {currentMembers.map((m) => {
-                                let assignedRoleNames = [];
-                                let rolesArray = [];
-
-                                try {
-                                    if (Array.isArray(m.roles)) {
-                                        rolesArray = m.roles;
-                                    } else if (typeof m.roles === 'string' && m.roles.startsWith('[')) {
-                                        const parsed = JSON.parse(m.roles);
-                                        if (Array.isArray(parsed) && parsed[0] !== null) {
-                                            rolesArray = parsed;
-                                        }
-                                    }
-
-                                    if (rolesArray.length > 0 && rolesList.length > 0) {
-                                        assignedRoleNames = rolesArray
-                                            .map((role) => {
-                                                const fullRole = rolesList.find((r) => r.id === role.role_id);
-                                                return fullRole ? fullRole.type_name : null;
-                                            })
-                                            .filter(Boolean);
-                                    }
-                                } catch (e) {
-                                    console.error('Could not parse roles for member:', m.name, m.roles, e);
-                                }
+                                const assignedRoleNames = getAssignedRoleNames(m.roles, rolesList);
 
                                 return (
                                     <tr key={m.firebase_uid} className="hover:bg-gray-50  dark:hover:bg-gray-700  dark:bg-gray-900  dark:text-gray-200 transition-colors">

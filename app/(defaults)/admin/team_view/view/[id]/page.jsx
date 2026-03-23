@@ -13,6 +13,30 @@ import {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
+const getMemberRoleNames = (roles) => {
+    let parsedRoles = [];
+
+    try {
+        if (Array.isArray(roles)) {
+            parsedRoles = roles;
+        } else if (typeof roles === 'string' && roles.startsWith('[')) {
+            const parsed = JSON.parse(roles);
+            if (Array.isArray(parsed) && parsed[0] !== null) {
+                parsedRoles = parsed;
+            }
+        }
+    } catch (error) {
+        return [];
+    }
+
+    return parsedRoles
+        .map((role) => {
+            if (typeof role === 'string') return role;
+            return role?.role_name || role?.type_name || null;
+        })
+        .filter(Boolean);
+};
+
 // --- Reusable UI Components for a Professional Look ---
 
 // Avatar: Displays user image or a fallback initial
@@ -86,6 +110,8 @@ export default function MemberViewPage() {
     const [error, setError] = useState(null);
 
     const TYPE_LABELS = { 0: 'Freelancer', 1: 'In-house' };
+    const assignedRoleNames = getMemberRoleNames(member?.roles);
+    const primaryRole = assignedRoleNames[0] || null;
 
     useEffect(() => {
         if (!id) return;
@@ -158,7 +184,7 @@ export default function MemberViewPage() {
                     <Avatar name={member.name} imageUrl={member.imageUrl } />
                     <div className="text-center sm:text-left flex-grow">
                         <h1 className="text-3xl font-bold text-slate-900 dark:text-white">{member.name}</h1>
-                        <p className="text-md text-blue-600 dark:text-blue-400 font-semibold mt-1">{member.role}</p>
+                        <p className="text-md text-blue-600 dark:text-blue-400 font-semibold mt-1">{primaryRole || 'Not Provided'}</p>
                         <div className="mt-2">
                            <StatusBadge status={member.status || 'Active'} />
                         </div>
@@ -190,7 +216,7 @@ export default function MemberViewPage() {
 
                         <InfoCard title="Employment Details" icon={Briefcase}>
                             <DetailItem icon={UserCheck} label="Employee Type" value={TYPE_LABELS[member.employee_type]} />
-                            <DetailItem icon={ShieldCheck} label="Primary Role" value={member.role} />
+                            <DetailItem icon={ShieldCheck} label="Primary Role" value={primaryRole} />
                             {(member.employee_type === 1 || member.employee_type === 0 || member.employee_type === 2) && (
                                 <DetailItem icon={Banknote} label="Salary" value={member.salary} isCurrency />
                             )}

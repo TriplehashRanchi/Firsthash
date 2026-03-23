@@ -18,6 +18,27 @@ const ACCOUNT_TYPES = [
     { value: 'current', label: 'Current' },
 ];
 
+const normalizeRoleId = (value) => String(value);
+
+const parseSelectedRoleIds = (roles, fallbackRoleId) => {
+    try {
+        if (Array.isArray(roles)) {
+            return roles.map((role) => normalizeRoleId(role?.role_id ?? role?.id ?? role)).filter(Boolean);
+        }
+
+        if (typeof roles === 'string' && roles.startsWith('[')) {
+            const parsed = JSON.parse(roles);
+            if (Array.isArray(parsed)) {
+                return parsed.map((role) => normalizeRoleId(role?.role_id ?? role?.id ?? role)).filter(Boolean);
+            }
+        }
+    } catch (error) {
+        console.error('Failed to parse roles:', error);
+    }
+
+    return fallbackRoleId ? [normalizeRoleId(fallbackRoleId)] : [];
+};
+
 const Toast = ({ message, type, onClose }) => {
     if (!message) return null;
 
@@ -121,6 +142,11 @@ const RolesModal = ({ roles, selectedRoles, setSelectedRoles, onClose }) => {
                 <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">Assign one or more functional roles to this member.</p>
                 <InputField placeholder="Search roles..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
                 <div className="space-y-2 max-h-60 overflow-y-auto pr-2 mt-4">
+                    {filteredRoles.length === 0 && (
+                        <div className="rounded-lg border border-dashed border-slate-300 px-4 py-6 text-sm text-slate-500 text-center">
+                            {roles.length === 0 ? 'No roles are available for this company yet.' : 'No roles match your search.'}
+                        </div>
+                    )}
                     {filteredRoles.map((role) => (
                         <label
                             key={role.id}
@@ -130,8 +156,12 @@ const RolesModal = ({ roles, selectedRoles, setSelectedRoles, onClose }) => {
                             <input
                                 type="checkbox"
                                 id={`role-${role.id}`}
-                                checked={selectedRoles.includes(role.id)}
-                                onChange={() => setSelectedRoles((prev) => (prev.includes(role.id) ? prev.filter((id) => id !== role.id) : [...prev, role.id]))}
+                                checked={selectedRoles.includes(normalizeRoleId(role.id))}
+                                onChange={() =>
+                                    setSelectedRoles((prev) =>
+                                        prev.includes(normalizeRoleId(role.id)) ? prev.filter((id) => id !== normalizeRoleId(role.id)) : [...prev, normalizeRoleId(role.id)],
+                                    )
+                                }
                                 className="h-4 w-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
                             />
                             <span className="ml-3 text-sm font-medium text-slate-800 dark:text-slate-300">{role.type_name}</span>
@@ -192,19 +222,7 @@ export default function MemberEditPage() {
                     address: memberData.address || '',
                     salary: memberData.salary || null,
                 });
-                let rolesToSet = [];
-                if (memberData.roles && typeof memberData.roles === 'string') {
-                    try {
-                        rolesToSet = JSON.parse(memberData.roles).map((r) => r.role_id);
-                    } catch (e) {
-                        console.error('Failed to parse roles:', e);
-                    }
-                } else if (memberData.roles && Array.isArray(memberData.roles)) {
-                    rolesToSet = memberData.roles.map((r) => r.role_id);
-                } else if (memberData.role_id) {
-                    rolesToSet = [memberData.role_id];
-                }
-                setSelectedRoles(rolesToSet);
+                setSelectedRoles(parseSelectedRoleIds(memberData.roles, memberData.role_id));
                 if (bankRes.data && Object.keys(bankRes.data).length > 0) setBankForm(bankRes.data);
             } catch (err) {
                 console.error('Error loading data:', err);
@@ -242,7 +260,7 @@ export default function MemberEditPage() {
                 salary: [0, 1, 2].includes(form.employee_type) ? form.salary || null : null,
                 alternate_phone: form.alternate_phone || null,
                 address: form.address || null,
-                roles: selectedRoles,
+                roles: selectedRoles.map((roleId) => Number(roleId)),
             };
             await axios.put(`${API_URL}/api/members/${id}`, payload, { headers: { Authorization: `Bearer ${token}` } });
             setToast({ message: 'Member details saved successfully!', type: 'success' });
@@ -277,7 +295,7 @@ export default function MemberEditPage() {
     const getRolesButtonText = () => {
         if (selectedRoles.length === 0) return 'Select roles...';
         if (allRoles.length > 0) {
-            const firstRole = allRoles.find((role) => role.id === selectedRoles[0]);
+            const firstRole = allRoles.find((role) => normalizeRoleId(role.id) === normalizeRoleId(selectedRoles[0]));
             if (firstRole) {
                 return selectedRoles.length === 1 ? firstRole.type_name : `${firstRole.type_name} +${selectedRoles.length - 1} more`;
             }
