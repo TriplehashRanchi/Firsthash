@@ -8,6 +8,7 @@ import toast from 'react-hot-toast';
 
 
  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+ const GLOBAL_ID = '00000000-0000-0000-0000-000000000000';
 
 export default function RoleDetailPage({ params }) {
   const { id } = params;
@@ -54,8 +55,7 @@ export default function RoleDetailPage({ params }) {
         setRole(data);
         setName(data.type_name);
         setCode(data.role_code);
-        // setIsPredefined(data.role_code <= 2);
-        setIsPredefined(false);
+        setIsPredefined(data.company_id === GLOBAL_ID);
       } catch (err) {
         toast.error('Role not found or you lack permissions');
         router.push('/boarding/employee');
@@ -99,7 +99,11 @@ export default function RoleDetailPage({ params }) {
   };
 
   // — DELETE ROLE —
-  const del = async () => {
+const del = async () => {
+  if (isPredefined) {
+    toast.error('Global predefined roles cannot be deleted');
+    return;
+  }
   setDeleteLoading(true);
 
   const user = getAuth().currentUser;
@@ -164,6 +168,8 @@ export default function RoleDetailPage({ params }) {
         <div className="flex justify-end items-center gap-3 pt-4">
           <button
             onClick={() => setShowDeleteConfirm(true)}
+            disabled={isPredefined}
+            title={isPredefined ? 'Global predefined roles cannot be deleted' : 'Delete role'}
             className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Trash2 size={16} /> Delete

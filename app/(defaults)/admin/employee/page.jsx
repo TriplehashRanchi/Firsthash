@@ -161,8 +161,8 @@ const CreateRoleModal = ({ isOpen, onClose, companyId, onRoleCreated }) => {
 export default function EmployeeRolesPage({ searchParams }) {
   const GLOBAL_ID = '00000000-0000-0000-0000-000000000000';
   const {company} = useAuth()
-  const PREDEFINED_ROLE_IDS_MAX = 13;
-  const companyId = company.id || GLOBAL_ID;
+  const companyId = company?.id || GLOBAL_ID;
+  const isGlobalRole = (role) => role?.company_id === GLOBAL_ID;
 
 
 
@@ -198,7 +198,7 @@ export default function EmployeeRolesPage({ searchParams }) {
       const res = await fetch(`${API_URL}/api/roles?company_id=${companyId}`, init);
       if (!res.ok) throw new Error('Failed to fetch roles');
       const data = await res.json();
-      setRoles(data.map(r => ({ ...r, is_predefined: r.id <= PREDEFINED_ROLE_IDS_MAX })));
+      setRoles(data);
     } catch (err) {
       console.error(err);
       toast.error(err.message);
@@ -243,6 +243,11 @@ export default function EmployeeRolesPage({ searchParams }) {
   };
   const [deleteId, setDeleteId] = useState(null);
   const handleDelete = async id => {
+    const roleToDelete = roles.find((role) => role.id === id);
+    if (isGlobalRole(roleToDelete)) {
+      toast.error('Global predefined roles cannot be deleted');
+      return;
+    }
     await handleApiCall(`${API_URL}/api/roles/${id}`, { method: 'DELETE' }, 'Role deleted');
   };
 
@@ -281,6 +286,9 @@ export default function EmployeeRolesPage({ searchParams }) {
                     </thead>
                     <tbody className="divide-y divide-gray-200 dark:bg-gray-900">
                         {roles.map(r =>
+                            (() => {
+                            const isPredefined = isGlobalRole(r);
+                            return (
                             editingId === r.id ? (
                             // Inline Edit Row
                             <tr key={r.id} className="bg-indigo-50">
@@ -305,7 +313,12 @@ export default function EmployeeRolesPage({ searchParams }) {
                             <tr key={r.id} className="hover:bg-gray-50 hover:dark:bg-gray-700">
                                 <td className="px-4 dark:text-gray-200 py-3 font-semibold text-gray-800 flex items-center gap-3">
                                   {r.type_name}
-                                  {r.is_predefined && (<span className="flex items-center gap-1.5 text-xs text-green-700 bg-green-100 px-2 py-0.5 rounded-full font-medium"><ShieldCheck size={14} /> Predefined</span>)}
+                                  {isPredefined && (
+                                    <span className="inline-flex items-center gap-1.5 text-xs text-green-700 bg-green-100 px-2 py-0.5 rounded-full font-medium whitespace-nowrap">
+                                      <ShieldCheck size={14} />
+                                      Predefined
+                                    </span>
+                                  )}
                                 </td>
                                 <td className="px-4 py-3 dark:text-gray-200 text-gray-600">{
                                      r.role_code === 1 ? 'On Production' :
@@ -315,11 +328,19 @@ export default function EmployeeRolesPage({ searchParams }) {
                                 <td className="px-4 py-3 text-right">
                                     <div className="flex justify-end space-x-2">
                                         <button onClick={() => startEdit(r)} className="p-2 text-gray-500 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"><Edit size={16} /></button>
-                                        <button onClick={() => setDeleteId(r.id)} className="p-2 text-gray-500 rounded-md hover:bg-red-100 hover:text-red-600 disabled:opacity-40 disabled:cursor-not-allowed"><Trash2 size={16} /></button>
+                                        <button
+                                            onClick={() => !isPredefined && setDeleteId(r.id)}
+                                            disabled={isPredefined}
+                                            title={isPredefined ? 'Global predefined roles cannot be deleted' : 'Delete role'}
+                                            className="p-2 text-gray-500 rounded-md hover:bg-red-100 hover:text-red-600 disabled:opacity-40 disabled:cursor-not-allowed"
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
                                     </div>
                                 </td>
                             </tr>
                             )
+                            )})()
                         )}
                         {roles.length === 0 && <tr><td colSpan="3" className="text-center text-gray-500 py-10">No custom roles found.</td></tr>}
                     </tbody>
