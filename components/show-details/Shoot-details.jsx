@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Camera, UserPen ,CalendarDays,Link as LinkIcon , Clock, UserRound , MapPin, Edit3, X, UserPlus, Users as UsersIcon, CheckCircle, Search } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';

@@ -5,8 +5,20 @@ import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import { getAuth } from 'firebase/auth';
 import Link from 'next/link';
+import EmployeeManualAttendanceCard from '@/components/attandance-comp/EmployeeManualAttendanceCard';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+
+const toLocalDateKey = (dateInput) => {
+  const date = new Date(dateInput);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const sortAttendanceHistory = (records) =>
+  [...records].sort((a, b) => new Date(b.a_date) - new Date(a.a_date));
 
 // --- UI Components ---
 const LoadingSpinner = () => (
@@ -31,6 +43,7 @@ export default function EmployeeAttendancePage() {
   const [userName, setUserName] = useState('');
 
   const today = new Date();
+  const todayKey = toLocalDateKey(today);
   const [selectedYear, setSelectedYear] = useState(today.getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(today.getMonth() + 1); // 1-12
 
@@ -54,10 +67,7 @@ export default function EmployeeAttendancePage() {
         const headers = { Authorization: `Bearer ${token}` };
         const response = await axios.get(`${API_URL}/api/self/attendance`, { headers });
 
-        const sortedHistory = response.data.sort(
-          (a, b) => new Date(b.a_date) - new Date(a.a_date)
-        );
-        setHistory(sortedHistory);
+        setHistory(sortAttendanceHistory(response.data));
       } catch (err) {
         console.error('Failed to fetch attendance history:', err);
         setError(err.response?.data?.error || err.message || 'Could not load your attendance data.');
@@ -88,6 +98,24 @@ export default function EmployeeAttendancePage() {
 
     return { present: presentDays, absent: absentDays, percentage };
   }, [filteredHistory]);
+
+  const todayRecord = useMemo(
+    () => history.find((record) => toLocalDateKey(record.a_date) === todayKey) || null,
+    [history, todayKey]
+  );
+
+  const handleManualAttendanceSaved = (savedRecord) => {
+    if (!savedRecord) {
+      return;
+    }
+
+    setHistory((currentHistory) => {
+      const remainingRecords = currentHistory.filter(
+        (record) => toLocalDateKey(record.a_date) !== toLocalDateKey(savedRecord.a_date)
+      );
+      return sortAttendanceHistory([savedRecord, ...remainingRecords]);
+    });
+  };
 
   if (loading) return <LoadingSpinner />;
   if (error)
@@ -123,6 +151,11 @@ export default function EmployeeAttendancePage() {
             Welcome, {userName}. Here is your attendance.
           </p>
         </header>
+
+        <EmployeeManualAttendanceCard
+          todayRecord={todayRecord}
+          onRecordSaved={handleManualAttendanceSaved}
+        />
 
         {/* --- FILTERS --- */}
         <div className="flex gap-4 mb-6">
