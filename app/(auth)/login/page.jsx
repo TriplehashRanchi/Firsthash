@@ -109,7 +109,7 @@ export default function LoginPage() {
     const handleGoogleLogin = async () => {
         try {
             setLoading(true);
-            const { isNewUser } = await loginWithGoogle({
+            const { isNewUser, role } = await loginWithGoogle({
                 name: 'Google User',
                 phone: '0000000000',
                 company_name: 'Untitled Studio',
@@ -120,11 +120,15 @@ export default function LoginPage() {
                 router.push('/subscribe');
             } else {
                 toast.success('Logged in successfully!');
-                // For existing users, redirection can be handled by a protected route layout
-                // or you can explicitly redirect here after the context is updated.
-                // A common pattern is to redirect to a generic dashboard or home page,
-                // and let a layout component handle role-specific rendering.
-                router.push('/');
+                if (role === 'admin') {
+                    router.push('/admin/dashboard');
+                } else if (role === 'manager') {
+                    router.push('/manager/dashboard');
+                } else if (role === 'employee') {
+                    router.push('/employee/dashboard');
+                } else {
+                    router.push('/');
+                }
             }
         } catch (err) {
             console.error(err);

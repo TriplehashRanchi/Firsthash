@@ -146,8 +146,8 @@ const loginWithGoogle = async ({ name, phone, company_name }) => {
       });
     }
 
-    await fetchUserRoleAndCompany(firebase_uid);
-    return { isNewUser }; // Return the user's status
+    const resolvedRole = await fetchUserRoleAndCompany(firebase_uid);
+    return { isNewUser, role: resolvedRole };
 
   } catch (err) {
     console.error('Google login error:', err);
