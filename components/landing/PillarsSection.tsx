@@ -43,13 +43,13 @@ export default function PillarsSection() {
                         Use this area to show the kind of projects you handle. For a photography-first landing page, this works better than abstract service cards.
                     </p>
 
-                    <div className="mt-8 space-y-3">
+                    {/* <div className="mt-8 space-y-3">
                         {photographyHighlights.map((item) => (
                             <div key={item} className="rounded-2xl border border-white/10 bg-white/5 px-5 py-4 text-sm leading-6 text-white/82">
                                 {item}
                             </div>
                         ))}
-                    </div>
+                    </div> */}
 
                     <div className="mt-8 grid grid-cols-2 gap-4 border-t border-white/10 pt-6">
                         <div>

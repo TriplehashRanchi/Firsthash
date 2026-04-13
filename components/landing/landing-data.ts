@@ -44,6 +44,36 @@ export const aboutUsContent = {
     highlights: ['Wedding shoots', 'Event coverage', 'Portrait sessions', 'Brand campaigns'],
 };
 
+export const servicePillars = [
+    {
+        title: 'Wedding Stories',
+        description: 'Candid emotion, portraits, rituals, and album-ready coverage shaped into a polished visual narrative.',
+        note: 'Signature',
+        accent: 'from-[#f6dfcf] via-[#fbefe7] to-white',
+        icon: Aperture,
+    },
+    {
+        title: 'Event Coverage',
+        description: 'Fast-moving event photography with clean delivery for conferences, launches, celebrations, and branded moments.',
+        note: 'Live',
+        accent: 'from-[#dfe8f4] via-[#eef3f8] to-white',
+        icon: Blend,
+    },
+    {
+        title: 'Brand Portraits',
+        description: 'Portrait-led image sets for founders, teams, creators, and campaigns that need a premium editorial look.',
+        note: 'Editorial',
+        accent: 'from-[#e8dfd6] via-[#f6f0ea] to-white',
+        icon: Sparkles,
+    },
+];
+
+export const photographyHighlights = [
+    'Wedding, portrait, event, and campaign work presented in one cohesive brand system.',
+    'Strong visual hierarchy with premium framing instead of generic service blocks.',
+    'Built to help visitors understand both style and business readiness at a glance.',
+];
+
 export const showcaseFrames = [
     {
         eyebrow: 'Wedding story',
