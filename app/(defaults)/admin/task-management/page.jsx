@@ -1091,7 +1091,7 @@ const TaskRow = ({ task, level, isExpanded, expandedRows, onToggle, members, isA
     const primaryAssignee = task.assignees && task.assignees.length > 0 ? task.assignees[0] : { name: 'Unassigned', primaryRole: '' };
     const normalizedStatus = (task.status || '').toLowerCase().trim();
     return (
-        <Fragment className="dark:bg-gray-900">
+        <Fragment>
             <tr className={level > 0 ? 'bg-gray-50/50 dark:bg-gray-900 hover:bg-gray-100/50' : 'hover:bg-gray-50 dark:hover:bg-gray-600 dark:text-gray-100'}>
                 {/* Task Title */}
                 {/* Task Title with Client */}
