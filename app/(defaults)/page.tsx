@@ -1,13 +1,11 @@
 import { Metadata } from 'next';
-import React from 'react';
-import AdminDashboard from './admin/dashboard/page';
+import LandingPage from '@/components/landing/LandingPage';
 
 export const metadata: Metadata = {
-    title: ' Admin',
+    title: 'Firsthash | Studio-grade project operations',
+    description: 'A premium landing page for Firsthash with an editorial, photographer-inspired layout and a reusable section-based architecture.',
 };
 
-const Sales = () => {
-    return <AdminDashboard />;
-};
-
-export default Sales;
+export default function HomePage() {
+    return <LandingPage />;
+}

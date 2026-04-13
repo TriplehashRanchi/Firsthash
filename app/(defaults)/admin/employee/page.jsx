@@ -327,7 +327,7 @@ export default function EmployeeRolesPage({ searchParams }) {
                                      </td>
                                 <td className="px-4 py-3 text-right">
                                     <div className="flex justify-end space-x-2">
-                                        <button onClick={() => startEdit(r)} className="p-2 text-gray-500 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"><Edit size={16} /></button>
+                                        <button onClick={() => startEdit(r)} disabled={isPredefined} className="p-2 text-gray-500 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"><Edit size={16} /></button>
                                         <button
                                             onClick={() => !isPredefined && setDeleteId(r.id)}
                                             disabled={isPredefined}

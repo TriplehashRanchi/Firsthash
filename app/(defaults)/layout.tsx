@@ -95,8 +95,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const { currentUser, isAdmin, isSubscribedUser, loading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const isLandingPage = pathname === '/';
 
   useEffect(() => {
+    if (isLandingPage) return;
     if (loading) return;
 
     // 1) Not logged in -> go to /register
@@ -116,11 +118,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     //   if (pathname !== '/subscribe') router.replace('/subscribe');
     //   return;
     // }
-  }, [loading, currentUser, isAdmin, isSubscribedUser, pathname, router]);
+  }, [isLandingPage, loading, currentUser, isAdmin, isSubscribedUser, pathname, router]);
 
   // Render guard:
   // Only block while loading or while we’re redirecting due to auth/admin checks.
   // IMPORTANT: Do NOT block on !isSubscribedUser unless you also redirect in the effect.
+  if (isLandingPage) {
+    return <>{children}</>;
+  }
+
   if (loading) return <Loading />;
   if (!currentUser || !isAdmin) return <Loading />;
 

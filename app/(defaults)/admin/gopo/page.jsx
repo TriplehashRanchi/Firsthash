@@ -204,7 +204,7 @@ function Page() {
             { isValid: isProjectDetailsValid, name: 'Project Details' },
             { isValid: isShootsValid, name: 'Shoots' },
             { isValid: isDeliverablesValid, name: 'Deliverables' },
-            { isValid: isReceivedValid, name: 'Received Amount' },
+           // { isValid: isReceivedValid, name: 'Received Amount' },
         ];
 
         const invalidSections = validationChecks.filter((check) => !check.isValid).map((check) => check.name);

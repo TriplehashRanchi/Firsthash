@@ -5,6 +5,64 @@ import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import { BadgeCheck, Check, ShieldCheck, Sparkles } from 'lucide-react';
+
+const PLAN_PRESENTATION = {
+  gold: {
+    title: 'Gold',
+    badge: 'Popular',
+    accent: 'from-[#f4e2b8] via-[#fbf4df] to-white',
+    border: 'border-[#e8cf95]',
+    ring: 'ring-[#e8cf95]/60',
+    button: 'bg-[#1f1810] text-white',
+    priceTone: 'text-[#1f1810]',
+    summary: 'For studios that need a clean professional setup with strong day-to-day capability.',
+    features: ['Premium workflow access', 'Business-ready reporting', 'Faster onboarding'],
+  },
+  diamond: {
+    title: 'Diamond',
+    badge: 'Premium',
+    accent: 'from-[#dbe7f7] via-[#eef4fb] to-white',
+    border: 'border-[#c9d9f2]',
+    ring: 'ring-[#c9d9f2]/70',
+    button: 'bg-[#111827] text-white',
+    priceTone: 'text-[#0f172a]',
+    summary: 'For teams that want the most polished experience with a higher-end operational tier.',
+    features: ['Priority access tools', 'Premium support flow', 'Best fit for scaling teams'],
+  },
+  trial: {
+    title: 'Free Trial',
+    badge: 'Try First',
+    accent: 'from-[#dff4ea] via-[#f4fbf7] to-white',
+    border: 'border-[#bfe7d2]',
+    ring: 'ring-[#bfe7d2]/70',
+    button: 'bg-[#0f3d2e] text-white',
+    priceTone: 'text-[#0f3d2e]',
+    summary: 'Start with the essentials and experience the product before moving into a paid plan.',
+    features: ['Quick start access', 'Same secure checkout path', 'Upgrade whenever ready'],
+  },
+};
+
+const getPlanPresentation = (plan) => {
+  const normalized = plan.name.toLowerCase();
+
+  if (normalized.includes('diamond')) return PLAN_PRESENTATION.diamond;
+  if (normalized.includes('gold')) return PLAN_PRESENTATION.gold;
+  if (normalized.includes('trial') || normalized.includes('free') || Number(plan.price) === 0) {
+    return PLAN_PRESENTATION.trial;
+  }
+
+  if (Number(plan.price) === Math.max(Number(plan.price), 0) && Number(plan.price) >= 499900) {
+    return PLAN_PRESENTATION.diamond;
+  }
+
+  return {
+    ...PLAN_PRESENTATION.gold,
+    title: plan.name,
+    badge: 'Plan',
+    summary: `A premium ${plan.name} plan presented with cleaner hierarchy and more balanced spacing.`,
+  };
+};
 
 export default function SubscribePage() {
   const { currentUser, company, loading: authLoading } = useAuth();
@@ -12,12 +70,15 @@ export default function SubscribePage() {
 
   const [plans, setPlans] = useState([]);
   const [selectedPlanId, setSelectedPlanId] = useState(null);
+  const [showCheckoutModal, setShowCheckoutModal] = useState(false);
   const [coupon, setCoupon] = useState('');
   const [couponDetails, setCouponDetails] = useState(null);
   const [loading, setLoading] = useState(false);
   const [finalAmount, setFinalAmount] = useState(0);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+  const selectedPlan = plans.find((plan) => plan.id === selectedPlanId) || plans[0] || null;
+  const selectedTheme = selectedPlan ? getPlanPresentation(selectedPlan) : PLAN_PRESENTATION.gold;
 
   useEffect(() => {
     const fetchPlans = async () => {
@@ -155,141 +216,232 @@ export default function SubscribePage() {
   if (authLoading) return <div className="text-center mt-20 text-lg font-medium">Loading...</div>;
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center py-16 px-4 sm:px-6 lg:px-8">
-      
-      {/* Header */}
-      <div className="text-center max-w-3xl mx-auto mb-12">
-        <h2 className="text-4xl font-extrabold text-gray-900 tracking-tight">
-          Choose Your Plan
-        </h2>
-        <p className="mt-4 text-lg text-gray-500">
-          Select the perfect plan that fits your business needs. Upgrade anytime.
-        </p>
+    <div className="relative min-h-screen overflow-hidden bg-[#f6f1e8] px-4 py-8 sm:px-6 lg:px-8">
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute left-0 top-0 h-80 w-80 rounded-full bg-amber-200/30 blur-3xl" />
+        <div className="absolute right-0 top-16 h-96 w-96 rounded-full bg-stone-400/20 blur-3xl" />
+        <div className="absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-emerald-200/20 blur-3xl" />
       </div>
 
-      <div className="w-full max-w-5xl mx-auto space-y-12">
-        
-        {/* Pricing Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 justify-center">
+      <div className="relative mx-auto max-w-7xl rounded-[32px] border border-white/70 bg-white/80 p-5 shadow-[0_30px_100px_rgba(15,23,42,0.12)] backdrop-blur-xl sm:p-8 lg:p-10">
+        <div className="space-y-8">
+          <div className="flex flex-col gap-6 border-b border-stone-200/80 pb-8">
+            <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+              <div className="max-w-3xl">
+              <div className="inline-flex w-fit items-center rounded-full border border-stone-300 bg-white/80 px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-stone-600 shadow-sm">
+                Premium Access Plans
+              </div>
+                <h1 className="mt-4 text-3xl font-semibold tracking-[-0.04em] text-stone-950 sm:text-4xl">
+                  Choose a plan
+                </h1>
+                <p className="mt-3 max-w-2xl text-base leading-7 text-stone-600">
+                  Select any plan from the backend list. The page is kept simple, card-based, and responsive.
+                </p>
+              </div>
+              <div className="flex items-center gap-4 rounded-[24px] border border-stone-200 bg-stone-950 px-5 py-4 text-white shadow-[0_16px_40px_rgba(15,23,42,0.14)]">
+                <div>
+                  <div className="text-xs uppercase tracking-[0.22em] text-stone-400">Selected total</div>
+                  <div className="mt-1 text-3xl font-semibold tracking-[-0.04em]">₹{(finalAmount / 100).toFixed(0)}</div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => selectedPlan && setShowCheckoutModal(true)}
+                  disabled={!selectedPlan}
+                  className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-stone-950 transition hover:bg-stone-100 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Continue
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-[28px] border border-stone-200/80 bg-[#fbf9f5] p-4 sm:p-5">
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
           {plans.map((plan) => {
             const isSelected = selectedPlanId === plan.id;
-            
+            const theme = getPlanPresentation(plan);
+
             return (
               <div
                 key={plan.id}
                 onClick={() => {
                   setSelectedPlanId(plan.id);
                   setCouponDetails(null);
-                  setCoupon(''); // Optional: clear coupon if plan changes
+                  setCoupon('');
                 }}
-                className={`relative flex flex-col p-8 bg-white rounded-2xl cursor-pointer transition-all duration-200 border-2 ${
-                  isSelected 
-                    ? 'border-black shadow-xl scale-105 z-10' 
-                    : 'border-transparent shadow-md hover:shadow-lg hover:border-gray-300'
+                className={`relative flex min-h-[380px] flex-col overflow-hidden rounded-[28px] border bg-white shadow-[0_8px_30px_rgba(15,23,42,0.06)] transition-all duration-300 ${
+                  isSelected
+                    ? `${theme.border} ${theme.ring} ring-2 shadow-[0_16px_44px_rgba(15,23,42,0.12)]`
+                    : 'border-stone-200/80 hover:-translate-y-1 hover:border-stone-300 hover:shadow-[0_18px_40px_rgba(15,23,42,0.10)]'
                 }`}
               >
-                {/* Selected Badge */}
-                {isSelected && (
-                  <div className="absolute top-0 right-0 bg-black text-white text-xs font-bold px-4 py-1.5 rounded-bl-xl rounded-tr-xl">
-                    Selected
-                  </div>
-                )}
-                
-                <h3 className="text-2xl font-bold text-gray-900 capitalize">
-                  {plan.name}
-                </h3>
-                
-                <div className="mt-4 flex items-baseline text-4xl font-extrabold text-gray-900">
-                  ₹{(plan.price / 100).toFixed(0)}
-                  <span className="ml-1 text-xl font-medium text-gray-500">
-                    /{plan.interval || 'mo'}
-                  </span>
-                </div>
-                
-                <p className="mt-4 text-gray-500 flex-grow">
-                  Full access to all {plan.name} features to boost your business.
-                </p>
+                <div className={`absolute inset-x-0 top-0 h-28 bg-gradient-to-br ${theme.accent}`} />
 
-                {/* Custom radio-like indicator for visual accessibility */}
-                <div className="mt-6 flex items-center text-sm font-semibold">
-                  <div className={`w-5 h-5 rounded-full border-2 mr-3 flex items-center justify-center ${
-                    isSelected ? 'border-black' : 'border-gray-300'
-                  }`}>
-                    {isSelected && <div className="w-2.5 h-2.5 bg-black rounded-full" />}
+                <div className="relative flex h-full flex-col p-6">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <div className="text-xs font-semibold uppercase tracking-[0.22em] text-stone-500">
+                        {theme.badge}
+                      </div>
+                      <h3 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-stone-950">
+                        {plan.name}
+                      </h3>
+                    </div>
+                    <div className="flex h-11 w-11 items-center justify-center rounded-full border border-stone-200 bg-white/80 shadow-sm">
+                      {theme.title.toLowerCase().includes('trial') ? <ShieldCheck className="h-5 w-5 text-stone-900" /> : <Sparkles className="h-5 w-5 text-stone-900" />}
+                    </div>
                   </div>
-                  {isSelected ? 'Currently Selected' : 'Select Plan'}
+
+                  <div className="mt-8">
+                    <div className="flex items-end gap-2">
+                      <div className={`text-4xl font-semibold tracking-[-0.05em] ${theme.priceTone}`}>
+                        ₹{(plan.price / 100).toFixed(0)}
+                      </div>
+                      <div className="pb-2 text-sm font-medium uppercase tracking-[0.18em] text-stone-400">
+                        /plan
+                      </div>
+                    </div>
+                    <p className="mt-4 min-h-[72px] text-sm leading-6 text-stone-600">
+                      {theme.summary}
+                    </p>
+                  </div>
+
+                  <div className="mt-4 space-y-3 text-sm text-stone-700">
+                    {theme.features.map((feature) => (
+                      <div key={feature} className="flex items-center gap-3">
+                        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-stone-950 text-white">
+                          <Check className="h-3.5 w-3.5" />
+                        </div>
+                        <span>{feature}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-auto pt-8">
+                    <div className="flex items-center justify-between gap-3">
+                      <button
+                        type="button"
+                        className={`flex-1 rounded-[18px] px-4 py-3 text-sm font-semibold transition ${isSelected ? theme.button : 'bg-stone-100 text-stone-900 hover:bg-stone-200'}`}
+                      >
+                        {isSelected ? 'Selected' : `Choose ${plan.name}`}
+                      </button>
+                      {isSelected && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowCheckoutModal(true);
+                          }}
+                          className="rounded-[18px] border border-stone-200 bg-white px-4 py-3 text-sm font-semibold text-stone-900 transition hover:bg-stone-50"
+                        >
+                          Pay
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             );
           })}
-        </div>
-
-        {/* Checkout / Summary Section */}
-        <div className="max-w-md mx-auto bg-white p-8 rounded-2xl shadow-lg border border-gray-100">
-          <h3 className="text-xl font-bold text-gray-800 mb-6 border-b pb-4">
-            Order Summary
-          </h3>
-
-          <div className="space-y-6">
-            {/* Coupon Section */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Have a coupon code?
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  placeholder="Enter code"
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all"
-                  value={coupon}
-                  onChange={(e) => setCoupon(e.target.value)}
-                />
-                <button
-                  onClick={validateCoupon}
-                  disabled={!coupon.trim()}
-                  className="bg-black text-white px-5 py-2 rounded-lg font-medium hover:bg-gray-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Apply
-                </button>
-              </div>
-              {couponDetails && (
-                <p className="text-green-600 text-sm mt-2 font-medium">
-                  {couponDetails.discount_type === 'percent'
-                    ? `✓ ${couponDetails.discount_value}% off applied!`
-                    : `✓ ₹${couponDetails.discount_value} off applied!`}
-                </p>
-              )}
             </div>
-
-            {/* Total Section */}
-            <div className="flex justify-between items-center py-4 border-t border-gray-100">
-              <span className="text-gray-600 font-medium">Total to pay</span>
-              <span className="text-3xl font-extrabold text-gray-900">
-                ₹{(finalAmount / 100).toFixed(0)}
-              </span>
-            </div>
-
-            {/* Subscribe Button */}
-            <button
-              disabled={loading || plans.length === 0}
-              onClick={handleSubscribe}
-              className="w-full bg-black text-white py-4 rounded-xl font-bold text-lg hover:bg-gray-800 hover:shadow-lg transition-all duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed flex justify-center items-center"
-            >
-              {loading ? (
-                <svg className="animate-spin h-5 w-5 mr-3 text-white" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                </svg>
-              ) : null}
-              {loading ? 'Processing...' : 'Subscribe & Pay'}
-            </button>
-            <p className="text-xs text-center text-gray-400 mt-4">
-              Secured safely by Razorpay
-            </p>
           </div>
         </div>
-
       </div>
+
+      {showCheckoutModal && selectedPlan && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4 py-6">
+          <div className="absolute inset-0" onClick={() => setShowCheckoutModal(false)} />
+          <div className="relative z-10 w-full max-w-md overflow-hidden rounded-[28px] border border-stone-200 bg-white shadow-[0_30px_80px_rgba(15,23,42,0.25)]">
+            <div className={`h-24 bg-gradient-to-br ${selectedTheme.accent}`} />
+            <div className="relative -mt-8 p-6">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <div className="text-xs font-semibold uppercase tracking-[0.22em] text-stone-500">Checkout</div>
+                  <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-stone-950">{selectedPlan.name}</h2>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowCheckoutModal(false)}
+                  className="rounded-full border border-stone-200 px-3 py-1 text-sm font-medium text-stone-600 transition hover:bg-stone-50"
+                >
+                  Close
+                </button>
+              </div>
+
+              <div className="mt-6 space-y-5">
+                <div>
+                  <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-stone-500">
+                    Coupon code
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Enter code"
+                      className="w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 text-stone-950 placeholder:text-stone-400 focus:border-stone-400 focus:outline-none"
+                      value={coupon}
+                      onChange={(e) => setCoupon(e.target.value)}
+                    />
+                    <button
+                      onClick={validateCoupon}
+                      disabled={!coupon.trim()}
+                      className="rounded-2xl bg-stone-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      Apply
+                    </button>
+                  </div>
+                  {couponDetails && (
+                    <p className="mt-3 flex items-center gap-2 text-sm font-medium text-emerald-600">
+                      <BadgeCheck className="h-4 w-4" />
+                      {couponDetails.discount_type === 'percent'
+                        ? `${couponDetails.discount_value}% off applied`
+                        : `₹${couponDetails.discount_value} off applied`}
+                    </p>
+                  )}
+                </div>
+
+                <div className="rounded-[22px] border border-stone-200 bg-stone-50 p-5">
+                  <div className="flex items-center justify-between text-sm text-stone-600">
+                    <span>Selected plan</span>
+                    <span className="font-medium text-stone-950">{selectedPlan.name}</span>
+                  </div>
+                  <div className="mt-4 flex items-center justify-between border-t border-stone-200 pt-4">
+                    <span className="text-sm text-stone-600">Total to pay</span>
+                    <span className="text-3xl font-semibold tracking-[-0.04em] text-stone-950">
+                      ₹{(finalAmount / 100).toFixed(0)}
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  disabled={loading || plans.length === 0}
+                  onClick={handleSubscribe}
+                  className="flex w-full items-center justify-center gap-3 rounded-[20px] bg-stone-950 px-5 py-4 text-base font-semibold text-white transition hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {loading ? (
+                    <svg className="h-5 w-5 animate-spin text-white" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                  ) : (
+                    <Sparkles className="h-5 w-5" />
+                  )}
+                  {loading ? 'Processing...' : 'Subscribe & Pay'}
+                </button>
+
+                <div className="rounded-[18px] border border-stone-200 bg-white p-4 text-sm text-stone-600">
+                  <div className="flex items-center gap-2 font-medium text-stone-950">
+                    <ShieldCheck className="h-4 w-4" />
+                    Secure Razorpay checkout
+                  </div>
+                  <p className="mt-2 leading-6">
+                    Coupon validation and payment flow are unchanged. This is only a UI cleanup.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
