@@ -126,7 +126,7 @@ const EmployeeHeader: React.FC = () => {
                  focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1
                  dark:bg-gray-600 dark:hover:bg-gray-700 dark:focus:ring-indigo-400"
                         >
-                            <WorkflowIcon size={16} /> Team Allocation
+                            <WorkflowIcon size={16} /> Team Booking
                         </Link>
 
                         <Link

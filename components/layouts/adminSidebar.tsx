@@ -45,6 +45,7 @@ import IconUser from '../icon/icon-user';
 import { ReceiptIndianRupee, UserRoundSearch } from 'lucide-react';
 import IconPlusCircle from '../icon/icon-plus-circle';
 import IconChatDot from '../icon/icon-chat-dot';
+import IconShoppingCart from '../icon/icon-shopping-cart';
 
 
 const AdminSidebar = () => {
@@ -143,6 +144,7 @@ const AdminSidebar = () => {
                                             </div>
                                         </Link>
                                     </li>
+
                                     <li className="menu nav-item">
                                         <button type="button" className={`${currentMenu === 'customer_tab' ? 'active' : ''} nav-link group w-full`} onClick={() => toggleMenu('customer_tab')}>
                                             <div className="flex items-center">
@@ -172,6 +174,66 @@ const AdminSidebar = () => {
                                         </AnimateHeight>
                                    </li>
 
+                                   <li className="menu nav-item">
+                                        <button type="button" className={`${currentMenu === 'team' ? 'active' : ''} nav-link group w-full`} onClick={() => toggleMenu('team')}>
+                                            <div className="flex items-center">
+                                                <IconMenuUsers className="shrink-0 group-hover:!text-primary" />
+                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('Teams')}</span>
+                                            </div>
+
+                                           <div className={currentMenu !== 'automation' ? '-rotate-90 rtl:rotate-90' : ''}>
+                                                <IconCaretDown />
+                                            </div>
+                                        </button>
+
+                                        <AnimateHeight duration={300} height={currentMenu === 'team' ? 'auto' : 0}>
+                                            <ul className="sub-menu text-gray-500">
+                                                 <li>
+                                                    <Link href="/admin/roleForm">{t('Add Team')}</Link>
+                                                </li>
+
+                                                <li>
+                                                    <Link href="/admin/team_view">{t('Team List')}</Link>
+                                                </li>
+                                               
+                                                <li>
+                                                    <Link href="/admin/employee">{t('Team Roles')}</Link>
+                                                </li>
+                                            </ul>
+                                        </AnimateHeight>
+                                   </li>
+
+                                    <li className="menu nav-item">
+                                        <button type="button" className={`${currentMenu === 'expense' ? 'active' : ''} nav-link group w-full`} onClick={() => toggleMenu('expense')}>
+                                            <div className="flex items-center">
+                                                <IconShoppingCart className="shrink-0 group-hover:!text-primary" />
+                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('Financials')}</span>
+                                            </div>
+
+                                           <div className={currentMenu !== 'automation' ? '-rotate-90 rtl:rotate-90' : ''}>
+                                                <IconCaretDown />
+                                            </div>
+                                        </button>
+
+                                        <AnimateHeight duration={300} height={currentMenu === 'expense' ? 'auto' : 0}>
+                                            <ul className="sub-menu text-gray-500">
+                                                 <li>
+                                                    <Link href="/admin/billing">{t('Billings')}</Link>
+                                                </li>
+
+                                                <li>
+                                                    <Link href="/admin/company_expence">{t('Company Expense')}</Link>
+                                                </li>
+
+                                                <li>
+                                                    <Link href="/admin/expence">{t('Manage Salary')}</Link>
+                                                </li>
+                                               
+                                               
+                                            </ul>
+                                        </AnimateHeight>
+                                   </li>
+
                                      <li className="nav-item">
                                         <Link href="/admin/clients-details" className='group'>
                                             <div className='flex items-center'>
@@ -180,16 +242,16 @@ const AdminSidebar = () => {
                                             </div>
                                         </Link>
                                     </li>
-                                      <li className="nav-item">
+                                      {/* <li className="nav-item">
                                         <Link href="/admin/billing" className='group'>
                                             <div className='flex items-center'>
                                                 <ReceiptIndianRupee className="shrink-0 group-hover:!text-primary" />
                                                 <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:text-gray-200 dark:group-hover:text-white-dark">{t('Billing')}</span>
                                             </div>
                                         </Link>
-                                    </li>
+                                    </li> */}
 
-                                    <li className="nav-item">
+                                    {/* <li className="nav-item">
                                         <Link href="/admin/roleForm" className="group">
                                             <div className="flex items-center">
                                                 <IconUserPlus className="shrink-0 group-hover:!text-primary" />
@@ -212,7 +274,7 @@ const AdminSidebar = () => {
                                                 <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:text-gray-200 dark:group-hover:text-white-dark">{t('Team Roles')}</span>
                                             </div>
                                         </Link>
-                                    </li>
+                                    </li> */}
                                     <li className="nav-item">
                                         <Link href="/admin/attendance" className="group">
                                             <div className="flex items-center">
@@ -262,29 +324,29 @@ const AdminSidebar = () => {
                                         </Link>
                                     </li>
 
-                                    <li className="nav-item">
+                                    {/* <li className="nav-item">
                                         <Link href="/admin/expence" className="group">
                                             <div className="flex items-center">
                                                 <IconCashBanknotes className="shrink-0 group-hover:!text-primary" />
                                                 <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:text-gray-200 dark:group-hover:text-white-dark">{t('Manage Salary')}</span>
                                             </div>
                                         </Link>
-                                    </li>
+                                    </li> */}
 
-                                    <li className="nav-item">
+                                    {/* <li className="nav-item">
                                         <Link href="/admin/company_expence" className="group">
                                             <div className="flex items-center">
                                                 <IconTrendingUp className="shrink-0 group-hover:!text-primary" />
                                                 <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:text-gray-200 dark:group-hover:text-white-dark">{t('Company Expense')}</span>
                                             </div>
                                         </Link>
-                                    </li>
+                                    </li> */}
 
                                     <li className="nav-item">
                                         <Link href="/admin/team-allocation" className="group">
                                             <div className="flex items-center">
                                                 <IconSquareRotated className="shrink-0 group-hover:!text-primary" />
-                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:text-gray-200 dark:group-hover:text-white-dark">{t('Team Allocation')}</span>
+                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:text-gray-200 dark:group-hover:text-white-dark">{t('Team Booking')}</span>
                                             </div>
                                         </Link>
                                     </li>
