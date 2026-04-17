@@ -47,6 +47,7 @@ const today = () => new Date().toISOString().split('T')[0];
 
 const createInitialForm = () => ({
     expense_date: today(),
+    title: '',
     category_id: '',
     category_name_input: '',
     currency_code: 'INR',
@@ -65,7 +66,6 @@ const createInitialForm = () => ({
     notes: '',
     party_id: '',
     customer_name: '',
-    title: '',
     receipts: [],
 });
 
@@ -90,7 +90,13 @@ function formatLabel(value) {
 }
 
 function formatTaxLabel(taxName, taxRate) {
-    const cleanedName = typeof taxName === 'string' ? taxName.replace(/\s*\[\s*\d+(?:\.\d+)?%\s*\]\s*/g, ' ').replace(/\s+/g, ' ').trim() : '';
+    const cleanedName =
+        typeof taxName === 'string'
+            ? taxName
+                  .replace(/\s*\[\s*\d+(?:\.\d+)?%\s*\]\s*/g, ' ')
+                  .replace(/\s+/g, ' ')
+                  .trim()
+            : '';
 
     if (cleanedName) {
         return cleanedName;
@@ -200,11 +206,7 @@ function ReceiptPreviewCard({ receipt, removable = false, onRemove = null, click
                     <div className="text-xs text-slate-500">{formatFileSize(receipt?.size || receipt?.file_size || 0)}</div>
                 </div>
                 {removable && onRemove ? (
-                    <button
-                        type="button"
-                        onClick={onRemove}
-                        className="rounded-full p-1.5 text-red-400 transition hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/30"
-                    >
+                    <button type="button" onClick={onRemove} className="rounded-full p-1.5 text-red-400 transition hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/30">
                         <Trash2 className="h-4 w-4" />
                     </button>
                 ) : clickable && fileUrl ? (
@@ -330,12 +332,7 @@ function ReceiptUploader({ receipts, setForm }) {
                     <p className="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-200">Attached receipts</p>
                     <div className="grid gap-3">
                         {receipts.map((receipt) => (
-                            <ReceiptPreviewCard
-                                key={receipt.id}
-                                receipt={receipt}
-                                removable
-                                onRemove={() => removeReceipt(receipt.id)}
-                            />
+                            <ReceiptPreviewCard key={receipt.id} receipt={receipt} removable onRemove={() => removeReceipt(receipt.id)} />
                         ))}
                     </div>
                 </div>
@@ -344,16 +341,7 @@ function ReceiptUploader({ receipts, setForm }) {
     );
 }
 
-function CategorySelect({
-    categories,
-    selectedCategoryId,
-    inputValue,
-    onInputChange,
-    onSelect,
-    onCreateCategory,
-    createLoading = false,
-    createError = '',
-}) {
+function CategorySelect({ categories, selectedCategoryId, inputValue, onInputChange, onSelect, onCreateCategory, createLoading = false, createError = '' }) {
     const [open, setOpen] = useState(false);
     const [search, setSearch] = useState('');
     const wrapperRef = useRef(null);
@@ -368,16 +356,10 @@ function CategorySelect({
         const query = search.trim().toLowerCase();
         if (!query) return [];
 
-        return categories.filter((category) =>
-            [category.name, category.description]
-                .filter(Boolean)
-                .some((value) => String(value).toLowerCase().includes(query))
-        );
+        return categories.filter((category) => [category.name, category.description].filter(Boolean).some((value) => String(value).toLowerCase().includes(query)));
     }, [categories, search]);
     const trimmedSearch = search.trim();
-    const canCreateCategory =
-        trimmedSearch &&
-        !categories.some((category) => category.name?.trim().toLowerCase() === trimmedSearch.toLowerCase());
+    const canCreateCategory = trimmedSearch && !categories.some((category) => category.name?.trim().toLowerCase() === trimmedSearch.toLowerCase());
     const showDropdown = open && (filteredCategories.length > 0 || Boolean(createError));
 
     useEffect(() => {
@@ -459,8 +441,9 @@ function DetailRow({ label, value, fullWidth = false }) {
 }
 
 function ExpenseViewDrawer({ record, loading, onClose, onEdit }) {
-    const categoryLabel = record?.category_name || record?.title || '';
-    const hasTax = Boolean(record?.tax_name) || record?.tax_rate !== null && record?.tax_rate !== undefined && record?.tax_rate !== '';
+    const categoryLabel = record?.category_name || '';
+    const titleLabel = record?.title || '';
+    const hasTax = Boolean(record?.tax_name) || (record?.tax_rate !== null && record?.tax_rate !== undefined && record?.tax_rate !== '');
     const hasTaxAmount = record?.tax_amount !== null && record?.tax_amount !== undefined && Number(record.tax_amount) > 0;
     const taxDisplay = hasTax ? formatTaxLabel(record?.tax_name, record?.tax_rate) : '';
     const taxAmountDisplay = hasTaxAmount ? `${formatCurrency(record.tax_amount)} ( ${formatLabel(record?.amount_is || '')} )` : '';
@@ -487,7 +470,11 @@ function ExpenseViewDrawer({ record, loading, onClose, onEdit }) {
                                 Edit
                             </button>
                         </div>
-                        <button type="button" onClick={onClose} className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-red-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/30">
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-red-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/30"
+                        >
                             <X className="h-4 w-4" />
                         </button>
                     </div>
@@ -529,12 +516,26 @@ function ExpenseViewDrawer({ record, loading, onClose, onEdit }) {
                                             ) : null}
                                         </div>
 
-                                        {/* Category badge */}
-                                        {categoryLabel ? (
-                                            <div>
-                                                <span className="inline-block rounded-md bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
-                                                    {categoryLabel}
-                                                </span>
+                                        {/* Title and category */}
+                                        {titleLabel || categoryLabel ? (
+                                            <div className="grid gap-4 sm:grid-cols-2">
+                                                {titleLabel ? (
+                                                    <div>
+                                                        <div className="text-xs font-medium text-slate-400">Title</div>
+                                                        <div className="mt-1 text-sm font-semibold text-slate-800 dark:text-slate-100">{titleLabel}</div>
+                                                    </div>
+                                                ) : null}
+
+                                                {categoryLabel ? (
+                                                    <div>
+                                                        <div className="text-xs font-medium text-slate-400">Category</div>
+                                                        <div className="mt-1">
+                                                            <span className="inline-block rounded-md bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
+                                                                {categoryLabel}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                ) : null}
                                             </div>
                                         ) : null}
 
@@ -585,7 +586,6 @@ function ExpenseViewDrawer({ record, loading, onClose, onEdit }) {
                                                 </div>
                                             ) : null}
                                         </div>
-
                                     </div>
 
                                     {/* Right column - Receipt area */}
@@ -600,11 +600,7 @@ function ExpenseViewDrawer({ record, loading, onClose, onEdit }) {
                                                 </div>
                                                 <div className="grid gap-3">
                                                     {record.attachments.map((attachment) => (
-                                                        <ReceiptPreviewCard
-                                                            key={attachment.id}
-                                                            receipt={attachment}
-                                                            clickable
-                                                        />
+                                                        <ReceiptPreviewCard key={attachment.id} receipt={attachment} clickable />
                                                     ))}
                                                 </div>
                                             </div>
@@ -630,31 +626,14 @@ function ExpenseViewDrawer({ record, loading, onClose, onEdit }) {
     );
 }
 
-function ExpenseDrawer({
-    mode,
-    form,
-    setForm,
-    categories,
-    parties,
-    saving,
-    error,
-    onCancel,
-    onSave,
-    onSaveAndNew,
-    onQuickAddParty,
-    onCreateCategory,
-    categorySaving,
-    categoryError,
-}) {
+function ExpenseDrawer({ mode, form, setForm, categories, parties, saving, error, onCancel, onSave, onSaveAndNew, onQuickAddParty, onCreateCategory, categorySaving, categoryError }) {
     const selectedCategory = categories.find((category) => category.id === form.category_id) || null;
     const codeLabel = form.expense_type === 'services' ? 'SAC' : 'HSN';
     const filteredParties = useMemo(() => {
         const query = form.customer_name?.trim().toLowerCase();
         if (!query) return parties.slice(0, 6);
 
-        return parties
-            .filter((party) => party.name?.toLowerCase().includes(query))
-            .slice(0, 6);
+        return parties.filter((party) => party.name?.toLowerCase().includes(query)).slice(0, 6);
     }, [parties, form.customer_name]);
 
     const updateField = (name, value) => {
@@ -683,7 +662,11 @@ function ExpenseDrawer({
                             <h2 className="text-[28px] font-bold text-slate-900 dark:text-white">{mode === 'edit' ? 'Edit Expense' : 'Record Expense'}</h2>
                             <p className="mt-1 text-sm text-slate-500">Record taxable and non-billable business expenses.</p>
                         </div>
-                        <button type="button" onClick={onCancel} className="inline-flex h-11 w-11 items-center justify-center self-start rounded-2xl border border-slate-200 text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-900">
+                        <button
+                            type="button"
+                            onClick={onCancel}
+                            className="inline-flex h-11 w-11 items-center justify-center self-start rounded-2xl border border-slate-200 text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-900"
+                        >
                             <X className="h-5 w-5" />
                         </button>
                     </div>
@@ -694,110 +677,110 @@ function ExpenseDrawer({
                         <div className="grid gap-7 px-7 py-6 xl:grid-cols-[minmax(0,1fr)_300px]">
                             <div className="space-y-7">
                                 <div className="grid gap-y-4 md:grid-cols-[170px_minmax(0,1fr)] md:gap-x-8">
-                        <FieldLabel required>Date</FieldLabel>
-                        <input
-                            type="date"
-                            value={form.expense_date}
-                            max={today()}
-                            onChange={(event) => updateField('expense_date', event.target.value)}
-                            className="form-input h-11 rounded-xl text-sm"
-                        />
+                                    <FieldLabel required>Date</FieldLabel>
+                                    <input
+                                        type="date"
+                                        value={form.expense_date}
+                                        max={today()}
+                                        onChange={(event) => updateField('expense_date', event.target.value)}
+                                        className="form-input h-11 rounded-xl text-sm"
+                                    />
 
-                        <FieldLabel required>Category Name</FieldLabel>
-                        <div className="space-y-3">
-                            <CategorySelect
-                                categories={categories}
-                                selectedCategoryId={form.category_id}
-                                inputValue={form.category_name_input}
-                                onInputChange={(value) => updateField('category_name_input', value)}
-                                onSelect={(category) => {
-                                    if (!category) {
-                                        setForm((prev) => ({
-                                            ...prev,
-                                            category_id: '',
-                                        }));
-                                        return;
-                                    }
+                                    <FieldLabel required>Title</FieldLabel>
+                                    <input
+                                        type="text"
+                                        value={form.title}
+                                        onChange={(event) => updateField('title', event.target.value)}
+                                        className="form-input h-11 rounded-xl text-sm"
+                                        placeholder="e.g. Laptop purchase"
+                                    />
 
-                                    setForm((prev) => ({
-                                        ...prev,
-                                        category_id: category.id,
-                                        category_name_input: category.name || '',
-                                        expense_type: category.default_type || prev.expense_type,
-                                        title: category.name || prev.title,
-                                    }));
-                                }}
-                                onCreateCategory={onCreateCategory}
-                                createLoading={categorySaving}
-                                createError={categoryError}
-                            />
-                        </div>
+                                    <FieldLabel required>Category</FieldLabel>
+                                    <div className="space-y-3">
+                                        <CategorySelect
+                                            categories={categories}
+                                            selectedCategoryId={form.category_id}
+                                            inputValue={form.category_name_input}
+                                            onInputChange={(value) => updateField('category_name_input', value)}
+                                            onSelect={(category) => {
+                                                if (!category) {
+                                                    setForm((prev) => ({
+                                                        ...prev,
+                                                        category_id: '',
+                                                    }));
+                                                    return;
+                                                }
 
-                        <FieldLabel required>Amount</FieldLabel>
-                        <div className="grid grid-cols-[72px_minmax(0,1fr)] overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700">
-                            <select
-                                value={form.currency_code}
-                                onChange={(event) => updateField('currency_code', event.target.value)}
-                                className="border-0 border-r border-slate-200 bg-slate-50 px-3 text-sm font-medium dark:border-slate-700 dark:bg-slate-900"
-                            >
-                                <option value="INR">INR</option>
-                            </select>
-                            <input
-                                type="number"
-                                min="0"
-                                step="0.01"
-                                value={form.amount}
-                                onChange={(event) => updateField('amount', event.target.value)}
-                                className="form-input h-11 rounded-none border-0 text-sm"
-                                placeholder="0.00"
-                            />
-                        </div>
-                    </div>
+                                                setForm((prev) => ({
+                                                    ...prev,
+                                                    category_id: category.id,
+                                                    category_name_input: category.name || '',
+                                                    expense_type: category.default_type || prev.expense_type,
+                                                }));
+                                            }}
+                                            onCreateCategory={onCreateCategory}
+                                            createLoading={categorySaving}
+                                            createError={categoryError}
+                                        />
+                                    </div>
+
+                                    <FieldLabel required>Amount</FieldLabel>
+                                    <div className="grid grid-cols-[72px_minmax(0,1fr)] overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700">
+                                        <select
+                                            value={form.currency_code}
+                                            onChange={(event) => updateField('currency_code', event.target.value)}
+                                            className="border-0 border-r border-slate-200 bg-slate-50 px-3 text-sm font-medium dark:border-slate-700 dark:bg-slate-900"
+                                        >
+                                            <option value="INR">INR</option>
+                                        </select>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            step="0.01"
+                                            value={form.amount}
+                                            onChange={(event) => updateField('amount', event.target.value)}
+                                            className="form-input h-11 rounded-none border-0 text-sm"
+                                            placeholder="0.00"
+                                        />
+                                    </div>
+                                </div>
 
                                 <div className="border-t border-slate-200 pt-6 dark:border-slate-800">
                                     <div className="grid gap-y-4 md:grid-cols-[170px_minmax(0,1fr)] md:gap-x-8">
-                            <FieldLabel required>Expense Type</FieldLabel>
-                            <div className="flex flex-wrap gap-6 pt-1.5">
-                                <RadioCard checked={form.expense_type === 'goods'} onChange={() => updateField('expense_type', 'goods')} label="Goods" />
-                                <RadioCard checked={form.expense_type === 'services'} onChange={() => updateField('expense_type', 'services')} label="Services" />
-                            </div>
+                                        <FieldLabel required>Expense Type</FieldLabel>
+                                        <div className="flex flex-wrap gap-6 pt-1.5">
+                                            <RadioCard checked={form.expense_type === 'goods'} onChange={() => updateField('expense_type', 'goods')} label="Goods" />
+                                            <RadioCard checked={form.expense_type === 'services'} onChange={() => updateField('expense_type', 'services')} label="Services" />
+                                        </div>
 
-                            <FieldLabel>{codeLabel}</FieldLabel>
-                            <input
-                                type="text"
-                                value={form.code_value}
-                                onChange={(event) => updateField('code_value', event.target.value)}
-                                className="form-input h-11 rounded-xl text-sm"
-                                placeholder={codeLabel}
-                            />
+                                        <FieldLabel>{codeLabel}</FieldLabel>
+                                        <input
+                                            type="text"
+                                            value={form.code_value}
+                                            onChange={(event) => updateField('code_value', event.target.value)}
+                                            className="form-input h-11 rounded-xl text-sm"
+                                            placeholder={codeLabel}
+                                        />
 
-                            <FieldLabel required>GST</FieldLabel>
-                            <div className="flex flex-wrap gap-6 pt-1.5">
-                                <RadioCard
-                                    checked={hasGst}
-                                    onChange={() => handleGstTreatmentChange('with_gst')}
-                                    label="With GST"
-                                />
-                                <RadioCard
-                                    checked={form.gst_treatment === 'without_gst'}
-                                    onChange={() => handleGstTreatmentChange('without_gst')}
-                                    label="Without GST"
-                                />
-                            </div>
+                                        <FieldLabel required>GST</FieldLabel>
+                                        <div className="flex flex-wrap gap-6 pt-1.5">
+                                            <RadioCard checked={hasGst} onChange={() => handleGstTreatmentChange('with_gst')} label="With GST" />
+                                            <RadioCard checked={form.gst_treatment === 'without_gst'} onChange={() => handleGstTreatmentChange('without_gst')} label="Without GST" />
+                                        </div>
 
-                            {hasGst ? (
-                                <>
-                                    <FieldLabel>GST Number</FieldLabel>
-                                    <input
-                                        type="text"
-                                        value={form.gst_number}
-                                        onChange={(event) => updateField('gst_number', event.target.value.toUpperCase())}
-                                        className="form-input h-11 rounded-xl text-sm"
-                                        placeholder="Enter GST number"
-                                        maxLength={15}
-                                    />
+                                        {hasGst ? (
+                                            <>
+                                                <FieldLabel>GST Number</FieldLabel>
+                                                <input
+                                                    type="text"
+                                                    value={form.gst_number}
+                                                    onChange={(event) => updateField('gst_number', event.target.value.toUpperCase())}
+                                                    className="form-input h-11 rounded-xl text-sm"
+                                                    placeholder="Enter GST number"
+                                                    maxLength={15}
+                                                />
 
-                                    {/* <FieldLabel>Reverse Charge</FieldLabel>
+                                                {/* <FieldLabel>Reverse Charge</FieldLabel>
                                     <label className="inline-flex items-center gap-3 pt-2 text-[15px] text-slate-900 dark:text-white">
                                         <input
                                             type="checkbox"
@@ -808,97 +791,97 @@ function ExpenseDrawer({
                                         <span>This transaction is applicable for reverse charge</span>
                                     </label> */}
 
-                                    <FieldLabel>Tax</FieldLabel>
-                                    <select
-                                        value={form.tax_rate}
-                                        onChange={(event) => {
-                                            const nextValue = event.target.value;
-                                            const selectedTax = TAX_OPTIONS.find((option) => String(option.rate) === nextValue);
-                                            setForm((prev) => ({
-                                                ...prev,
-                                                tax_rate: nextValue,
-                                                tax_name: selectedTax ? selectedTax.label : '',
-                                            }));
-                                        }}
-                                        className="form-select h-11 rounded-xl text-sm"
-                                    >
-                                        <option value="">Select a Tax</option>
-                                        {TAX_OPTIONS.map((option) => (
-                                            <option key={option.rate} value={option.rate}>
-                                                {option.label}
-                                            </option>
-                                        ))}
-                                    </select>
-
-                                    <FieldLabel>Amount Is</FieldLabel>
-                                    <div className="flex flex-wrap gap-6 pt-1.5">
-                                        <RadioCard checked={form.amount_is === 'inclusive'} onChange={() => updateField('amount_is', 'inclusive')} label="Tax Inclusive" />
-                                        <RadioCard checked={form.amount_is === 'exclusive'} onChange={() => updateField('amount_is', 'exclusive')} label="Tax Exclusive" />
-                                    </div>
-                                </>
-                            ) : null}
-
-                            <FieldLabel required>Invoice#</FieldLabel>
-                            <input
-                                type="text"
-                                value={form.invoice_number}
-                                onChange={(event) => updateField('invoice_number', event.target.value)}
-                                className="form-input h-11 rounded-xl text-sm"
-                            />
-
-                            <FieldLabel>Notes</FieldLabel>
-                            <div>
-                                <textarea
-                                    value={form.notes}
-                                    onChange={(event) => updateField('notes', event.target.value)}
-                                    className="form-textarea min-h-[78px] rounded-xl text-sm"
-                                    maxLength={500}
-                                    placeholder="Max. 500 characters"
-                                />
-                                <div className="mt-1.5 text-right text-[11px] text-slate-400">{form.notes.length}/500</div>
-                            </div>
-
-                            <div className="md:col-span-2 h-px bg-slate-200 dark:bg-slate-800" />
-
-                            <FieldLabel>Customer Name</FieldLabel>
-                            <div className="grid grid-cols-[minmax(0,1fr)_56px] overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700">
-                                <div className="relative">
-                                    <input
-                                        type="text"
-                                        value={form.customer_name}
-                                        onChange={(event) =>
-                                            setForm((prev) => ({
-                                                ...prev,
-                                                customer_name: event.target.value,
-                                                party_id: null,
-                                            }))
-                                        }
-                                        className="form-input h-11 rounded-none border-0 text-sm"
-                                        placeholder="Select or add a customer"
-                                    />
-
-                                    {form.customer_name?.trim() && filteredParties.length ? (
-                                        <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-10 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-950">
-                                            {filteredParties.map((party) => (
-                                                <button
-                                                    key={party.id}
-                                                    type="button"
-                                                    onClick={() =>
+                                                <FieldLabel>Tax</FieldLabel>
+                                                <select
+                                                    value={form.tax_rate}
+                                                    onChange={(event) => {
+                                                        const nextValue = event.target.value;
+                                                        const selectedTax = TAX_OPTIONS.find((option) => String(option.rate) === nextValue);
                                                         setForm((prev) => ({
                                                             ...prev,
-                                                            customer_name: party.name,
-                                                            party_id: party.id,
+                                                            tax_rate: nextValue,
+                                                            tax_name: selectedTax ? selectedTax.label : '',
+                                                        }));
+                                                    }}
+                                                    className="form-select h-11 rounded-xl text-sm"
+                                                >
+                                                    <option value="">Select a Tax</option>
+                                                    {TAX_OPTIONS.map((option) => (
+                                                        <option key={option.rate} value={option.rate}>
+                                                            {option.label}
+                                                        </option>
+                                                    ))}
+                                                </select>
+
+                                                <FieldLabel>Amount Is</FieldLabel>
+                                                <div className="flex flex-wrap gap-6 pt-1.5">
+                                                    <RadioCard checked={form.amount_is === 'inclusive'} onChange={() => updateField('amount_is', 'inclusive')} label="Tax Inclusive" />
+                                                    <RadioCard checked={form.amount_is === 'exclusive'} onChange={() => updateField('amount_is', 'exclusive')} label="Tax Exclusive" />
+                                                </div>
+                                            </>
+                                        ) : null}
+
+                                        <FieldLabel required>Invoice#</FieldLabel>
+                                        <input
+                                            type="text"
+                                            value={form.invoice_number}
+                                            onChange={(event) => updateField('invoice_number', event.target.value)}
+                                            className="form-input h-11 rounded-xl text-sm"
+                                        />
+
+                                        <FieldLabel>Notes</FieldLabel>
+                                        <div>
+                                            <textarea
+                                                value={form.notes}
+                                                onChange={(event) => updateField('notes', event.target.value)}
+                                                className="form-textarea min-h-[78px] rounded-xl text-sm"
+                                                maxLength={500}
+                                                placeholder="Max. 500 characters"
+                                            />
+                                            <div className="mt-1.5 text-right text-[11px] text-slate-400">{form.notes.length}/500</div>
+                                        </div>
+
+                                        <div className="md:col-span-2 h-px bg-slate-200 dark:bg-slate-800" />
+
+                                        <FieldLabel>Customer Name</FieldLabel>
+                                        <div className="grid grid-cols-[minmax(0,1fr)_56px] overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700">
+                                            <div className="relative">
+                                                <input
+                                                    type="text"
+                                                    value={form.customer_name}
+                                                    onChange={(event) =>
+                                                        setForm((prev) => ({
+                                                            ...prev,
+                                                            customer_name: event.target.value,
+                                                            party_id: null,
                                                         }))
                                                     }
-                                                    className="block w-full px-4 py-3 text-left text-sm text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-900"
-                                                >
-                                                    {party.name}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    ) : null}
-                                </div>
-                                {/* <button
+                                                    className="form-input h-11 rounded-none border-0 text-sm"
+                                                    placeholder="Select or add a customer"
+                                                />
+
+                                                {form.customer_name?.trim() && filteredParties.length ? (
+                                                    <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-10 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-950">
+                                                        {filteredParties.map((party) => (
+                                                            <button
+                                                                key={party.id}
+                                                                type="button"
+                                                                onClick={() =>
+                                                                    setForm((prev) => ({
+                                                                        ...prev,
+                                                                        customer_name: party.name,
+                                                                        party_id: party.id,
+                                                                    }))
+                                                                }
+                                                                className="block w-full px-4 py-3 text-left text-sm text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-900"
+                                                            >
+                                                                {party.name}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                ) : null}
+                                            </div>
+                                            {/* <button
                                     type="button"
                                     onClick={() => onQuickAddParty(form.customer_name)}
                                     className="inline-flex items-center justify-center bg-primary text-white transition hover:bg-primary/90"
@@ -906,21 +889,16 @@ function ExpenseDrawer({
                                 >
                                     <Search className="h-5 w-5" />
                                 </button> */}
-                            </div>
+                                        </div>
                                     </div>
                                 </div>
-                        </div>
+                            </div>
                             <ReceiptUploader receipts={form.receipts} setForm={setForm} />
                         </div>
                     </div>
 
                     <div className="flex flex-wrap items-center gap-3 border-t border-slate-200 px-7 py-5 dark:border-slate-800">
-                        <button
-                            type="button"
-                            onClick={onSave}
-                            disabled={saving}
-                            className="btn btn-primary flex items-center gap-2 rounded-xl px-5 disabled:cursor-not-allowed disabled:opacity-60"
-                        >
+                        <button type="button" onClick={onSave} disabled={saving} className="btn btn-primary flex items-center gap-2 rounded-xl px-5 disabled:cursor-not-allowed disabled:opacity-60">
                             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                             Save
                         </button>
@@ -958,15 +936,7 @@ function ExpenseList({ records, search, setSearch, onCreate, onView, onEdit, onD
         if (!query) return records;
 
         return records.filter((record) =>
-            [
-                record.category_name,
-                record.invoice_number,
-                record.party_name,
-                record.notes,
-                record.title,
-            ]
-                .filter(Boolean)
-                .some((value) => String(value).toLowerCase().includes(query))
+            [record.category_name, record.invoice_number, record.party_name, record.notes, record.title].filter(Boolean).some((value) => String(value).toLowerCase().includes(query)),
         );
     }, [records, search]);
 
@@ -980,13 +950,7 @@ function ExpenseList({ records, search, setSearch, onCreate, onView, onEdit, onD
                 <div className="flex flex-wrap items-center gap-3">
                     <div className="relative">
                         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                        <input
-                            type="text"
-                            value={search}
-                            onChange={(event) => setSearch(event.target.value)}
-                            placeholder="Search expenses"
-                            className="form-input h-12 rounded-xl pl-10 md:w-[240px]"
-                        />
+                        <input type="text" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search expenses" className="form-input h-12 rounded-xl pl-10 md:w-[240px]" />
                     </div>
                     <button type="button" onClick={onCreate} className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-base font-medium text-white transition hover:bg-primary/90">
                         <Plus className="h-5 w-5" />
@@ -1016,15 +980,13 @@ function ExpenseList({ records, search, setSearch, onCreate, onView, onEdit, onD
                                 const status = record.party_name ? 'BILLABLE' : 'NON-BILLABLE';
 
                                 return (
-                                    <tr key={record.id} className="group bg-white text-[15px] text-slate-900 transition hover:bg-slate-50 dark:bg-slate-950 dark:text-slate-100 dark:hover:bg-slate-900">
-                                       
+                                    <tr
+                                        key={record.id}
+                                        className="group bg-white text-[15px] text-slate-900 transition hover:bg-slate-50 dark:bg-slate-950 dark:text-slate-100 dark:hover:bg-slate-900"
+                                    >
                                         <td className="whitespace-nowrap px-6 py-5">{formatDateForTable(record.expense_date)}</td>
                                         <td className="px-6 py-5">
-                                            <button
-                                                type="button"
-                                                onClick={() => onView(record)}
-                                                className="font-semibold text-primary transition hover:text-primary/80 hover:underline"
-                                            >
+                                            <button type="button" onClick={() => onView(record)} className="font-semibold text-primary transition hover:text-primary/80 hover:underline">
                                                 {record.category_name || record.title || 'Expense'}
                                             </button>
                                         </td>
@@ -1106,10 +1068,7 @@ export default function PersonalExpensePage() {
             setPageError('');
             const headers = await getAuthHeaders();
 
-            const [recordsResponse, metaResponse] = await Promise.all([
-                axios.get(`${API_URL}/api/personal-expenses`, { headers }),
-                axios.get(`${API_URL}/api/personal-expenses/meta`, { headers }),
-            ]);
+            const [recordsResponse, metaResponse] = await Promise.all([axios.get(`${API_URL}/api/personal-expenses`, { headers }), axios.get(`${API_URL}/api/personal-expenses/meta`, { headers })]);
 
             setRecords(Array.isArray(recordsResponse.data) ? recordsResponse.data : []);
             setMeta({
@@ -1137,10 +1096,7 @@ export default function PersonalExpensePage() {
         }
     }, [authLoading, currentUser, loadData]);
 
-    const totalSpend = useMemo(
-        () => records.reduce((sum, record) => sum + Number(record.total_amount || 0), 0),
-        [records]
-    );
+    const totalSpend = useMemo(() => records.reduce((sum, record) => sum + Number(record.total_amount || 0), 0), [records]);
 
     const thisMonthSpend = useMemo(() => {
         const monthKey = new Date().toISOString().slice(0, 7);
@@ -1230,7 +1186,8 @@ export default function PersonalExpensePage() {
 
         if (!form.expense_date) return 'Date is required.';
         if (form.expense_date > today()) return 'Date cannot be in the future.';
-        if (!form.category_id && !form.category_name_input.trim()) return 'Category name is required.';
+        if (!form.title.trim()) return 'Title is required.';
+        if (!form.category_id && !form.category_name_input.trim()) return 'Category is required.';
         if (!form.amount || Number(form.amount) <= 0) return 'Amount must be greater than zero.';
         if (!form.expense_type) return 'Expense type is required.';
         if (!form.gst_treatment) return 'GST treatment is required.';
@@ -1250,7 +1207,7 @@ export default function PersonalExpensePage() {
         return {
             expense_date: form.expense_date,
             category_id: form.category_id,
-            title: form.title || selectedCategory?.name || 'Expense',
+            title: form.title.trim() || selectedCategory?.name || 'Expense',
             currency_code: form.currency_code,
             amount: Number(form.amount),
             expense_type: form.expense_type,
@@ -1296,7 +1253,6 @@ export default function PersonalExpensePage() {
                         category_id: existingCategory.id,
                         category_name_input: existingCategory.name,
                         expense_type: existingCategory.default_type || prev.expense_type,
-                        title: existingCategory.name || prev.title,
                     }));
                 } else {
                     const createdCategory = await handleCreateCategory(typedCategoryName, { silent: true });
@@ -1391,7 +1347,7 @@ export default function PersonalExpensePage() {
                     name: partyName.trim(),
                     party_type: 'customer',
                 },
-                { headers }
+                { headers },
             );
 
             setMeta((prev) => ({
@@ -1422,7 +1378,7 @@ export default function PersonalExpensePage() {
                     description: null,
                     default_type: form.expense_type || 'goods',
                 },
-                { headers }
+                { headers },
             );
 
             const newCategory = response.data;
@@ -1435,7 +1391,6 @@ export default function PersonalExpensePage() {
                 category_id: newCategory.id,
                 category_name_input: newCategory.name || prev.category_name_input,
                 expense_type: newCategory.default_type || prev.expense_type,
-                title: newCategory.name || prev.title,
             }));
             if (!silent) {
                 toast.success('Category added');
@@ -1501,47 +1456,33 @@ export default function PersonalExpensePage() {
                     Loading expenses...
                 </div>
             ) : (
-                <ExpenseList
-                    records={records}
-                    search={search}
-                    setSearch={setSearch}
-                    onCreate={openCreate}
-                    onView={openView}
-                    onEdit={openEdit}
-                    onDelete={handleDelete}
-                />
+                <ExpenseList records={records} search={search} setSearch={setSearch} onCreate={openCreate} onView={openView} onEdit={openEdit} onDelete={handleDelete} />
             )}
 
-            {!loading && editorMode ? createPortal(
-                <ExpenseDrawer
-                    mode={editorMode}
-                    form={form}
-                    setForm={setForm}
-                    categories={meta.categories}
-                    parties={meta.parties}
-                    states={meta.states}
-                    saving={saving}
-                    error={formError}
-                    onCancel={resetEditor}
-                    onSave={() => submitExpense('close')}
-                    onSaveAndNew={() => submitExpense('new')}
-                    onQuickAddParty={handleQuickAddParty}
-                    onCreateCategory={handleCreateCategory}
-                    categorySaving={categorySaving}
-                    categoryError={categoryError}
-                />,
-                document.body
-            ) : null}
+            {!loading && editorMode
+                ? createPortal(
+                      <ExpenseDrawer
+                          mode={editorMode}
+                          form={form}
+                          setForm={setForm}
+                          categories={meta.categories}
+                          parties={meta.parties}
+                          states={meta.states}
+                          saving={saving}
+                          error={formError}
+                          onCancel={resetEditor}
+                          onSave={() => submitExpense('close')}
+                          onSaveAndNew={() => submitExpense('new')}
+                          onQuickAddParty={handleQuickAddParty}
+                          onCreateCategory={handleCreateCategory}
+                          categorySaving={categorySaving}
+                          categoryError={categoryError}
+                      />,
+                      document.body,
+                  )
+                : null}
 
-            {!loading && viewingId ? createPortal(
-                <ExpenseViewDrawer
-                    record={viewRecord}
-                    loading={viewLoading}
-                    onClose={closeView}
-                    onEdit={openEdit}
-                />,
-                document.body
-            ) : null}
+            {!loading && viewingId ? createPortal(<ExpenseViewDrawer record={viewRecord} loading={viewLoading} onClose={closeView} onEdit={openEdit} />, document.body) : null}
         </div>
     );
 }
