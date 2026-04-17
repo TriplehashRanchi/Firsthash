@@ -581,7 +581,7 @@ function ExpenseViewDrawer({ record, loading, onClose, onEdit }) {
 
                                             {record.party_name ? (
                                                 <div className="sm:col-span-2">
-                                                    <div className="text-xs font-medium text-slate-400">Customer Name</div>
+                                                    <div className="text-xs font-medium text-slate-400">Vender Name</div>
                                                     <div className="mt-1 text-sm font-medium text-slate-800 dark:text-slate-100">{record.party_name}</div>
                                                 </div>
                                             ) : null}
@@ -843,7 +843,7 @@ function ExpenseDrawer({ mode, form, setForm, categories, parties, saving, error
 
                                         <div className="md:col-span-2 h-px bg-slate-200 dark:bg-slate-800" />
 
-                                        <FieldLabel>Customer Name</FieldLabel>
+                                        <FieldLabel>Vendor Name</FieldLabel>
                                         <div className="grid grid-cols-[minmax(0,1fr)_56px] overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700">
                                             <div className="relative">
                                                 <input
@@ -857,7 +857,7 @@ function ExpenseDrawer({ mode, form, setForm, categories, parties, saving, error
                                                         }))
                                                     }
                                                     className="form-input h-11 rounded-none border-0 text-sm"
-                                                    placeholder="Select or add a customer"
+                                                    placeholder="vendor name"
                                                 />
 
                                                 {form.customer_name?.trim() && filteredParties.length ? (
@@ -966,7 +966,7 @@ function ExpenseList({ records, search, setSearch, onCreate, onView, onEdit, onD
                             <th className="px-6 py-4">Date</th>
                             <th className="px-6 py-4">Expense Account</th>
                             <th className="px-6 py-4">Reference#</th>
-                            <th className="px-6 py-4">Customer Name</th>
+                            <th className="px-6 py-4">Vendor Name</th>
                             {/* <th className="px-6 py-4">Status</th> */}
                             <th className="px-6 py-4 text-right">Amount</th>
                             <th className="w-[128px] px-6 py-4 text-right">
