@@ -368,8 +368,8 @@ export default function SubscribePage() {
                 </button>
               </div>
 
-              {/* <div className="mt-6 space-y-5">
-                <div>
+              <div className="mt-6 space-y-5">
+                {/* <div>
                   <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-stone-500">
                     Coupon code
                   </label>
