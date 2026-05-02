@@ -368,7 +368,7 @@ export default function SubscribePage() {
                 </button>
               </div>
 
-              <div className="mt-6 space-y-5">
+              {/* <div className="mt-6 space-y-5">
                 <div>
                   <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-stone-500">
                     Coupon code
@@ -397,7 +397,7 @@ export default function SubscribePage() {
                         : `₹${couponDetails.discount_value} off applied`}
                     </p>
                   )}
-                </div>
+                </div> */}
 
                 <div className="rounded-[22px] border border-stone-200 bg-stone-50 p-5">
                   <div className="flex items-center justify-between text-sm text-stone-600">
