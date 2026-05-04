@@ -24,6 +24,30 @@ const toSeconds = (timeValue) => {
   return (hours * 3600) + (minutes * 60);
 };
 
+const getCurrentLocation = () => new Promise((resolve, reject) => {
+  if (!navigator.geolocation) {
+    reject(new Error('Location is not supported on this device.'));
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      resolve({
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+      });
+    },
+    () => {
+      reject(new Error('Please allow location permission to mark attendance.'));
+    },
+    {
+      enableHighAccuracy: true,
+      timeout: 15000,
+      maximumAge: 0,
+    }
+  );
+});
+
 export default function SelfManualAttendanceCardBase({
   title,
   subtitle,
@@ -81,9 +105,17 @@ export default function SelfManualAttendanceCardBase({
     setSubmittingType(markType);
     try {
       const token = await currentUser.getIdToken();
+      const location = markType === 'in_time' ? await getCurrentLocation() : null;
       const response = await axios.post(
         `${API_URL}/api/self/attendance/manual`,
-        { mark_type: markType, time: selectedTime },
+        {
+          mark_type: markType,
+          time: selectedTime,
+          ...(location ? {
+            latitude: location.latitude,
+            longitude: location.longitude,
+          } : {}),
+        },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 

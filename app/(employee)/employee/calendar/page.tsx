@@ -1,8 +1,7 @@
 'use client';
 
-import IconX from '@/components/icon/icon-x';
 import { Transition, Dialog, DialogBackdrop, TransitionChild, DialogPanel } from '@headlessui/react';
-import React, { Fragment, useState, useEffect, useCallback } from 'react';
+import React, { Fragment, useState, useEffect, useCallback, useMemo } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
@@ -10,10 +9,30 @@ import timeGridPlugin from '@fullcalendar/timegrid';
 import axios from 'axios';
 import { getAuth } from 'firebase/auth';
 // ✅ 1. IMPORT THE NEW ICON
-import { Loader2, User, Calendar, Eye, ChevronsRight } from 'lucide-react';
+import { Loader2, User, Eye, ChevronsRight, X } from 'lucide-react';
 
 // --- API Configuration ---
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+
+const parseScheduleDate = (value: any) => {
+    if (!value) return null;
+    if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
+
+    const dateValue = String(value);
+    const dateOnlyMatch = dateValue.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (dateOnlyMatch) {
+        const [, year, month, day] = dateOnlyMatch;
+        return new Date(Number(year), Number(month) - 1, Number(day));
+    }
+
+    const parsed = new Date(dateValue);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
+const formatScheduleDate = (value: any, options: Intl.DateTimeFormatOptions) => {
+    const date = parseScheduleDate(value);
+    return date ? date.toLocaleDateString('en-GB', options) : '—';
+};
 
 // --- Authentication Helper ---
 const getAuthHeaders = async () => {
@@ -47,21 +66,28 @@ const ComponentsAppsCalendar = () => {
             }
 
             const calendarEvents = response.data.map((project: any) => {
-                if (!project || !project.id || !project.minDate) return null;
+                const scheduleDate = project?.nextDate || project?.minDate;
+                const scheduleDateObject = parseScheduleDate(scheduleDate);
+                const maxDateObject = parseScheduleDate(project?.maxDate);
+
+                if (!project || !project.id || !scheduleDateObject) return null;
                 return {
                     id: project.id,
                     title: project.name,
-                    start: project.minDate,
-                    end: project.maxDate,
+                    start: scheduleDate,
+                    end: maxDateObject && maxDateObject >= scheduleDateObject ? project.maxDate : scheduleDate,
                     className: 'primary',
                     extendedProps: {
                         projectName: project.name,
                         clientName: project.clientName,
                         status: project.status,
-                        shootCount: project.shoots,
-                        fullDate: new Date(project.minDate).toLocaleString('en-US', {
-                            dateStyle: 'full',
-                            timeStyle: 'short',
+                        shootCount: project.assignedShoots || project.shoots,
+                        upcomingDate: project.nextDate,
+                        fullDate: formatScheduleDate(scheduleDate, {
+                            weekday: 'long',
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
                         }),
                     },
                 };
@@ -118,6 +144,21 @@ const ComponentsAppsCalendar = () => {
         }
     };
 
+    const upcomingEvents = useMemo(() => {
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+        return events
+            .filter((event) => {
+                const upcomingDate = parseScheduleDate(event.extendedProps?.upcomingDate);
+                return upcomingDate ? upcomingDate >= today : false;
+            })
+            .sort((a, b) => {
+                const aDate = parseScheduleDate(a.extendedProps?.upcomingDate)?.getTime() || 0;
+                const bDate = parseScheduleDate(b.extendedProps?.upcomingDate)?.getTime() || 0;
+                return aDate - bDate;
+            });
+    }, [events]);
 
     return (
         <div>
@@ -165,7 +206,7 @@ const ComponentsAppsCalendar = () => {
                     <div className="panel lg:w-2/5 xl:w-1/3 mt-6 lg:mt-0">
                         <h2 className="text-lg font-semibold mb-4 border-b pb-2">Upcoming Projects List</h2>
                         <div className="overflow-y-auto h-[500px] lg:h-full">
-                            {events.length > 0 ? (
+                            {upcomingEvents.length > 0 ? (
                                 <table className="w-full text-sm">
                                     <thead>
                                         <tr className="text-left text-gray-500 dark:text-gray-200">
@@ -175,14 +216,14 @@ const ComponentsAppsCalendar = () => {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {events.map((event) => (
+                                        {upcomingEvents.map((event) => (
                                             <tr key={event.id} className="border-t hover:bg-gray-50 dark:hover:bg-gray-700">
                                                 <td className="p-2">
                                                     <div className="font-semibold">{event.title}</div>
                                                     <div className="text-xs text-gray-500 dark:text-gray-400">Client: {event.extendedProps.clientName}</div>
                                                 </td>
                                                 <td className="p-2 text-xs">
-                                                    {new Date(event.start).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
+                                                    {formatScheduleDate(event.extendedProps.upcomingDate, { day: '2-digit', month: 'short' })}
                                                 </td>
                                                 <td className="p-2">
                                                     <button 
@@ -199,7 +240,7 @@ const ComponentsAppsCalendar = () => {
                                 </table>
                             ) : (
                                 <div className="flex items-center justify-center h-full text-gray-500">
-                                    No projects assigned.
+                                    No upcoming projects assigned.
                                 </div>
                             )}
                         </div>
@@ -207,54 +248,67 @@ const ComponentsAppsCalendar = () => {
                 </div>
             )}
 
-            {/* View Details Modal (Unchanged) */}
+            {/* View Details Drawer */}
             <Transition appear show={isViewModalOpen} as={Fragment}>
-                <Dialog as="div" onClose={() => setIsViewModalOpen(false)} className="relative z-50">
+                <Dialog as="div" onClose={() => setIsViewModalOpen(false)} className="relative z-[5000]">
                     <TransitionChild as={Fragment} enter="duration-300 ease-out" enterFrom="opacity-0" enterTo="opacity-100" leave="duration-200 ease-in" leaveFrom="opacity-100" leaveTo="opacity-0">
-                        <DialogBackdrop className="fixed inset-0 bg-[black]/60" />
+                        <DialogBackdrop className="fixed inset-0 z-[4990] bg-[black]/60 backdrop-blur-sm" />
                     </TransitionChild>
-                    <div className="fixed inset-0 overflow-y-auto">
-                        <div className="flex min-h-full items-center justify-center px-4 py-8">
-                            <TransitionChild as={Fragment} enter="duration-300 ease-out" enterFrom="opacity-0 scale-95" enterTo="opacity-100 scale-100" leave="duration-200 ease-in" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-95">
-                                <DialogPanel className="panel w-full max-w-lg overflow-hidden rounded-lg border-0 p-0 text-black dark:text-white-dark">
-                                    <button type="button" className="absolute top-4 text-gray-400 outline-none hover:text-gray-800 ltr:right-4 rtl:left-4" onClick={() => setIsViewModalOpen(false)}>
-                                        <IconX />
-                                    </button>
-                                    <div className="bg-[#fbfbfb] py-3 text-lg font-medium ltr:pl-5 ltr:pr-[50px] rtl:pl-[50px] rtl:pr-5 dark:bg-[#121c2c]">
-                                        Project Details
+                    <div className="fixed inset-0 z-[5000] flex justify-end">
+                        <TransitionChild as={Fragment} enter="transform transition ease-in-out duration-300" enterFrom="translate-x-full" enterTo="translate-x-0" leave="transform transition ease-in-out duration-300" leaveFrom="translate-x-0" leaveTo="translate-x-full">
+                            <DialogPanel className="flex h-full w-full max-w-xl flex-col overflow-hidden bg-white text-black shadow-2xl dark:bg-gray-900 dark:text-white-dark">
+                                <div className="flex items-center justify-between border-b border-gray-100 bg-white px-6 py-5 dark:border-gray-800 dark:bg-gray-900">
+                                    <div>
+                                        <p className="text-xs font-bold uppercase tracking-widest text-primary">Schedule</p>
+                                        <h3 className="mt-1 text-xl font-bold text-gray-900 dark:text-gray-100">Project Details</h3>
                                     </div>
+                                    <button
+                                        type="button"
+                                        className="rounded-full p-2 text-gray-400 outline-none transition hover:bg-gray-100 hover:text-gray-800 dark:hover:bg-gray-800 dark:hover:text-gray-100"
+                                        onClick={() => setIsViewModalOpen(false)}
+                                    >
+                                        <X className="h-5 w-5" />
+                                    </button>
+                                </div>
+                                <div className="flex-1 overflow-y-auto p-6">
                                     {viewEvent && (
-                                        <div className="p-5 space-y-4">
-                                            <h3 className="text-xl font-semibold">{viewEvent.extendedProps.projectName}</h3>
+                                        <div className="space-y-6">
+                                            <div className="rounded-2xl border border-gray-100 bg-gray-50 p-5 dark:border-gray-800 dark:bg-gray-950/60">
+                                                <p className="text-xs font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">Project</p>
+                                                <h3 className="mt-2 text-2xl font-black tracking-tight text-gray-900 dark:text-gray-100">{viewEvent.extendedProps.projectName}</h3>
+                                            </div>
                                             
-                                            <div className="flex items-start space-x-3 text-gray-700">
-                                                <User className="w-5 h-5 mt-1 text-gray-500 flex-shrink-0" />
+                                            <div className="flex items-start gap-4 rounded-2xl border border-gray-100 bg-white p-4 text-gray-700 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-200">
+                                                <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-gray-50 dark:bg-gray-800">
+                                                    <User className="h-5 w-5 text-gray-500" />
+                                                </div>
                                                 <div>
-                                                    <p className="font-semibold">Client</p>
-                                                    <p>{viewEvent.extendedProps.clientName}</p>
+                                                    <p className="text-xs font-bold uppercase tracking-widest text-gray-400">Client</p>
+                                                    <p className="mt-1 font-semibold">{viewEvent.extendedProps.clientName || '—'}</p>
                                                 </div>
                                             </div>
                                             
-                                            <div className="border-t pt-4">
-                                                <p className="font-semibold">Project Start Date</p>
-                                                <p className="text-primary">{viewEvent.extendedProps.fullDate}</p>
-                                            </div>
-                                            
-                                            <div className="border-t pt-4">
-                                                <p className="font-semibold">Total Shoots in Project</p>
-                                                <p className="font-bold text-lg text-info">{viewEvent.extendedProps.shootCount}</p>
+                                            <div className="grid gap-3 sm:grid-cols-2">
+                                                <div className="rounded-2xl border border-gray-100 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
+                                                    <p className="text-xs font-bold uppercase tracking-widest text-gray-400">Project Start Date</p>
+                                                    <p className="mt-2 font-semibold text-primary">{viewEvent.extendedProps.fullDate}</p>
+                                                </div>
+                                                <div className="rounded-2xl border border-gray-100 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
+                                                    <p className="text-xs font-bold uppercase tracking-widest text-gray-400">Total Shoots</p>
+                                                    <p className="mt-2 text-2xl font-black text-info">{viewEvent.extendedProps.shootCount}</p>
+                                                </div>
                                             </div>
 
-                                            <div className="!mt-8 flex items-center justify-end">
-                                                <button type="button" className="btn btn-outline-danger" onClick={() => setIsViewModalOpen(false)}>
+                                            <div className="pt-4">
+                                                <button type="button" className="btn btn-outline-danger w-full" onClick={() => setIsViewModalOpen(false)}>
                                                     Close
                                                 </button>
                                             </div>
                                         </div>
                                     )}
-                                </DialogPanel>
-                            </TransitionChild>
-                        </div>
+                                </div>
+                            </DialogPanel>
+                        </TransitionChild>
                     </div>
                 </Dialog>
             </Transition>

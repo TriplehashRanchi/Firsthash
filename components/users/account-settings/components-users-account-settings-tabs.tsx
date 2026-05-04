@@ -10,6 +10,7 @@ import IconGithub from '@/components/icon/icon-github';
 import IconHome from '@/components/icon/icon-home';
 import IconLinkedin from '@/components/icon/icon-linkedin';
 import IconTwitter from '@/components/icon/icon-twitter';
+import { LocateFixed, MapPin } from 'lucide-react';
 
 // Define TypeScript interfaces for your data
 interface AdminData {
@@ -38,7 +39,49 @@ interface CompanyData {
     owner_admin_uid?: string;
 }
 
+interface CompanyLocationData {
+    id?: string;
+    location_name: string;
+    address: string;
+    latitude: string;
+    longitude: string;
+    radius_meters: string;
+}
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+
+const getCurrentBrowserLocation = () => new Promise<GeolocationPosition>((resolve, reject) => {
+    if (!navigator.geolocation) {
+        reject(new Error('Location is not supported on this device.'));
+        return;
+    }
+
+    navigator.geolocation.getCurrentPosition(resolve, reject, {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 0,
+    });
+});
+
+const reverseGeocode = async (latitude: number, longitude: number) => {
+    try {
+        const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`);
+        if (!response.ok) return '';
+        const data = await response.json();
+        return data?.display_name || '';
+    } catch (error) {
+        console.warn('Reverse geocoding failed:', error);
+        return '';
+    }
+};
+
+const emptyOfficeLocation = (): CompanyLocationData => ({
+    location_name: 'Office',
+    address: '',
+    latitude: '',
+    longitude: '',
+    radius_meters: '1000',
+});
 
 const ComponentsUsersAccountSettingsTabs = () => {
     const [tabs, setTabs] = useState<string>('home');
@@ -51,6 +94,9 @@ const ComponentsUsersAccountSettingsTabs = () => {
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
     const [isUploading, setIsUploading] = useState<boolean>(false);
+    const [officeLocation, setOfficeLocation] = useState<CompanyLocationData>(emptyOfficeLocation());
+    const [isLocationSaving, setIsLocationSaving] = useState<boolean>(false);
+    const [isDetectingLocation, setIsDetectingLocation] = useState<boolean>(false);
 
     // --- Auth Listener and Secure Request Helper ---
     useEffect(() => {
@@ -86,12 +132,22 @@ const ComponentsUsersAccountSettingsTabs = () => {
             setLoading(true);
             setError(null);
             try {
-                const [adminRes, companyRes] = await Promise.all([
+                const [adminRes, companyRes, locationRes] = await Promise.all([
                     axios.get(`${API_URL}/api/admins/profile`, await withAuth()),
-                    axios.get(`${API_URL}/api/company/by-uid/${firebase_uid}`, await withAuth())
+                    axios.get(`${API_URL}/api/company/by-uid/${firebase_uid}`, await withAuth()),
+                    axios.get(`${API_URL}/api/company/location/active`, await withAuth())
                 ]);
                 setAdminData(adminRes.data);
                 setCompanyData(companyRes.data);
+                const location = locationRes.data?.location;
+                setOfficeLocation(location ? {
+                    id: location.id,
+                    location_name: location.location_name || 'Office',
+                    address: location.address || '',
+                    latitude: location.latitude != null ? String(location.latitude) : '',
+                    longitude: location.longitude != null ? String(location.longitude) : '',
+                    radius_meters: location.radius_meters != null ? String(location.radius_meters) : '1000',
+                } : emptyOfficeLocation());
             } catch (err: any) {
                  setError('Failed to fetch profile data. Please refresh the page.');
                  console.error(err);
@@ -144,6 +200,64 @@ const ComponentsUsersAccountSettingsTabs = () => {
     const handleCompanyInputChange = (e: ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         setCompanyData((prev) => ({ ...prev, [name]: value }));
+    };
+
+    const handleOfficeLocationChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        const { name, value } = e.target;
+        setOfficeLocation((prev) => ({ ...prev, [name]: value }));
+    };
+
+    const handleUseCurrentLocation = async () => {
+        setIsDetectingLocation(true);
+        setError(null);
+        try {
+            const position = await getCurrentBrowserLocation();
+            const latitude = position.coords.latitude;
+            const longitude = position.coords.longitude;
+            const address = await reverseGeocode(latitude, longitude);
+
+            setOfficeLocation((prev) => ({
+                ...prev,
+                latitude: latitude.toFixed(8),
+                longitude: longitude.toFixed(8),
+                address: address || prev.address,
+            }));
+        } catch (err: any) {
+            setError(err?.message || 'Please allow location permission to use current location.');
+        } finally {
+            setIsDetectingLocation(false);
+        }
+    };
+
+    const handleOfficeLocationSave = async () => {
+        setIsLocationSaving(true);
+        setError(null);
+        try {
+            const payload = {
+                id: officeLocation.id,
+                location_name: officeLocation.location_name || 'Office',
+                address: officeLocation.address,
+                latitude: Number(officeLocation.latitude),
+                longitude: Number(officeLocation.longitude),
+                radius_meters: Number(officeLocation.radius_meters || 1000),
+            };
+
+            const res = await axios.put(`${API_URL}/api/company/location/active`, payload, await withAuth());
+            const location = res.data?.location;
+            setOfficeLocation({
+                id: location.id,
+                location_name: location.location_name || 'Office',
+                address: location.address || '',
+                latitude: String(location.latitude),
+                longitude: String(location.longitude),
+                radius_meters: String(location.radius_meters || 1000),
+            });
+            alert('Office attendance location saved successfully!');
+        } catch (err: any) {
+            setError(err.response?.data?.error || 'Failed to save office attendance location.');
+        } finally {
+            setIsLocationSaving(false);
+        }
     };
 
     const handleLogoChange = async (e: ChangeEvent<HTMLInputElement>) => {
@@ -307,6 +421,59 @@ const ComponentsUsersAccountSettingsTabs = () => {
                                                 </div>
                                             </div>
                                         </div>
+                                    </div>
+                                </div>
+                                <div className="panel lg:col-span-2">
+                                    <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                                        <div>
+                                            <h5 className="text-lg font-semibold">Office Attendance Location</h5>
+                                            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">This active office location is used to decide if employee and manager attendance is inside the allowed radius.</p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            className="btn btn-outline-primary inline-flex items-center gap-2"
+                                            onClick={handleUseCurrentLocation}
+                                            disabled={isDetectingLocation || isLocationSaving}
+                                        >
+                                            <LocateFixed className="h-4 w-4" />
+                                            {isDetectingLocation ? 'Detecting...' : 'Use Current Location'}
+                                        </button>
+                                    </div>
+                                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                        <div>
+                                            <label htmlFor="office_location_name">Location Name</label>
+                                            <input id="office_location_name" name="location_name" type="text" className="form-input" value={officeLocation.location_name} onChange={handleOfficeLocationChange} />
+                                        </div>
+                                        <div>
+                                            <label htmlFor="office_radius_meters">Allowed Radius (meters)</label>
+                                            <input id="office_radius_meters" name="radius_meters" type="number" min="1" className="form-input" value={officeLocation.radius_meters} onChange={handleOfficeLocationChange} />
+                                        </div>
+                                        <div>
+                                            <label htmlFor="office_latitude">Latitude</label>
+                                            <input id="office_latitude" name="latitude" type="number" step="0.00000001" className="form-input" value={officeLocation.latitude} onChange={handleOfficeLocationChange} />
+                                        </div>
+                                        <div>
+                                            <label htmlFor="office_longitude">Longitude</label>
+                                            <input id="office_longitude" name="longitude" type="number" step="0.00000001" className="form-input" value={officeLocation.longitude} onChange={handleOfficeLocationChange} />
+                                        </div>
+                                        <div className="md:col-span-2">
+                                            <label htmlFor="office_address">Address</label>
+                                            <textarea id="office_address" name="address" rows={3} className="form-textarea" value={officeLocation.address} onChange={handleOfficeLocationChange} />
+                                        </div>
+                                    </div>
+                                    <div className="mt-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                                        <div className="inline-flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                                            <MapPin className="h-4 w-4" />
+                                            {officeLocation.latitude && officeLocation.longitude ? `${officeLocation.latitude}, ${officeLocation.longitude}` : 'No office coordinates saved yet'}
+                                        </div>
+                                        <button
+                                            type="button"
+                                            className="btn btn-primary"
+                                            onClick={handleOfficeLocationSave}
+                                            disabled={isLocationSaving || isDetectingLocation}
+                                        >
+                                            {isLocationSaving ? 'Saving Location...' : 'Save Attendance Location'}
+                                        </button>
                                     </div>
                                 </div>
                             </div>

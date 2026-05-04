@@ -1,25 +1,27 @@
 // app/attendance/page.jsx
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { getAuth } from 'firebase/auth';
 import axios from 'axios';
 // import toast from 'react-hot-toast';
 import toast, { Toaster } from 'react-hot-toast';
 import MemberTooltip from '@/components/common/MemberTooltip';
-import { Clock } from 'lucide-react';
+import { Clock, MapPin } from 'lucide-react';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
 // --- Reusable UI Components ---
 
 const Toast = ({ message, type, onClose }) => {
-    if (!message) return null;
     useEffect(() => {
+        if (!message) return undefined;
         const timer = setTimeout(onClose, 3000);
         return () => clearTimeout(timer);
-    }, [onClose]);
+    }, [message, onClose]);
+
+    if (!message) return null;
     return <div className={`fixed top-5 right-5 p-4 rounded-md shadow-lg text-white z-50 ${type === 'success' ? 'bg-green-600' : 'bg-red-600'}`}>{message}</div>;
 };
 
@@ -180,19 +182,51 @@ const toLocalYYYYMMDD = (dateInput) => {
     return `${year}-${month}-${day}`;
 };
 
+const AttendanceLocation = ({ record }) => {
+    if (!record?.in_time) {
+        return <span className="text-sm text-gray-400">Not marked</span>;
+    }
+
+    if (record.latitude == null || record.longitude == null) {
+        return <span className="text-sm text-gray-400">Location not captured</span>;
+    }
+
+    const officeName = record.office_location_name || 'Office';
+    const distance = record.distance_from_office_meters != null ? Number(record.distance_from_office_meters) : null;
+    const isOutside = record.location_status === 'outside_radius';
+    const mapUrl = `https://www.google.com/maps?q=${record.latitude},${record.longitude}`;
+
+    return (
+        <div className="space-y-1 text-sm">
+            <div className="flex items-center gap-2">
+                <MapPin className={`h-4 w-4 ${isOutside ? 'text-amber-500' : 'text-green-600'}`} />
+                <span className="font-semibold text-gray-800 dark:text-gray-100">
+                    {isOutside ? `Outside ${officeName}` : officeName}
+                </span>
+            </div>
+            <div className={`text-xs font-medium ${isOutside ? 'text-amber-600' : 'text-green-600'}`}>
+                {isOutside ? 'Outside radius' : 'Inside radius'}
+                {distance !== null ? ` · ${Math.round(distance)} m` : ''}
+            </div>
+            <a href={mapUrl} target="_blank" rel="noreferrer" className="block text-xs text-blue-600 hover:underline dark:text-blue-400">
+                {Number(record.latitude).toFixed(6)}, {Number(record.longitude).toFixed(6)}
+            </a>
+        </div>
+    );
+};
+
 // --- Main Page Component ---
 
 export default function AttendancePage() {
     const [members, setMembers] = useState([]);
     const [attendance, setAttendance] = useState({});
     const [loading, setLoading] = useState(true);
-    const [toast, setToast] = useState({ message: '', type: '' });
     const [modalMember, setModalMember] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
     const [toastMsg, setToastMsg] = useState({ message: '', type: '' });
 
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         setLoading(true);
 
         // 1️⃣ Ensure admin is logged in
@@ -239,11 +273,11 @@ export default function AttendancePage() {
             );
             // reduce attendance into a date-indexed object
             const attendanceByDate = attendanceRes.data.reduce((acc, rec) => {
-                const { firebase_uid, a_date, a_status, in_time, out_time } = rec;
+                const { firebase_uid, a_date, a_status, in_time, out_time, latitude, longitude, distance_from_office_meters, location_status, office_location_name, office_location_address } = rec;
                 const dateKey = toLocalYYYYMMDD(a_date);
 
                 acc[firebase_uid] = acc[firebase_uid] || {};
-                acc[firebase_uid][dateKey] = { a_status, in_time, out_time };
+                acc[firebase_uid][dateKey] = { a_status, in_time, out_time, latitude, longitude, distance_from_office_meters, location_status, office_location_name, office_location_address };
                 return acc;
             }, {});
 
@@ -254,11 +288,11 @@ export default function AttendancePage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
     useEffect(() => {
         fetchData();
-    }, []);
+    }, [fetchData]);
 
     // ===== FIX #3: USE THE HELPER FUNCTION FOR LOOKUP =====
     const processedMembers = useMemo(() => {
@@ -280,7 +314,7 @@ export default function AttendancePage() {
 
     const handleSaveSuccess = () => {
         setModalMember(null);
-        setToast({ message: 'Attendance saved successfully!', type: 'success' });
+        setToastMsg({ message: 'Attendance saved successfully!', type: 'success' });
         fetchData();
     };
 
@@ -347,7 +381,8 @@ export default function AttendancePage() {
                     <thead className="bg-gray-200 border-b">
                         <tr>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Member</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Today's Status</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Today&apos;s Status</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Clock-in Location</th>
                             <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Actions</th>
                         </tr>
                     </thead>
@@ -366,6 +401,9 @@ export default function AttendancePage() {
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap">
                                     <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${member.statusColor}`}>{member.status}</span>
+                                </td>
+                                <td className="px-6 py-4">
+                                    <AttendanceLocation record={member.todayRecord} />
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                                     <div className="flex items-center justify-center space-x-5">

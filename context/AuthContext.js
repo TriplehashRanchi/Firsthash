@@ -9,6 +9,69 @@ import toast from 'react-hot-toast';
 const AuthContext = createContext();
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
+const getCurrentBrowserLocation = () => new Promise((resolve, reject) => {
+    if (!navigator.geolocation) {
+        reject(new Error('Location is not supported on this device.'));
+        return;
+    }
+
+    navigator.geolocation.getCurrentPosition(resolve, reject, {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 0,
+    });
+});
+
+const reverseGeocode = async (latitude, longitude) => {
+    try {
+        const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`);
+        if (!response.ok) return '';
+        const data = await response.json();
+        return data?.display_name || '';
+    } catch (err) {
+        console.warn('Reverse geocoding failed:', err);
+        return '';
+    }
+};
+
+const maybeCaptureAdminOfficeLocation = async () => {
+    try {
+        const user = auth.currentUser;
+        if (!user) return;
+
+        const token = await user.getIdToken();
+        const config = { headers: { Authorization: `Bearer ${token}` }, validateStatus: () => true };
+        const existingLocation = await axios.get(`${API_URL}/api/company/location/active`, config);
+
+        if (existingLocation.status === 200 && existingLocation.data?.location?.id) {
+            return;
+        }
+
+        const position = await getCurrentBrowserLocation();
+        const latitude = position.coords.latitude;
+        const longitude = position.coords.longitude;
+        const address = await reverseGeocode(latitude, longitude);
+
+        await axios.put(
+            `${API_URL}/api/company/location/active`,
+            {
+                location_name: 'Office',
+                address,
+                latitude,
+                longitude,
+                radius_meters: 1000,
+            },
+            { headers: { Authorization: `Bearer ${token}` } }
+        );
+    } catch (err) {
+        if (err?.code === 1) {
+            toast.error('Please allow location permission to set your office attendance location.');
+        } else {
+            console.warn('Auto office location capture skipped:', err);
+        }
+    }
+};
+
 export const AuthProvider = ({ children }) => {
     const [currentUser, setCurrentUser] = useState(null);
     const [company, setCompany] = useState(null);
@@ -35,6 +98,7 @@ export const AuthProvider = ({ children }) => {
                 const res = await axios.get(`${API_URL}/api/company/by-uid/${firebase_uid}`, { validateStatus: () => true });
                 if (res.status === 200) {
                     setCompany(res.data);
+                    maybeCaptureAdminOfficeLocation();
                 } else {
                     console.warn('Admin company fetch failed:', res.status, res.data);
                     setCompany(null);

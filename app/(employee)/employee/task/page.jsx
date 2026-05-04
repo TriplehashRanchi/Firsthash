@@ -4,7 +4,8 @@
 import React, { useEffect, useMemo, useState, useCallback, Fragment } from 'react';
 import axios from 'axios';
 import { getAuth } from 'firebase/auth';
-import { Eye, X, Loader2, CalendarDays, ChevronDown, ClipboardEdit, PlayCircle, FolderKanban, Tag, Mic, Circle, CheckCircle2, Info } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { Eye, X, Loader2, CalendarDays, ChevronDown, ClipboardEdit, PlayCircle, FolderKanban, Tag, Mic, Circle, CheckCircle2, Info, Phone, MapPin, UserRound, Search, LayoutGrid, Table2 } from 'lucide-react';
 import Link from 'next/link';
 import toast, { Toaster } from 'react-hot-toast';
 
@@ -47,6 +48,11 @@ const formatDate = (d) => {
     }
 };
 
+const formatTime = (time) => {
+    if (!time) return '';
+    return String(time).slice(0, 5);
+};
+
 const statusLabel = (s) => {
     if (!s) return 'To Do';
     return String(s)
@@ -75,11 +81,14 @@ const Loading = ({ text = 'Loading...' }) => (
 
 const ErrorBox = ({ msg }) => <div className="w-full rounded-lg border border-rose-200 bg-rose-50 text-rose-800 px-4 py-3 text-sm">{msg}</div>;
 
-const Drawer = ({ open, onClose, children, title }) => (
-    <>
-        <div className={`fixed inset-0 bg-black/20  transition-opacity ${open ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} onClick={onClose} />
+const Drawer = ({ open, onClose, children, title }) => {
+    if (typeof document === 'undefined') return null;
+
+    return createPortal(
+        <>
+        <div className={`fixed inset-0 z-[4990] bg-black/20  transition-opacity ${open ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} onClick={onClose} />
         <div
-            className={`fixed top-0 right-0 h-full w-full sm:w-[520px] bg-white dark:bg-gray-800 dark:text-gray-200 shadow-2xl transition-transform duration-300 ${open ? 'translate-x-0' : 'translate-x-full'}`}
+            className={`fixed top-0 right-0 z-[5000] h-full w-full sm:w-[520px] bg-white dark:bg-gray-800 dark:text-gray-200 shadow-2xl transition-transform duration-300 ${open ? 'translate-x-0' : 'translate-x-full'}`}
         >
             <div className="flex items-center justify-between px-4 py-3 border-b">
                 <h3 className="font-semibold text-gray-900 dark:text-gray-200">{title}</h3>
@@ -89,8 +98,10 @@ const Drawer = ({ open, onClose, children, title }) => (
             </div>
             <div className="p-4 overflow-y-auto h-[calc(100%-56px)]">{children}</div>
         </div>
-    </>
-);
+        </>,
+        document.body
+    );
+};
 
 /* ----------------------------- NEW: Update Status Modal ----------------------------- */
 const UpdateStatusModal = ({ isOpen, onClose, task, customStatuses = [], onSubmit }) => {
@@ -247,6 +258,32 @@ const PriorityPill = ({ priority }) => {
     return <div className={`px-2 py-0.5 rounded-full text-xs font-medium ${styles[p] || 'bg-gray-100 text-gray-700'}`}>{p}</div>;
 };
 
+const ProjectDetailCard = ({ label, value, icon: Icon }) => (
+    <div className="rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-800">
+        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+            {Icon && <Icon className="h-4 w-4" />}
+            {label}
+        </div>
+        <div className="mt-1 text-sm font-semibold text-gray-900 dark:text-gray-100">{value || '—'}</div>
+    </div>
+);
+
+const ContactLine = ({ icon: Icon, label, value }) => (
+    <div className="flex items-start gap-3 rounded-lg bg-gray-50 px-3 py-2 dark:bg-gray-900/60">
+        <Icon className="mt-0.5 h-4 w-4 flex-shrink-0 text-gray-400 dark:text-gray-500" />
+        <div className="min-w-0">
+            <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{label}</div>
+            <div className="break-words text-sm font-medium text-gray-800 dark:text-gray-200">{value || '—'}</div>
+        </div>
+    </div>
+);
+
+const EmptyProjectDetail = ({ children }) => (
+    <div className="rounded-xl border border-dashed border-gray-200 py-6 text-center text-sm italic text-gray-400 dark:border-gray-700 dark:text-gray-500">
+        {children}
+    </div>
+);
+
 // This is the new, self-contained Table component
 const TaskTable = ({ tasks, onUpdateStatusClick, onPlayAudio, onShowDetails }) => {
     if (!tasks || tasks.length === 0) {
@@ -328,6 +365,9 @@ export default function TaskPage() {
     const [projects, setProjects] = useState([]);
     const [customStatuses, setCustomStatuses] = useState([]);
     const [search, setSearch] = useState('');
+    const [activeTab, setActiveTab] = useState('overdue');
+    const [taskView, setTaskView] = useState('table');
+    const [projectView, setProjectView] = useState('table');
     const [detailsOpen, setDetailsOpen] = useState(false);
     const [detailsLoading, setDetailsLoading] = useState(false);
     const [details, setDetails] = useState(null);
@@ -498,6 +538,8 @@ export default function TaskPage() {
         });
     }, [projects, search]);
 
+    const overdueTasks = groupedTasks.overdue;
+
     const openProjectDetails = async (projectId) => {
         setActiveProjectId(projectId);
         setDetails(null);
@@ -529,46 +571,269 @@ export default function TaskPage() {
             <AudioPlayerModal {...audioPlayerData} onClose={handleCloseAudioPlayer} />
             <TaskDetailsModal isOpen={isDetailsModalOpen} onClose={handleCloseDetails} task={taskForDetails} />
 
-            <div>
-                <ul className="flex space-x-1 rtl:space-x-reverse mb-2">
-                    <li>
-                        <Link href="/dashboard" className={breadcrumbLinkStyles}>
-                            Dashboard
-                        </Link>
-                    </li>
-                    <li className={breadcrumbSeparatorStyles}>
-                        <span className={breadcrumbCurrentPageStyles}>My Work</span>
-                    </li>
-                </ul>
-                <p className="text-sm text-gray-500 drak:text-gray-200">Everything you’re assigned to. Update your task status here.</p>
-            </div>
-
-            <div className="flex items-center dark:bg-gray-800 px-3 py-2 border rounded-lg w-full sm:w-96 bg-white shadow-sm">
-                <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search your tasks..." className="w-full dark:bg-gray-800 dark:text-gray-200 outline-none text-sm" />
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                <div>
+                    <ul className="mb-2 flex space-x-1 rtl:space-x-reverse">
+                        <li>
+                            <Link href="/dashboard" className={breadcrumbLinkStyles}>
+                                Dashboard
+                            </Link>
+                        </li>
+                        <li className={breadcrumbSeparatorStyles}>
+                            <span className={breadcrumbCurrentPageStyles}>My Work</span>
+                        </li>
+                    </ul>
+                    <p className="text-sm text-gray-500 dark:text-gray-200">Everything you’re assigned to. Update your task status here.</p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+                    {[
+                        { key: 'overdue', label: 'Overdue', count: overdueTasks.length },
+                        { key: 'projects', label: 'Assigned Projects', count: filteredProjects.length },
+                    ].map((item) => (
+                        <button
+                            key={item.key}
+                            type="button"
+                            onClick={() => setActiveTab(item.key)}
+                            className={`inline-flex h-10 items-center gap-2 rounded-full border px-4 text-sm font-semibold transition ${
+                                activeTab === item.key
+                                    ? 'border-gray-900 bg-gray-900 text-white shadow-sm dark:border-white dark:bg-white dark:text-gray-950'
+                                    : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
+                            }`}
+                        >
+                            {item.label}
+                            <span className={`rounded-full px-2 py-0.5 text-xs ${activeTab === item.key ? 'bg-white/15' : 'bg-gray-100 dark:bg-gray-700'}`}>{item.count}</span>
+                        </button>
+                    ))}
+                </div>
             </div>
 
             {loading && <Loading text="Loading your work..." />}
             {!loading && err && <ErrorBox msg={err} />}
 
-            {/* My Tasks */}
-            {!loading && !err && (
-                <div className="space-y-8">
-                    {Object.entries(groupedTasks).map(
-                        ([groupKey, groupTasks]) =>
-                            groupTasks.length > 0 && (
-                                <div key={groupKey}>
-                                    <h2 className="text-base font-semibold text-gray-800 mb-3 dark:text-gray-200 capitalize">{groupKey.replace('_', ' ')}</h2>
-                                    <TaskTable tasks={groupTasks} onUpdateStatusClick={handleOpenStatusModal} onPlayAudio={handlePlayAudio} onShowDetails={handleShowDetails} />
+            {!loading && !err && activeTab === 'overdue' && (
+                <section className="space-y-4">
+                    <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+                        <div>
+                            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Overdue</h2>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">Tasks that need attention first.</p>
+                        </div>
+                        <span className="w-fit rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-600 dark:bg-rose-900/20 dark:text-rose-300">
+                            {overdueTasks.length} pending
+                        </span>
+                    </div>
+                    <div className="flex flex-col gap-3 rounded-xl border border-gray-200 bg-white p-3 shadow-sm dark:border-gray-700 dark:bg-gray-800 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 dark:border-gray-700 dark:bg-gray-900">
+                            <Search className="h-4 w-4 flex-shrink-0 text-gray-400" />
+                            <input
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                placeholder="Search overdue tasks..."
+                                className="w-full bg-transparent text-sm text-gray-900 outline-none placeholder:text-gray-400 dark:text-gray-200"
+                            />
+                        </div>
+                        <div className="inline-flex w-fit rounded-lg border border-gray-200 bg-gray-50 p-1 dark:border-gray-700 dark:bg-gray-900">
+                            <button
+                                type="button"
+                                onClick={() => setTaskView('table')}
+                                className={`inline-flex h-9 items-center gap-2 rounded-md px-3 text-sm font-semibold transition ${
+                                    taskView === 'table'
+                                        ? 'bg-white text-gray-900 shadow-sm dark:bg-gray-700 dark:text-white'
+                                        : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
+                                }`}
+                            >
+                                <Table2 className="h-4 w-4" />
+                                Table
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setTaskView('grid')}
+                                className={`inline-flex h-9 items-center gap-2 rounded-md px-3 text-sm font-semibold transition ${
+                                    taskView === 'grid'
+                                        ? 'bg-white text-gray-900 shadow-sm dark:bg-gray-700 dark:text-white'
+                                        : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
+                                }`}
+                            >
+                                <LayoutGrid className="h-4 w-4" />
+                                Cards
+                            </button>
+                        </div>
+                    </div>
+                    {taskView === 'grid' ? (
+                        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                            {overdueTasks.length === 0 && (
+                                <div className="rounded-xl border border-dashed border-gray-300 bg-white px-6 py-12 text-center text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 md:col-span-2 xl:col-span-3">
+                                    No overdue tasks found.
                                 </div>
-                            ),
+                            )}
+                            {overdueTasks.map((task) => {
+                                const title = task.title || 'Untitled task';
+                                const isLongTitle = title.length > 90;
+
+                                return (
+                                    <div
+                                        key={task.id}
+                                        className="group rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-gray-300 hover:shadow-md dark:border-gray-700 dark:bg-gray-800 dark:hover:border-gray-600"
+                                    >
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div className="min-w-0">
+                                                <h3 className="line-clamp-2 text-base font-bold text-gray-900 dark:text-gray-100">
+                                                    {isLongTitle ? `${title.substring(0, 90)}...` : title}
+                                                </h3>
+                                                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{task.project_name || 'No Project'}</p>
+                                            </div>
+                                            <StatusBadge status={task.status} />
+                                        </div>
+                                        <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                                            <div className="rounded-lg bg-rose-50 p-3 dark:bg-rose-900/20">
+                                                <p className="text-xs font-semibold uppercase text-rose-500 dark:text-rose-300">Due Date</p>
+                                                <p className="mt-1 font-medium text-rose-600 dark:text-rose-300">{formatDate(task.due_date)}</p>
+                                            </div>
+                                            <div className="rounded-lg bg-gray-50 p-3 dark:bg-gray-900/60">
+                                                <p className="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">Status</p>
+                                                <p className="mt-1 font-medium text-gray-800 dark:text-gray-200">{statusLabel(task.status)}</p>
+                                            </div>
+                                        </div>
+                                        <div className="mt-4 flex items-center justify-between border-t border-gray-100 pt-3 text-sm dark:border-gray-700">
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleOpenStatusModal(task)}
+                                                    className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 font-semibold text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-700"
+                                                    title="Update Status"
+                                                >
+                                                    <ClipboardEdit className="h-4 w-4" />
+                                                    Update
+                                                </button>
+                                                {task.voice_note_url && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handlePlayAudio(task)}
+                                                        className="rounded-lg border border-gray-200 p-2 text-gray-500 transition hover:bg-green-50 hover:text-green-600 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-700"
+                                                        title="Play voice note"
+                                                    >
+                                                        <PlayCircle className="h-4 w-4" />
+                                                    </button>
+                                                )}
+                                            </div>
+                                            {isLongTitle && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleShowDetails(task)}
+                                                    className="inline-flex items-center gap-1 font-semibold text-gray-900 transition hover:text-blue-600 dark:text-gray-100 dark:hover:text-blue-400"
+                                                >
+                                                    <Info className="h-4 w-4" />
+                                                    Details
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    ) : overdueTasks.length > 0 ? (
+                        <TaskTable tasks={overdueTasks} onUpdateStatusClick={handleOpenStatusModal} onPlayAudio={handlePlayAudio} onShowDetails={handleShowDetails} />
+                    ) : (
+                        <div className="rounded-xl border border-dashed border-gray-300 bg-white px-6 py-12 text-center text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">
+                            No overdue tasks found.
+                        </div>
                     )}
-                </div>
+                </section>
             )}
 
-            {/* Assigned Projects */}
-            {!loading && !err && (
-                <div className="space-y-3">
-                    <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-200">Assigned Projects</h2>
+            {!loading && !err && activeTab === 'projects' && (
+                <section className="space-y-4">
+                    <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+                        <div>
+                            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Assigned Projects</h2>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">Open a project to see only your assigned shoot plan and client location.</p>
+                        </div>
+                        <span className="w-fit rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700 dark:bg-gray-700 dark:text-gray-200">
+                            {filteredProjects.length} projects
+                        </span>
+                    </div>
+                    <div className="flex flex-col gap-3 rounded-xl border border-gray-200 bg-white p-3 shadow-sm dark:border-gray-700 dark:bg-gray-800 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 dark:border-gray-700 dark:bg-gray-900">
+                            <Search className="h-4 w-4 flex-shrink-0 text-gray-400" />
+                            <input
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                placeholder="Search assigned projects..."
+                                className="w-full bg-transparent text-sm text-gray-900 outline-none placeholder:text-gray-400 dark:text-gray-200"
+                            />
+                        </div>
+                        <div className="inline-flex w-fit rounded-lg border border-gray-200 bg-gray-50 p-1 dark:border-gray-700 dark:bg-gray-900">
+                            <button
+                                type="button"
+                                onClick={() => setProjectView('table')}
+                                className={`inline-flex h-9 items-center gap-2 rounded-md px-3 text-sm font-semibold transition ${
+                                    projectView === 'table'
+                                        ? 'bg-white text-gray-900 shadow-sm dark:bg-gray-700 dark:text-white'
+                                        : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
+                                }`}
+                            >
+                                <Table2 className="h-4 w-4" />
+                                Table
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setProjectView('grid')}
+                                className={`inline-flex h-9 items-center gap-2 rounded-md px-3 text-sm font-semibold transition ${
+                                    projectView === 'grid'
+                                        ? 'bg-white text-gray-900 shadow-sm dark:bg-gray-700 dark:text-white'
+                                        : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
+                                }`}
+                            >
+                                <LayoutGrid className="h-4 w-4" />
+                                Cards
+                            </button>
+                        </div>
+                    </div>
+                    {projectView === 'grid' ? (
+                        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                            {filteredProjects.length === 0 && (
+                                <div className="rounded-xl border border-dashed border-gray-300 bg-white px-6 py-12 text-center text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 md:col-span-2 xl:col-span-3">
+                                    No projects assigned to you.
+                                </div>
+                            )}
+                            {filteredProjects.map((p) => (
+                                <button
+                                    key={p.id}
+                                    type="button"
+                                    onClick={() => openProjectDetails(p.id)}
+                                    className="group rounded-xl border border-gray-200 bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-gray-300 hover:shadow-md dark:border-gray-700 dark:bg-gray-800 dark:hover:border-gray-600"
+                                >
+                                    <div className="flex items-start justify-between gap-3">
+                                        <div className="min-w-0">
+                                            <h3 className="truncate text-base font-bold text-gray-900 dark:text-gray-100">{p.name || 'Project'}</h3>
+                                            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{p.clientName || 'Client not added'}</p>
+                                        </div>
+                                        <StatusBadge status={p.status} />
+                                    </div>
+                                    <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                                        <div className="rounded-lg bg-gray-50 p-3 dark:bg-gray-900/60">
+                                            <p className="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">Dates</p>
+                                            <p className="mt-1 font-medium text-gray-800 dark:text-gray-200">
+                                                {formatDate(p.minDate)} - {formatDate(p.maxDate)}
+                                            </p>
+                                        </div>
+                                        <div className="rounded-lg bg-gray-50 p-3 dark:bg-gray-900/60">
+                                            <p className="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">Shoots</p>
+                                            <p className="mt-1 font-medium text-gray-800 dark:text-gray-200">{p.shoots ?? 0}</p>
+                                        </div>
+                                    </div>
+                                    <div className="mt-4 flex items-center justify-between border-t border-gray-100 pt-3 text-sm dark:border-gray-700">
+                                        <span className="text-gray-500 dark:text-gray-400">
+                                            Deliverables {p.deliverablesCompleted ?? 0}/{p.deliverablesTotal ?? 0}
+                                        </span>
+                                        <span className="inline-flex items-center gap-1 font-semibold text-gray-900 group-hover:text-blue-600 dark:text-gray-100 dark:group-hover:text-blue-400">
+                                            <Eye className="h-4 w-4" />
+                                            View
+                                        </span>
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
+                    ) : (
                     <div className="overflow-x-auto rounded-lg border bg-white dark:bg-gray-800">
                         <table className="min-w-full text-sm">
                             <thead className="bg-gray-50  text-gray-600 dark:text-gray-200">
@@ -590,7 +855,7 @@ export default function TaskPage() {
                                     </tr>
                                 )}
                                 {filteredProjects.map((p) => (
-                                    <tr key={p.id} className="border-t hover:bg-gray-50 dark:hover:bg-gray-700x">
+                                    <tr key={p.id} className="border-t hover:bg-gray-50 dark:hover:bg-gray-700">
                                         <td className="px-4 py-3">
                                             <div className="font-medium text-gray-900 dark:text-gray-200">{p.name}</div>
                                         </td>
@@ -624,7 +889,8 @@ export default function TaskPage() {
                             </tbody>
                         </table>
                     </div>
-                </div>
+                    )}
+                </section>
             )}
 
             {/* Drawer: project details */}
@@ -636,56 +902,86 @@ export default function TaskPage() {
                         {detailsLoading && <Loading text="Loading project details..." />}
                         {!detailsLoading && !details && <div className="text-sm text-gray-500 dark:text-gray-400">Couldn’t load project details.</div>}
                         {!detailsLoading && details && (
-                            <>
-                                <section className="mb-6">
-                                    <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-200 mb-2">Overview</h4>
-                                    <div className="text-sm grid grid-cols-2 gap-2">
+                            <div className="space-y-6">
+                                <section>
+                                    <div className="mb-3 flex items-start justify-between gap-3">
                                         <div>
-                                            <span className="text-gray-500 dark:text-gray-400">Project:</span> <span className="font-medium">{details.projectName || details.name}</span>
+                                            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Project Brief</p>
+                                            <h4 className="mt-1 text-xl font-bold text-gray-900 dark:text-gray-100">{details.projectName || details.name || 'Project'}</h4>
                                         </div>
-                                        <div>
-                                            <span className="text-gray-500 dark:text-gray-400">Client:</span> {details.clientName || '—'}
-                                        </div>
-                                        <div>
-                                            <span className="text-gray-500 dark:text-gray-400">Status:</span> {statusLabel(details.projectStatus || details.status)}
-                                        </div>
-                                        <div>
-                                            <span className="text-gray-500 dark:text-gray-400">Total:</span> ₹{Number(details.overallTotalCost ?? details.totalCost ?? 0).toLocaleString('en-IN')}
-                                        </div>
+                                        <StatusBadge status={details.projectStatus || details.status} />
+                                    </div>
+                                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                        <ProjectDetailCard label="Client" value={details.clientName} icon={UserRound} />
+                                        <ProjectDetailCard label="My Assigned Shoots" value={details?.shoots?.shootList?.length || 0} icon={CalendarDays} />
                                     </div>
                                 </section>
+
+                                <section>
+                                    <h4 className="mb-3 text-sm font-semibold text-gray-900 dark:text-gray-200">Client Work Location</h4>
+                                    <div className="space-y-2">
+                                        <ContactLine icon={Phone} label="Phone" value={details.clientPhone || details.clients?.clientDetails?.phone} />
+                                        <ContactLine icon={MapPin} label="Client Address" value={details.clientAddress || details.clients?.clientDetails?.address || 'Address not added. Please ask the manager before going to the shoot.'} />
+                                        {(details.clientNotes || details.clients?.clientDetails?.notes) && <ContactLine icon={Info} label="Client Notes" value={details.clientNotes || details.clients?.clientDetails?.notes} />}
+                                    </div>
+                                </section>
+
                                 {Array.isArray(details?.shoots?.shootList) && details.shoots.shootList.length > 0 && (
-                                    <section className="mb-6">
-                                        <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-200 mb-2">Shoots</h4>
-                                        <div className="space-y-2">
+                                    <section>
+                                        <h4 className="mb-3 text-sm font-semibold text-gray-900 dark:text-gray-200">My Assigned Shoot Plan</h4>
+                                        <div className="space-y-3">
                                             {details.shoots.shootList.map((s) => (
-                                                <div key={s.id} className="border  rounded p-2 text-sm">
-                                                    <div className="font-medium">
-                                                        {s.title} — {s.city}
+                                                <div key={s.id} className="rounded-xl border border-gray-200 bg-white p-4 text-sm shadow-sm dark:border-gray-700 dark:bg-gray-800">
+                                                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                                        <div>
+                                                            <div className="font-semibold text-gray-900 dark:text-gray-100">{s.title || 'Shoot'}</div>
+                                                            <div className="mt-1 flex items-center gap-1.5 text-gray-500 dark:text-gray-400">
+                                                                <MapPin className="h-4 w-4" />
+                                                                {s.city || 'Location not added'}
+                                                            </div>
+                                                        </div>
+                                                        <div className="rounded-lg bg-gray-50 px-3 py-2 text-gray-700 dark:bg-gray-900 dark:text-gray-200">
+                                                            <CalendarDays className="mr-1 inline-block h-4 w-4 align-[-2px]" />
+                                                            {formatDate(s.date)}
+                                                            {s.time ? (
+                                                                <>
+                                                                    <span aria-hidden="true"> &middot; </span>
+                                                                    {formatTime(s.time)}
+                                                                </>
+                                                            ) : null}
+                                                        </div>
                                                     </div>
-                                                    <div className="text-gray-500">
-                                                        <CalendarDays className="inline-block w-4 h-4 mr-1 align[-2px]" />
-                                                        {formatDate(s.date)} {s.time ? `• ${s.time}` : ''}
-                                                    </div>
+
+                                                    {Object.keys(s.selectedServices || {}).length > 0 && (
+                                                        <div className="mt-4 border-t border-gray-100 pt-3 dark:border-gray-700">
+                                                            <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">My assigned services</div>
+                                                            <div className="space-y-2">
+                                                                {Object.entries(s.selectedServices || {}).map(([serviceName, quantity]) => (
+                                                                    <div key={serviceName} className="rounded-lg bg-gray-50 p-3 dark:bg-gray-900/60">
+                                                                        <div className="flex items-center justify-between gap-3">
+                                                                            <span className="font-medium text-gray-800 dark:text-gray-200">{serviceName}</span>
+                                                                            <span className="rounded-full bg-white px-2 py-0.5 text-xs font-semibold text-gray-600 dark:bg-gray-800 dark:text-gray-300">Need {quantity}</span>
+                                                                        </div>
+                                                                        <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                                                            Assigned to you as: {serviceName}
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                    {Object.keys(s.selectedServices || {}).length === 0 && (
+                                                        <div className="mt-4 rounded-lg bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700 dark:bg-amber-900/20 dark:text-amber-300">
+                                                            Services are not added for this shoot yet. Confirm requirements with the manager before travel.
+                                                        </div>
+                                                    )}
                                                 </div>
                                             ))}
                                         </div>
                                     </section>
                                 )}
-                                {Array.isArray(details?.deliverables2?.deliverableItems) && details.deliverables2.deliverableItems.length > 0 && (
-                                    <section className="mb-6">
-                                        <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-200 mb-2">Deliverables</h4>
-                                        <div className="space-y-1 text-sm">
-                                            {details.deliverables2.deliverableItems.map((d) => (
-                                                <div key={d.id} className="flex items-center justify-between border-b py-1">
-                                                    <div>{d.title}</div>
-                                                    <div className="text-xs text-gray-500 dark:text-gray-300">{statusLabel(d.status || '')}</div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </section>
-                                )}
-                            </>
+                                {(!Array.isArray(details?.shoots?.shootList) || details.shoots.shootList.length === 0) && <EmptyProjectDetail>No shoots are assigned to you for this project.</EmptyProjectDetail>}
+                            </div>
                         )}
                     </>
                 )}
