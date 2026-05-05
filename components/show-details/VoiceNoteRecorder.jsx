@@ -7,6 +7,7 @@ import RecordPlugin from 'wavesurfer.js/dist/plugins/record.esm.js';
 export const VoiceNoteRecorder = ({ isOpen, onClose, task, onUpload }) => {
     const waveformRef = useRef(null);
     const wavesurferRef = useRef(null); // This will now hold ONLY the instance
+    const objectUrlRef = useRef('');
     const [isRecording, setIsRecording] = useState(false);
     const [isPlaying, setIsPlaying] = useState(false);
     const [audioUrl, setAudioUrl] = useState('');
@@ -29,11 +30,21 @@ export const VoiceNoteRecorder = ({ isOpen, onClose, task, onUpload }) => {
 
             const record = wavesurfer.registerPlugin(RecordPlugin.create());
             
-            record.on('record-end', (blob) => {
+            record.on('record-end', async (blob) => {
                 const url = URL.createObjectURL(blob);
+                if (objectUrlRef.current) {
+                    URL.revokeObjectURL(objectUrlRef.current);
+                }
+                objectUrlRef.current = url;
                 setAudioBlob(blob);
                 setAudioUrl(url);
-                wavesurfer.load(url);
+                try {
+                    await wavesurfer.load(url);
+                } catch (error) {
+                    if (error.name !== 'AbortError') {
+                        console.error('Failed to load recorded audio:', error);
+                    }
+                }
             });
             
             wavesurfer.on('play', () => setIsPlaying(true));
@@ -50,6 +61,10 @@ export const VoiceNoteRecorder = ({ isOpen, onClose, task, onUpload }) => {
                 wavesurferRef.current.wavesurfer.destroy();
                 wavesurferRef.current = null;
             }
+            if (objectUrlRef.current) {
+                URL.revokeObjectURL(objectUrlRef.current);
+                objectUrlRef.current = '';
+            }
         };
     }, [isOpen]); // This effect ONLY depends on `isOpen`
 
@@ -63,13 +78,17 @@ export const VoiceNoteRecorder = ({ isOpen, onClose, task, onUpload }) => {
 
             if (task.voice_note_url) {
                 setAudioUrl(task.voice_note_url);
-                wavesurferRef.current.wavesurfer.load(task.voice_note_url);
+                wavesurferRef.current.wavesurfer.load(task.voice_note_url).catch((error) => {
+                    if (error.name !== 'AbortError') {
+                        console.error('Failed to load voice note:', error);
+                    }
+                });
             } else {
                 setAudioUrl('');
                 wavesurferRef.current.wavesurfer.empty();
             }
         }
-    }, [task, wavesurferRef.current]); // Depends on the task and the wavesurfer instance
+    }, [task, isOpen]);
 
 
     if (!isOpen) return null;
@@ -99,14 +118,20 @@ export const VoiceNoteRecorder = ({ isOpen, onClose, task, onUpload }) => {
     const handleUploadClick = async () => {
         if (!audioBlob) return;
         setIsUploading(true);
-        await onUpload(audioBlob);
-        setIsUploading(false);
-        onClose();
+        try {
+            await onUpload(audioBlob);
+        } finally {
+            setIsUploading(false);
+        }
     };
 
     const resetRecording = () => {
         if (wavesurferRef.current) {
             wavesurferRef.current.wavesurfer.empty();
+        }
+        if (objectUrlRef.current) {
+            URL.revokeObjectURL(objectUrlRef.current);
+            objectUrlRef.current = '';
         }
         setAudioBlob(null);
         setAudioUrl('');

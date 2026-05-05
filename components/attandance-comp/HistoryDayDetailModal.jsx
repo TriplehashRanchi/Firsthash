@@ -2,15 +2,47 @@
 import React, { useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, isEqual } from 'date-fns';
+import { MapPin } from 'lucide-react';
 
 // CORRECTED: Import from the same directory
 import StatusBadge from './StatusBadge';
 
+const getRecordTime = (record, key) => record?.[key] || record?.[key === 'inTime' ? 'in_time' : 'out_time'] || '';
+
+const timeToSeconds = (timeValue) => {
+    if (!timeValue || typeof timeValue !== 'string') return null;
+
+    const [hours, minutes] = timeValue.slice(0, 5).split(':').map(Number);
+    if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return null;
+
+    return (hours * 3600) + (minutes * 60);
+};
+
+const formatWorkedHours = (record) => {
+    const inSeconds = timeToSeconds(getRecordTime(record, 'inTime'));
+    const outSeconds = timeToSeconds(getRecordTime(record, 'outTime'));
+
+    if (inSeconds === null || outSeconds === null || outSeconds <= inSeconds) return '';
+
+    const totalSeconds = outSeconds - inSeconds;
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+
+    return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
+};
+
+const getMapUrl = (record) => {
+    if (record?.latitude == null || record?.longitude == null) return '';
+    return `https://www.google.com/maps?q=${record.latitude},${record.longitude}`;
+};
+
 // ... (rest of the component code is unchanged) ...
 const HistoryDayDetailModal = ({ date, history, students, onClose }) => {
-    if (!date) return null;
-    const record = history.find(h => isEqual(new Date(h.date), date));
     const studentMap = useMemo(() => new Map(students.map(s => [s.id, s])), [students]);
+
+    if (!date) return null;
+
+    const record = history.find(h => isEqual(new Date(h.date), date));
 
     return (
         <AnimatePresence>
@@ -37,10 +69,30 @@ const HistoryDayDetailModal = ({ date, history, students, onClose }) => {
                                 <ul className="divide-y divide-slate-200 dark:divide-slate-700">
                                     {record.records.map(r => {
                                         const student = studentMap.get(r.studentId);
+                                        const workedHours = formatWorkedHours(r);
+                                        const mapUrl = getMapUrl(r);
                                         return (
-                                            <li key={r.studentId} className="py-3 flex justify-between items-center">
-                                                <span className="font-medium text-slate-600 dark:text-slate-300">{student?.name || 'Unknown'}</span>
-                                                <StatusBadge status={r.status} />
+                                            <li key={r.studentId} className="py-3 flex items-center justify-between gap-3">
+                                                <div>
+                                                    <span className="font-medium text-slate-600 dark:text-slate-300">{student?.name || 'Unknown'}</span>
+                                                    <div className="mt-1 flex flex-wrap items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400">
+                                                        {workedHours ? <span>Worked {workedHours}</span> : null}
+                                                        {mapUrl ? (
+                                                            <a href={mapUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-blue-600 hover:underline dark:text-blue-400">
+                                                                <MapPin className="h-3.5 w-3.5" />
+                                                                View on Map
+                                                            </a>
+                                                        ) : null}
+                                                    </div>
+                                                </div>
+                                                <div className="flex flex-col items-end gap-1">
+                                                    {r.location_status === 'outside_radius' ? (
+                                                        <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+                                                            Outside radius
+                                                        </span>
+                                                    ) : null}
+                                                    <StatusBadge status={r.status} />
+                                                </div>
                                             </li>
                                         );
                                     })}

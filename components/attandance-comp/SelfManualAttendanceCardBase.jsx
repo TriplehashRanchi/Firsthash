@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { getAuth } from 'firebase/auth';
-import { CalendarDays, Clock3, LogIn, LogOut, ShieldCheck } from 'lucide-react';
+import { CalendarDays, Clock3, LogIn, LogOut, MapPin, ShieldCheck } from 'lucide-react';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
@@ -48,6 +48,22 @@ const getCurrentLocation = () => new Promise((resolve, reject) => {
   );
 });
 
+const getCurrentInputTime = () => {
+  const now = new Date();
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+
+  return `${hours}:${minutes}`;
+};
+
+const formatDuration = (seconds) => {
+  const safeSeconds = Math.max(0, Number(seconds) || 0);
+  const hours = Math.floor(safeSeconds / 3600);
+  const minutes = Math.floor((safeSeconds % 3600) / 60);
+
+  return `${hours}h ${minutes}m`;
+};
+
 export default function SelfManualAttendanceCardBase({
   title,
   subtitle,
@@ -61,6 +77,10 @@ export default function SelfManualAttendanceCardBase({
   const [outTime, setOutTime] = useState('');
   const [submittingType, setSubmittingType] = useState(null);
   const [feedback, setFeedback] = useState({ type: '', message: '' });
+  const [locationPreview, setLocationPreview] = useState(null);
+  const [locLoading, setLocLoading] = useState(false);
+  const [locationPreviewError, setLocationPreviewError] = useState('');
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
   useEffect(() => {
     setInTime(toInputTime(todayRecord?.in_time));
@@ -69,6 +89,91 @@ export default function SelfManualAttendanceCardBase({
 
   const hasInTime = Boolean(todayRecord?.in_time);
   const hasOutTime = Boolean(todayRecord?.out_time);
+
+  useEffect(() => {
+    if (!hasInTime || hasOutTime) {
+      setElapsedSeconds(0);
+      return undefined;
+    }
+
+    const clockInSeconds = toSeconds(toInputTime(todayRecord?.in_time));
+    if (clockInSeconds === null) {
+      setElapsedSeconds(0);
+      return undefined;
+    }
+
+    const tick = () => {
+      const nowSeconds = toSeconds(getCurrentInputTime());
+      setElapsedSeconds(Math.max(0, nowSeconds - clockInSeconds));
+    };
+
+    tick();
+    const id = setInterval(tick, 60000);
+
+    return () => clearInterval(id);
+  }, [hasInTime, hasOutTime, todayRecord?.in_time]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (hasInTime) {
+      setLocationPreview(null);
+      setLocationPreviewError('');
+      setLocLoading(false);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    const loadLocationPreview = async () => {
+      setLocLoading(true);
+      setLocationPreview(null);
+      setLocationPreviewError('');
+
+      try {
+        const currentUser = getAuth().currentUser;
+        if (!currentUser) {
+          throw new Error('Log in to preview your clock-in location.');
+        }
+
+        const loc = await getCurrentLocation();
+        const token = await currentUser.getIdToken();
+        const response = await axios.get(`${API_URL}/api/self/location-check`, {
+          params: {
+            lat: loc.latitude,
+            lng: loc.longitude,
+          },
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (!cancelled) {
+          setLocationPreview({
+            ...response.data,
+            lat: loc.latitude,
+            lng: loc.longitude,
+          });
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setLocationPreviewError(error.response?.data?.error || error.message || 'Location preview is unavailable.');
+        }
+      } finally {
+        if (!cancelled) {
+          setLocLoading(false);
+        }
+      }
+    };
+
+    loadLocationPreview();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [hasInTime]);
+
+  const fillCurrentTime = (setter) => {
+    setter(getCurrentInputTime());
+  };
 
   const statusLabel = useMemo(() => {
     if (hasInTime && hasOutTime) {
@@ -82,10 +187,25 @@ export default function SelfManualAttendanceCardBase({
     return 'Not marked yet';
   }, [hasInTime, hasOutTime]);
 
-  const submitManualMark = async (markType) => {
+  const totalWorkedSeconds = useMemo(() => {
+    if (!hasInTime || !hasOutTime) {
+      return null;
+    }
+
+    const clockInSeconds = toSeconds(toInputTime(todayRecord?.in_time));
+    const clockOutSeconds = toSeconds(toInputTime(todayRecord?.out_time));
+
+    if (clockInSeconds === null || clockOutSeconds === null) {
+      return null;
+    }
+
+    return Math.max(0, clockOutSeconds - clockInSeconds);
+  }, [hasInTime, hasOutTime, todayRecord?.in_time, todayRecord?.out_time]);
+
+  const submitManualMark = async (markType, timeOverride) => {
     setFeedback({ type: '', message: '' });
 
-    const selectedTime = markType === 'in_time' ? inTime : outTime;
+    const selectedTime = timeOverride || (markType === 'in_time' ? inTime : outTime);
     if (!selectedTime) {
       setFeedback({ type: 'error', message: `Select a ${markType === 'in_time' ? 'clock-in' : 'clock-out'} time first.` });
       return;
@@ -137,6 +257,12 @@ export default function SelfManualAttendanceCardBase({
     }
   };
 
+  const submitCurrentTime = (markType, setter) => {
+    const currentTime = getCurrentInputTime();
+    setter(currentTime);
+    submitManualMark(markType, currentTime);
+  };
+
   return (
     <section className="mb-8 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -165,7 +291,43 @@ export default function SelfManualAttendanceCardBase({
             <span className="rounded-lg bg-gray-100 px-3 py-2 font-medium text-gray-700 dark:bg-gray-900 dark:text-gray-200">
               Out: {todayRecord?.out_time || 'Not marked'}
             </span>
+            {hasInTime && !hasOutTime ? (
+              <span className="rounded-lg bg-blue-50 px-3 py-2 font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                Working for {formatDuration(elapsedSeconds)}
+              </span>
+            ) : null}
+            {totalWorkedSeconds !== null ? (
+              <span className="rounded-lg bg-green-50 px-3 py-2 font-medium text-green-700 dark:bg-green-900/30 dark:text-green-300">
+                Total worked: {formatDuration(totalWorkedSeconds)}
+              </span>
+            ) : null}
           </div>
+          {!hasInTime && locLoading ? (
+            <div className="flex items-center gap-2 rounded-lg bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+              <MapPin className="h-4 w-4" />
+              Checking your clock-in location...
+            </div>
+          ) : null}
+          {!hasInTime && locationPreview ? (
+            <div
+              className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium ${
+                locationPreview.location_status === 'inside_radius'
+                  ? 'bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300'
+                  : 'bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'
+              }`}
+            >
+              <MapPin className="h-4 w-4" />
+              {locationPreview.location_status === 'inside_radius'
+                ? `You are inside ${locationPreview.office_name} (${Math.round(locationPreview.distance_meters)}m away)`
+                : `You are ${Math.round(locationPreview.distance_meters)}m outside ${locationPreview.office_name}`}
+            </div>
+          ) : null}
+          {!hasInTime && locationPreviewError ? (
+            <div className="flex items-center gap-2 rounded-lg bg-red-50 px-4 py-2 text-sm font-medium text-red-700 dark:bg-red-900/30 dark:text-red-300">
+              <MapPin className="h-4 w-4" />
+              {locationPreviewError}
+            </div>
+          ) : null}
         </div>
 
         <div className="grid w-full gap-4 lg:max-w-xl lg:grid-cols-2">
@@ -187,9 +349,25 @@ export default function SelfManualAttendanceCardBase({
             </div>
             <button
               type="button"
+              onClick={() => fillCurrentTime(setInTime)}
+              disabled={hasInTime || submittingType !== null}
+              className="mt-1 text-xs font-medium text-blue-600 hover:underline disabled:cursor-not-allowed disabled:text-gray-400 disabled:no-underline dark:text-blue-400 dark:disabled:text-gray-500"
+            >
+              Use current time
+            </button>
+            <button
+              type="button"
+              onClick={() => submitCurrentTime('in_time', setInTime)}
+              disabled={hasInTime || submittingType !== null}
+              className={`mt-3 inline-flex w-full items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:bg-gray-400 ${buttonClass}`}
+            >
+              {submittingType === 'in_time' ? 'Saving...' : hasInTime ? 'Clock-in added' : 'Clock In Now'}
+            </button>
+            <button
+              type="button"
               onClick={() => submitManualMark('in_time')}
               disabled={hasInTime || !inTime || submittingType !== null}
-              className={`mt-3 inline-flex w-full items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:bg-gray-400 ${buttonClass}`}
+              className="mt-2 inline-flex w-full items-center justify-center rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:border-gray-200 disabled:bg-gray-100 disabled:text-gray-400 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700 dark:disabled:border-gray-700 dark:disabled:bg-gray-800 dark:disabled:text-gray-500"
             >
               {submittingType === 'in_time' ? 'Saving...' : hasInTime ? 'Clock-in added' : 'Save clock-in'}
             </button>
@@ -213,9 +391,25 @@ export default function SelfManualAttendanceCardBase({
             </div>
             <button
               type="button"
+              onClick={() => fillCurrentTime(setOutTime)}
+              disabled={!hasInTime || hasOutTime || submittingType !== null}
+              className="mt-1 text-xs font-medium text-blue-600 hover:underline disabled:cursor-not-allowed disabled:text-gray-400 disabled:no-underline dark:text-blue-400 dark:disabled:text-gray-500"
+            >
+              Use current time
+            </button>
+            <button
+              type="button"
+              onClick={() => submitCurrentTime('out_time', setOutTime)}
+              disabled={!hasInTime || hasOutTime || submittingType !== null}
+              className={`mt-3 inline-flex w-full items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:bg-gray-400 ${buttonClass}`}
+            >
+              {submittingType === 'out_time' ? 'Saving...' : hasOutTime ? 'Clock-out added' : 'Clock Out Now'}
+            </button>
+            <button
+              type="button"
               onClick={() => submitManualMark('out_time')}
               disabled={!hasInTime || hasOutTime || !outTime || submittingType !== null}
-              className={`mt-3 inline-flex w-full items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:bg-gray-400 ${buttonClass}`}
+              className="mt-2 inline-flex w-full items-center justify-center rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:border-gray-200 disabled:bg-gray-100 disabled:text-gray-400 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700 dark:disabled:border-gray-700 dark:disabled:bg-gray-800 dark:disabled:text-gray-500"
             >
               {submittingType === 'out_time' ? 'Saving...' : hasOutTime ? 'Clock-out added' : 'Save clock-out'}
             </button>

@@ -14,12 +14,23 @@ import {
     Briefcase, 
     ChevronRight,
     Clock,
-    CheckCircle2
+    CheckCircle2,
+    ClipboardEdit,
+    X
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
+import toast, { Toaster } from 'react-hot-toast';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 const Chart = dynamic(() => import('react-apexcharts'), { ssr: false });
+const DEFAULT_TASK_STATUSES = [
+    { value: 'to_do', label: 'To Do' },
+    { value: 'ongoing', label: 'Ongoing' },
+    { value: 'in_progress', label: 'In Progress' },
+    { value: 'completed', label: 'Completed' },
+    { value: 'not_working', label: 'Not Working' },
+    { value: 'overdue', label: 'Overdue' },
+];
 
 // --- Helper Functions ---
 const getAuthHeaders = async () => {
@@ -30,6 +41,19 @@ const getAuthHeaders = async () => {
     return { Authorization: `Bearer ${token}` };
 };
 
+const makeRequestWithRetry = async (requestFn) => {
+    try {
+        let headers = await getAuthHeaders(false);
+        return await requestFn(headers);
+    } catch (error) {
+        if (error?.response?.status === 401) {
+            const freshHeaders = await getAuthHeaders(true);
+            return await requestFn(freshHeaders);
+        }
+        throw error;
+    }
+};
+
 const formatDate = (d) => {
     if (!d) return '—';
     return new Date(d).toLocaleDateString('en-US', { day: '2-digit', month: 'short' });
@@ -38,6 +62,8 @@ const formatDate = (d) => {
 const formatCurrency = (value) => 
     new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(value || 0);
 
+const isCompletedStatus = (status) => ['completed', 'complete', 'done'].includes(String(status || '').toLowerCase());
+
 // --- Styled Sub-Components ---
 
 const StatusBadge = ({ status }) => {
@@ -45,15 +71,123 @@ const StatusBadge = ({ status }) => {
         to_do: 'bg-slate-100 text-slate-600 dark:bg-gray-700 dark:text-gray-300',
         in_progress: 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-300',
         completed: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-300',
+        complete: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-300',
         done: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-300',
+        not_working: 'bg-orange-50 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300',
+        overdue: 'bg-rose-50 text-rose-600 dark:bg-rose-900/30 dark:text-rose-300',
         rejected: 'bg-rose-50 text-rose-600 dark:bg-rose-900/30 dark:text-rose-300',
         ongoing: 'bg-violet-50 text-violet-600 dark:bg-violet-900/30 dark:text-violet-300',
     };
-    const label = status?.replace(/_/g, ' ') || 'Pending';
+    const normalized = String(status || 'to_do').toLowerCase();
+    const label = status?.replace(/_/g, ' ') || 'To Do';
     return (
-        <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wider ${styles[status] || styles.to_do}`}>
+        <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wider ${styles[normalized] || styles.to_do}`}>
             {label}
         </span>
+    );
+};
+
+const UpdateStatusModal = ({ isOpen, onClose, task, customStatuses = [], onSubmit }) => {
+    const [selectedStatus, setSelectedStatus] = useState('ongoing');
+    const [customStatus, setCustomStatus] = useState('');
+    const [saving, setSaving] = useState(false);
+
+    useEffect(() => {
+        if (!isOpen) return;
+
+        const knownStatuses = [...DEFAULT_TASK_STATUSES.map((status) => status.value), ...customStatuses];
+        if (knownStatuses.includes(task?.status)) {
+            setSelectedStatus(task.status);
+            setCustomStatus('');
+        } else {
+            setSelectedStatus('custom');
+            setCustomStatus(task?.status && task.status !== 'to_do' ? task.status : '');
+        }
+    }, [isOpen, task, customStatuses]);
+
+    if (!isOpen) return null;
+
+    const handleSave = async () => {
+        const nextStatus = selectedStatus === 'custom' ? customStatus.trim() : selectedStatus;
+        if (!nextStatus) {
+            toast.error('Select a status or write a custom update.');
+            return;
+        }
+
+        setSaving(true);
+        try {
+            await onSubmit(task, nextStatus);
+            onClose();
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-gray-700 dark:bg-gray-800">
+                <div className="flex items-start justify-between gap-4 border-b border-slate-100 p-5 dark:border-gray-700">
+                    <div>
+                        <h3 className="text-lg font-bold text-slate-900 dark:text-gray-100">Update Task Status</h3>
+                        <p className="mt-1 line-clamp-1 text-sm text-slate-500 dark:text-gray-400">{task?.title}</p>
+                    </div>
+                    <button type="button" onClick={onClose} className="rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-gray-700 dark:hover:text-gray-200">
+                        <X className="h-5 w-5" />
+                    </button>
+                </div>
+                <div className="space-y-4 p-5">
+                    <div className="grid grid-cols-2 gap-2">
+                        {DEFAULT_TASK_STATUSES.map((status) => (
+                            <button
+                                key={status.value}
+                                type="button"
+                                onClick={() => setSelectedStatus(status.value)}
+                                className={`rounded-xl border px-3 py-2 text-left text-sm font-semibold transition ${
+                                    selectedStatus === status.value
+                                        ? 'border-slate-900 bg-slate-900 text-white dark:border-white dark:bg-white dark:text-gray-950'
+                                        : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-700'
+                                }`}
+                            >
+                                {status.label}
+                            </button>
+                        ))}
+                    </div>
+                    {customStatuses.length > 0 ? (
+                        <select
+                            value={selectedStatus}
+                            onChange={(event) => setSelectedStatus(event.target.value)}
+                            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:border-blue-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
+                        >
+                            <option value={selectedStatus}>Choose saved or custom status</option>
+                            {customStatuses.map((status) => (
+                                <option key={status} value={status}>{status}</option>
+                            ))}
+                            <option value="custom">Write custom status</option>
+                        </select>
+                    ) : null}
+                    <div>
+                        <label className="mb-1 block text-xs font-semibold uppercase text-slate-500 dark:text-gray-400">Custom update</label>
+                        <input
+                            value={customStatus}
+                            onChange={(event) => {
+                                setCustomStatus(event.target.value);
+                                setSelectedStatus('custom');
+                            }}
+                            placeholder="e.g. Waiting for client, Overdue due to missing files"
+                            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
+                        />
+                    </div>
+                </div>
+                <div className="flex justify-end gap-3 rounded-b-2xl bg-slate-50 p-5 dark:bg-gray-900">
+                    <button type="button" onClick={onClose} className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700">
+                        Cancel
+                    </button>
+                    <button type="button" onClick={handleSave} disabled={saving} className="inline-flex min-w-28 items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:bg-blue-400">
+                        {saving ? 'Saving...' : 'Save'}
+                    </button>
+                </div>
+            </div>
+        </div>
     );
 };
 
@@ -89,16 +223,19 @@ const EmployeeDashboardPage = () => {
     const [error, setError] = useState(null);
     const [userName, setUserName] = useState('');
     const [summaryData, setSummaryData] = useState({ tasks: [], projects: [], salary: {}, expenses: [] });
+    const [customStatuses, setCustomStatuses] = useState([]);
+    const [statusTask, setStatusTask] = useState(null);
 
     const fetchDashboardData = useCallback(async () => {
         try {
             setLoading(true);
             const headers = await getAuthHeaders();
-            const [tasksRes, projectsRes, salaryRes, expensesRes] = await Promise.all([
+            const [tasksRes, projectsRes, salaryRes, expensesRes, customStatusesRes] = await Promise.all([
                 axios.get(`${API_URL}/api/employee/tasks/assigned`, { headers }),
                 axios.get(`${API_URL}/api/employee/projects/assigned`, { headers }),
                 axios.get(`${API_URL}/api/employee/salary/summary`, { headers }),
                 axios.get(`${API_URL}/api/employee/expenses`, { headers }),
+                axios.get(`${API_URL}/api/employee/tasks/custom-statuses`, { headers }),
             ]);
 
             setSummaryData({
@@ -107,6 +244,7 @@ const EmployeeDashboardPage = () => {
                 salary: salaryRes.data || {},
                 expenses: expensesRes.data || [],
             });
+            setCustomStatuses(Array.isArray(customStatusesRes.data) ? customStatusesRes.data : []);
         } catch (err) {
             setError('Unable to sync dashboard data.');
         } finally {
@@ -129,6 +267,30 @@ const EmployeeDashboardPage = () => {
 
     const totalPaid = summaryData.salary.totalPaid || 0;
     const salaryBalance = (summaryData.salary.totalDue || 0) - totalPaid;
+
+    const handleUpdateTaskStatus = async (task, nextStatus) => {
+        if (!task?.id) return;
+
+        const previousTasks = summaryData.tasks;
+        const toastId = toast.loading('Updating status...');
+        setSummaryData((prev) => ({
+            ...prev,
+            tasks: prev.tasks.map((item) => (item.id === task.id ? { ...item, status: nextStatus } : item)),
+        }));
+
+        try {
+            await makeRequestWithRetry((headers) =>
+                axios.put(`${API_URL}/api/employee/tasks/${task.id}/status`, { status: nextStatus }, { headers }),
+            );
+            if (!DEFAULT_TASK_STATUSES.some((status) => status.value === nextStatus)) {
+                setCustomStatuses((prev) => (prev.includes(nextStatus) ? prev : [...prev, nextStatus]));
+            }
+            toast.success('Status updated.', { id: toastId });
+        } catch (err) {
+            setSummaryData((prev) => ({ ...prev, tasks: previousTasks }));
+            toast.error(err?.response?.data?.error || 'Failed to update status.', { id: toastId });
+        }
+    };
 
     const chartConfig = useMemo(() => {
         const categories = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
@@ -155,6 +317,14 @@ const EmployeeDashboardPage = () => {
 
     return (
         <div className="max-w-[1400px] mx-auto p-6 space-y-8 bg-white dark:bg-gray-900 min-h-screen text-slate-900 dark:text-gray-200">
+            <Toaster position="top-right" />
+            <UpdateStatusModal
+                isOpen={Boolean(statusTask)}
+                onClose={() => setStatusTask(null)}
+                task={statusTask}
+                customStatuses={customStatuses}
+                onSubmit={handleUpdateTaskStatus}
+            />
             
             {/* --- Header Area --- */}
             <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 dark:border-gray-700 pb-8">
@@ -167,7 +337,7 @@ const EmployeeDashboardPage = () => {
             {/* --- Quick Stats --- */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <StatCard title="Active Projects" value={summaryData.projects.length} icon={Briefcase} trend="+2 from last month" />
-                <StatCard title="Pending Tasks" value={summaryData.tasks.filter(t => t.status !== 'done').length} icon={ClipboardList} />
+                <StatCard title="Pending Tasks" value={summaryData.tasks.filter(t => !isCompletedStatus(t.status)).length} icon={ClipboardList} />
                 <StatCard title="Earnings" value={formatCurrency(totalPaid)} icon={TrendingUp} trend="Paid this year" />
                 <StatCard title="Due Date" value="Oct 24" icon={Calendar} trend="Next Milestone" />
             </div>
@@ -235,6 +405,14 @@ const EmployeeDashboardPage = () => {
                                         <span className="text-[10px] font-medium text-slate-400 dark:text-gray-400 flex items-center gap-1">
                                             <Calendar className="w-3 h-3" /> {formatDate(task.due_date)}
                                         </span>
+                                        <button
+                                            type="button"
+                                            onClick={() => setStatusTask(task)}
+                                            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1 text-[11px] font-bold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-700"
+                                        >
+                                            <ClipboardEdit className="h-3.5 w-3.5" />
+                                            Update
+                                        </button>
                                     </div>
                                 </div>
                             )) : (

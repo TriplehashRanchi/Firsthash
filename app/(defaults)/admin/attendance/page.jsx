@@ -14,6 +14,30 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
 // --- Reusable UI Components ---
 
+const getCurrentLocation = () => new Promise((resolve, reject) => {
+    if (!navigator.geolocation) {
+        reject(new Error('Location is not supported on this device.'));
+        return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+        (position) => {
+            resolve({
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude,
+            });
+        },
+        () => {
+            reject(new Error('Please allow location permission to mark attendance.'));
+        },
+        {
+            enableHighAccuracy: true,
+            timeout: 15000,
+            maximumAge: 0,
+        },
+    );
+});
+
 const Toast = ({ message, type, onClose }) => {
     useEffect(() => {
         if (!message) return undefined;
@@ -74,6 +98,17 @@ const AttendanceModal = ({ member, onClose, onSave }) => {
             return;
         }
 
+        const shouldCaptureLocation = record.a_status === 1;
+        let location = null;
+        if (shouldCaptureLocation) {
+            try {
+                location = await getCurrentLocation();
+            } catch (err) {
+                toast.error(err.message || 'Location is required to mark attendance');
+                return;
+            }
+        }
+
         // 3️⃣ Build your payload
         const payload = [
             {
@@ -82,6 +117,10 @@ const AttendanceModal = ({ member, onClose, onSave }) => {
                 in_time: record.in_time || null,
                 out_time: record.out_time || null,
                 a_status: record.a_status,
+                ...(location ? {
+                    latitude: location.latitude,
+                    longitude: location.longitude,
+                } : {}),
             },
         ];
 
@@ -183,7 +222,7 @@ const toLocalYYYYMMDD = (dateInput) => {
 };
 
 const AttendanceLocation = ({ record }) => {
-    if (!record?.in_time) {
+    if (!record?.in_time && record?.a_status !== 1) {
         return <span className="text-sm text-gray-400">Not marked</span>;
     }
 
@@ -204,12 +243,18 @@ const AttendanceLocation = ({ record }) => {
                     {isOutside ? `Outside ${officeName}` : officeName}
                 </span>
             </div>
-            <div className={`text-xs font-medium ${isOutside ? 'text-amber-600' : 'text-green-600'}`}>
-                {isOutside ? 'Outside radius' : 'Inside radius'}
-                {distance !== null ? ` · ${Math.round(distance)} m` : ''}
+            <div
+                className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${
+                    isOutside
+                        ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200'
+                        : 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-200'
+                }`}
+            >
+                {isOutside ? 'Outside' : 'Inside'}
+                {distance !== null ? ` · ${Math.round(distance)}m` : ''}
             </div>
-            <a href={mapUrl} target="_blank" rel="noreferrer" className="block text-xs text-blue-600 hover:underline dark:text-blue-400">
-                {Number(record.latitude).toFixed(6)}, {Number(record.longitude).toFixed(6)}
+            <a href={mapUrl} target="_blank" rel="noreferrer" className="block text-xs font-medium text-blue-600 hover:underline dark:text-blue-400">
+                Open in Maps
             </a>
         </div>
     );
@@ -312,6 +357,36 @@ export default function AttendancePage() {
         });
     }, [members, attendance]);
 
+    const stats = useMemo(() => {
+        const today = processedMembers;
+        return {
+            total: today.length,
+            present: today.filter((member) => member.status === 'Present').length,
+            absent: today.filter((member) => member.status === 'Absent').length,
+            notMarked: today.filter((member) => member.status === 'Not Marked').length,
+            outsideRadius: today.filter((member) => member.todayRecord?.location_status === 'outside_radius').length,
+        };
+    }, [processedMembers]);
+
+    const statCards = useMemo(
+        () => [
+            { label: 'Total', value: stats.total, className: 'bg-slate-50 text-slate-700 dark:bg-slate-800 dark:text-slate-200' },
+            { label: 'Present', value: stats.present, className: 'bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300' },
+            { label: 'Absent', value: stats.absent, className: 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300' },
+            { label: 'Not Marked', value: stats.notMarked, className: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200' },
+            {
+                label: 'Outside Radius',
+                value: stats.outsideRadius,
+                filter: 'outside_radius',
+                className:
+                    statusFilter === 'outside_radius'
+                        ? 'bg-amber-600 text-white ring-2 ring-amber-300'
+                        : 'bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300',
+            },
+        ],
+        [stats, statusFilter],
+    );
+
     const handleSaveSuccess = () => {
         setModalMember(null);
         setToastMsg({ message: 'Attendance saved successfully!', type: 'success' });
@@ -326,7 +401,8 @@ export default function AttendancePage() {
                 statusFilter === 'all' ||
                 (statusFilter === 'present' && member.status === 'Present') ||
                 (statusFilter === 'absent' && member.status === 'Absent') ||
-                (statusFilter === 'not_marked' && member.status === 'Not Marked');
+                (statusFilter === 'not_marked' && member.status === 'Not Marked') ||
+                (statusFilter === 'outside_radius' && member.todayRecord?.location_status === 'outside_radius');
 
             return matchesSearch && matchesStatus;
         });
@@ -348,9 +424,39 @@ export default function AttendancePage() {
                     </a>
                 </li>
                 <li className="before:content-['/'] ltr:before:mr-2 rtl:before:ml-2 text-gray-500 dark:text-gray-500">
-                    <span class="text-gray-600 dark:text-gray-400">Attendance Dashboard</span>
+                    <span className="text-gray-600 dark:text-gray-400">Attendance Dashboard</span>
                 </li>
             </ul>
+            <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+                {statCards.map((card) => {
+                    const content = (
+                        <>
+                            <span className="text-xs font-semibold uppercase tracking-wide opacity-80">{card.label}</span>
+                            <span className="mt-2 text-2xl font-bold">{card.value}</span>
+                            {card.filter ? <span className="mt-2 rounded-full bg-white/70 px-2 py-0.5 text-xs font-semibold text-amber-700">Filter</span> : null}
+                        </>
+                    );
+
+                    if (card.filter) {
+                        return (
+                            <button
+                                key={card.label}
+                                type="button"
+                                onClick={() => setStatusFilter(statusFilter === card.filter ? 'all' : card.filter)}
+                                className={`flex min-h-24 flex-col items-start rounded-lg p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${card.className}`}
+                            >
+                                {content}
+                            </button>
+                        );
+                    }
+
+                    return (
+                        <div key={card.label} className={`flex min-h-24 flex-col rounded-lg p-4 shadow-sm ${card.className}`}>
+                            {content}
+                        </div>
+                    );
+                })}
+            </div>
             <div className="flex flex-col md:flex-row items-center justify-between mb-6 gap-3">
                 {/* Search */}
                 <input
@@ -363,13 +469,14 @@ export default function AttendancePage() {
 
                 {/* Filters */}
                 <div className="flex space-x-2">
-                    {['all', 'present', 'absent', 'not_marked'].map((f) => (
+                    {['all', 'present', 'absent', 'not_marked', 'outside_radius'].map((f) => (
                         <button
                             key={f}
                             onClick={() => setStatusFilter(f)}
                             className={`px-3 py-1.5 rounded-md text-sm font-medium ${statusFilter === f ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'}`}
                         >
-                            {f.charAt(0).toUpperCase() + f.slice(1).replace('_', ' ')}
+                            {f.charAt(0).toUpperCase() + f.slice(1).replaceAll('_', ' ')}
+                            {f === 'outside_radius' ? <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">{stats.outsideRadius}</span> : null}
                         </button>
                     ))}
                 </div>
@@ -432,8 +539,6 @@ export default function AttendancePage() {
                     </tbody>
                 </table>
             </div>
-
-            {modalMember && <AttendanceModal member={modalMember} onClose={() => setModalMember(null)} onSave={fetchData} />}
         </main>
     );
 }

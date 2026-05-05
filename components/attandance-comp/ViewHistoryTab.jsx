@@ -5,6 +5,30 @@ import { format } from 'date-fns';
 import AttendanceCalendar from './AttendanceCalendar';
 import StatusBadge        from './StatusBadge';
 
+const getRecordTime = (record, key) => record?.[key] || record?.[key === 'inTime' ? 'in_time' : 'out_time'] || '';
+
+const timeToSeconds = (timeValue) => {
+  if (!timeValue || typeof timeValue !== 'string') return null;
+
+  const [hours, minutes] = timeValue.slice(0, 5).split(':').map(Number);
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return null;
+
+  return (hours * 3600) + (minutes * 60);
+};
+
+const formatWorkedHours = (record) => {
+  const inSeconds = timeToSeconds(getRecordTime(record, 'inTime'));
+  const outSeconds = timeToSeconds(getRecordTime(record, 'outTime'));
+
+  if (inSeconds === null || outSeconds === null || outSeconds <= inSeconds) return '';
+
+  const totalSeconds = outSeconds - inSeconds;
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+
+  return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
+};
+
 export default function ViewHistoryTab({ history, students, onDayClick, onToggleStatus }) {
   const [viewMode, setViewMode]    = useState('list');
   const [filterStudent, setFilter] = useState('all');
@@ -98,10 +122,24 @@ export default function ViewHistoryTab({ history, students, onDayClick, onToggle
                       className="px-5 py-3 flex justify-between items-center cursor-pointer"
                       onClick={() => onToggleStatus(day.date, r.studentId, r.status)}
                     >
-                      <span className="font-medium text-slate-600 dark:text-slate-300">
-                        {studentMap.get(r.studentId)?.name || 'Unknown'}
-                      </span>
-                      <StatusBadge status={r.status} />
+                      <div>
+                        <span className="font-medium text-slate-600 dark:text-slate-300">
+                          {studentMap.get(r.studentId)?.name || 'Unknown'}
+                        </span>
+                        {formatWorkedHours(r) ? (
+                          <div className="mt-1 text-xs font-medium text-slate-500 dark:text-slate-400">
+                            Worked {formatWorkedHours(r)}
+                          </div>
+                        ) : null}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {r.location_status === 'outside_radius' ? (
+                          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+                            Outside radius
+                          </span>
+                        ) : null}
+                        <StatusBadge status={r.status} />
+                      </div>
                     </li>
                   ))}
                 </ul>
@@ -115,7 +153,6 @@ export default function ViewHistoryTab({ history, students, onDayClick, onToggle
         <AttendanceCalendar
           history={history}
           onDayClick={onDayClick}
-          students={students}
         />
       )}
     </motion.div>

@@ -10,6 +10,14 @@ import Link from 'next/link';
 import toast, { Toaster } from 'react-hot-toast';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+const DEFAULT_TASK_STATUSES = [
+    { value: 'to_do', label: 'To Do' },
+    { value: 'ongoing', label: 'Ongoing' },
+    { value: 'in_progress', label: 'In Progress' },
+    { value: 'completed', label: 'Completed' },
+    { value: 'not_working', label: 'Not Working' },
+    { value: 'overdue', label: 'Overdue' },
+];
 
 /* ----------------------------- Helpers & UI Components ----------------------------- */
 // ✅ Replace your existing getAuthHeaders function with this:
@@ -64,8 +72,12 @@ const StatusBadge = ({ status }) => {
     const base = 'inline-flex items-center px-2 py-1 rounded-full text-xs font-medium capitalize';
     const s_lower = (status || 'to_do').toLowerCase();
     let style = 'bg-gray-100 text-gray-800'; // Default
+    if (s_lower.includes('to_do')) style = 'bg-slate-100 text-slate-700';
+    if (s_lower.includes('ongoing')) style = 'bg-violet-100 text-violet-800';
     if (s_lower.includes('progress')) style = 'bg-blue-100 text-blue-800';
-    if (s_lower.includes('completed')) style = 'bg-green-100 text-green-800';
+    if (s_lower.includes('completed') || s_lower.includes('complete')) style = 'bg-green-100 text-green-800';
+    if (s_lower.includes('not_working')) style = 'bg-orange-100 text-orange-800';
+    if (s_lower.includes('overdue')) style = 'bg-rose-100 text-rose-800';
     if (s_lower.includes('rejected')) style = 'bg-rose-100 text-rose-800';
     if (s_lower.includes('finalize')) style = 'bg-yellow-100 text-yellow-800';
 
@@ -110,7 +122,7 @@ const UpdateStatusModal = ({ isOpen, onClose, task, customStatuses = [], onSubmi
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
-        const predefined = ['in_progress', 'completed', 'finalize', ...customStatuses];
+        const predefined = [...DEFAULT_TASK_STATUSES.map((status) => status.value), 'finalize', ...customStatuses];
         if (predefined.includes(task?.status)) {
             setSelectedStatus(task.status);
             setNewStatusText('');
@@ -149,8 +161,11 @@ const UpdateStatusModal = ({ isOpen, onClose, task, customStatuses = [], onSubmi
                             onChange={(e) => setSelectedStatus(e.target.value)}
                             className="w-full p-2 border dark:bg-gray-700 dark:text-gray-200 rounded-md bg-white text-sm"
                         >
-                            <option value="in_progress">In Progress</option>
-                            <option value="finalize">Finalize</option>
+                            {DEFAULT_TASK_STATUSES.map((status) => (
+                                <option key={status.value} value={status.value}>
+                                    {status.label}
+                                </option>
+                            ))}
                             {customStatuses.length > 0 && <option disabled>--- Custom Statuses ---</option>}
                             {customStatuses.map((status) => (
                                 <option key={status} value={status}>
@@ -365,7 +380,7 @@ export default function TaskPage() {
     const [projects, setProjects] = useState([]);
     const [customStatuses, setCustomStatuses] = useState([]);
     const [search, setSearch] = useState('');
-    const [activeTab, setActiveTab] = useState('overdue');
+    const [activeTab, setActiveTab] = useState('tasks');
     const [taskView, setTaskView] = useState('table');
     const [projectView, setProjectView] = useState('table');
     const [detailsOpen, setDetailsOpen] = useState(false);
@@ -515,7 +530,7 @@ export default function TaskPage() {
         const endOfWeek = new Date(today);
         endOfWeek.setDate(today.getDate() + (6 - today.getDay()) + 1); // End of Sunday
 
-        const groups = { overdue: [], today: [], week: [], upcoming: [] };
+        const groups = { all: filtered, overdue: [], today: [], week: [], upcoming: [] };
         for (const task of filtered) {
             if (!task.due_date) {
                 groups.upcoming.push(task);
@@ -538,6 +553,7 @@ export default function TaskPage() {
         });
     }, [projects, search]);
 
+    const allTasks = groupedTasks.all;
     const overdueTasks = groupedTasks.overdue;
 
     const openProjectDetails = async (projectId) => {
@@ -587,6 +603,7 @@ export default function TaskPage() {
                 </div>
                 <div className="flex flex-wrap items-center gap-2 lg:justify-end">
                     {[
+                        { key: 'tasks', label: 'My Tasks', count: allTasks.length },
                         { key: 'overdue', label: 'Overdue', count: overdueTasks.length },
                         { key: 'projects', label: 'Assigned Projects', count: filteredProjects.length },
                     ].map((item) => (
@@ -735,6 +752,136 @@ export default function TaskPage() {
                     ) : (
                         <div className="rounded-xl border border-dashed border-gray-300 bg-white px-6 py-12 text-center text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">
                             No overdue tasks found.
+                        </div>
+                    )}
+                </section>
+            )}
+
+            {!loading && !err && activeTab === 'tasks' && (
+                <section className="space-y-4">
+                    <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+                        <div>
+                            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">My Tasks</h2>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">All tasks assigned to you. Update progress, completion, or custom status from here.</p>
+                        </div>
+                        <span className="w-fit rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 dark:bg-blue-900/20 dark:text-blue-300">
+                            {allTasks.length} tasks
+                        </span>
+                    </div>
+                    <div className="flex flex-col gap-3 rounded-xl border border-gray-200 bg-white p-3 shadow-sm dark:border-gray-700 dark:bg-gray-800 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 dark:border-gray-700 dark:bg-gray-900">
+                            <Search className="h-4 w-4 flex-shrink-0 text-gray-400" />
+                            <input
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                placeholder="Search your tasks..."
+                                className="w-full bg-transparent text-sm text-gray-900 outline-none placeholder:text-gray-400 dark:text-gray-200"
+                            />
+                        </div>
+                        <div className="inline-flex w-fit rounded-lg border border-gray-200 bg-gray-50 p-1 dark:border-gray-700 dark:bg-gray-900">
+                            <button
+                                type="button"
+                                onClick={() => setTaskView('table')}
+                                className={`inline-flex h-9 items-center gap-2 rounded-md px-3 text-sm font-semibold transition ${
+                                    taskView === 'table'
+                                        ? 'bg-white text-gray-900 shadow-sm dark:bg-gray-700 dark:text-white'
+                                        : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
+                                }`}
+                            >
+                                <Table2 className="h-4 w-4" />
+                                Table
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setTaskView('grid')}
+                                className={`inline-flex h-9 items-center gap-2 rounded-md px-3 text-sm font-semibold transition ${
+                                    taskView === 'grid'
+                                        ? 'bg-white text-gray-900 shadow-sm dark:bg-gray-700 dark:text-white'
+                                        : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
+                                }`}
+                            >
+                                <LayoutGrid className="h-4 w-4" />
+                                Cards
+                            </button>
+                        </div>
+                    </div>
+                    {taskView === 'grid' ? (
+                        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                            {allTasks.length === 0 && (
+                                <div className="rounded-xl border border-dashed border-gray-300 bg-white px-6 py-12 text-center text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 md:col-span-2 xl:col-span-3">
+                                    No assigned tasks found.
+                                </div>
+                            )}
+                            {allTasks.map((task) => {
+                                const title = task.title || 'Untitled task';
+                                const isLongTitle = title.length > 90;
+
+                                return (
+                                    <div
+                                        key={task.id}
+                                        className="group rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-gray-300 hover:shadow-md dark:border-gray-700 dark:bg-gray-800 dark:hover:border-gray-600"
+                                    >
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div className="min-w-0">
+                                                <h3 className="line-clamp-2 text-base font-bold text-gray-900 dark:text-gray-100">
+                                                    {isLongTitle ? `${title.substring(0, 90)}...` : title}
+                                                </h3>
+                                                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{task.project_name || 'No Project'}</p>
+                                            </div>
+                                            <StatusBadge status={task.status} />
+                                        </div>
+                                        <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                                            <div className="rounded-lg bg-gray-50 p-3 dark:bg-gray-900/60">
+                                                <p className="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">Due Date</p>
+                                                <p className="mt-1 font-medium text-gray-800 dark:text-gray-200">{formatDate(task.due_date)}</p>
+                                            </div>
+                                            <div className="rounded-lg bg-gray-50 p-3 dark:bg-gray-900/60">
+                                                <p className="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">Status</p>
+                                                <p className="mt-1 font-medium text-gray-800 dark:text-gray-200">{statusLabel(task.status)}</p>
+                                            </div>
+                                        </div>
+                                        <div className="mt-4 flex items-center justify-between border-t border-gray-100 pt-3 text-sm dark:border-gray-700">
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleOpenStatusModal(task)}
+                                                    className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 font-semibold text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-700"
+                                                    title="Update Status"
+                                                >
+                                                    <ClipboardEdit className="h-4 w-4" />
+                                                    Update
+                                                </button>
+                                                {task.voice_note_url && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handlePlayAudio(task)}
+                                                        className="rounded-lg border border-gray-200 p-2 text-gray-500 transition hover:bg-green-50 hover:text-green-600 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-700"
+                                                        title="Play voice note"
+                                                    >
+                                                        <PlayCircle className="h-4 w-4" />
+                                                    </button>
+                                                )}
+                                            </div>
+                                            {isLongTitle && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleShowDetails(task)}
+                                                    className="inline-flex items-center gap-1 font-semibold text-gray-900 transition hover:text-blue-600 dark:text-gray-100 dark:hover:text-blue-400"
+                                                >
+                                                    <Info className="h-4 w-4" />
+                                                    Details
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    ) : allTasks.length > 0 ? (
+                        <TaskTable tasks={allTasks} onUpdateStatusClick={handleOpenStatusModal} onPlayAudio={handlePlayAudio} onShowDetails={handleShowDetails} />
+                    ) : (
+                        <div className="rounded-xl border border-dashed border-gray-300 bg-white px-6 py-12 text-center text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">
+                            No assigned tasks found.
                         </div>
                     )}
                 </section>
