@@ -5,63 +5,85 @@ import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import toast from 'react-hot-toast';
-import { BadgeCheck, Check, ShieldCheck, Sparkles } from 'lucide-react';
+import { BadgeCheck, Check, ShieldCheck, Sparkles, Crown, X, ArrowRight, Lock, Zap } from 'lucide-react';
 
 const PLAN_PRESENTATION = {
-  gold: {
-    title: 'Gold',
-    badge: 'Popular',
-    accent: 'from-[#f4e2b8] via-[#fbf4df] to-white',
-    border: 'border-[#e8cf95]',
-    ring: 'ring-[#e8cf95]/60',
-    button: 'bg-[#1f1810] text-white',
-    priceTone: 'text-[#1f1810]',
-    summary: 'For studios that need a clean professional setup with strong day-to-day capability.',
-    features: ['Premium workflow access', 'Business-ready reporting', 'Faster onboarding'],
-  },
-  diamond: {
-    title: 'Diamond',
-    badge: 'Premium',
-    accent: 'from-[#dbe7f7] via-[#eef4fb] to-white',
-    border: 'border-[#c9d9f2]',
-    ring: 'ring-[#c9d9f2]/70',
-    button: 'bg-[#111827] text-white',
-    priceTone: 'text-[#0f172a]',
-    summary: 'For teams that want the most polished experience with a higher-end operational tier.',
-    features: ['Priority access tools', 'Premium support flow', 'Best fit for scaling teams'],
+  annual: {
+    title: '1Lakh + GST',
+    badge: 'Annual Pro',
+    accent: 'from-amber-400/[0.16] via-amber-400/[0.04] to-transparent',
+    border: 'border-amber-400/25',
+    ring: 'ring-amber-400/30',
+    button: 'btn-gold',
+    priceTone: 'text-stone-950',
+    glowClass: 'glow-gold',
+    hoverClass: 'hover-gold',
+    iconBg: 'bg-amber-400/10 border-amber-400/20',
+    iconColor: 'text-amber-400',
+    badgeColor: 'text-amber-400',
+    checkBg: 'bg-amber-400/10',
+    checkColor: 'text-amber-400',
+    modalLine: 'from-amber-400 via-orange-400 to-amber-500',
+    summary: 'Annual Pro access with GST handled through invoice details before payment.',
+    features: ['Base subscription: ₹1,00,000', 'GST captured through GSTIN', 'Invoice + payment link flow', 'Priority support'],
   },
   trial: {
-    title: 'Free Trial',
-    badge: 'Try First',
-    accent: 'from-[#dff4ea] via-[#f4fbf7] to-white',
-    border: 'border-[#bfe7d2]',
-    ring: 'ring-[#bfe7d2]/70',
-    button: 'bg-[#0f3d2e] text-white',
-    priceTone: 'text-[#0f3d2e]',
-    summary: 'Start with the essentials and experience the product before moving into a paid plan.',
-    features: ['Quick start access', 'Same secure checkout path', 'Upgrade whenever ready'],
+    title: 'Product Trail',
+    badge: 'Free Trial',
+    accent: 'from-cyan-400/[0.16] via-cyan-400/[0.04] to-transparent',
+    border: 'border-cyan-400/25',
+    ring: 'ring-cyan-400/30',
+    button: 'btn-cyan',
+    priceTone: 'text-stone-950',
+    glowClass: 'glow-cyan',
+    hoverClass: 'hover-cyan',
+    iconBg: 'bg-cyan-400/10 border-cyan-400/20',
+    iconColor: 'text-cyan-400',
+    badgeColor: 'text-cyan-400',
+    checkBg: 'bg-cyan-400/10',
+    checkColor: 'text-cyan-400',
+    modalLine: 'from-cyan-400 via-teal-400 to-cyan-500',
+    summary: 'A clear 14-day product trial with limited access and no payment required.',
+    features: ['14 days access', 'Allowed once per company', '2 users included', 'Limited projects/customers'],
   },
 };
 
+const normalizePlanName = (name = '') => name.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+const ALLOWED_PLAN_NAMES = new Set(['1lakhgst', 'producttrail', 'producttrial']);
+
+const isAllowedPlan = (plan) => ALLOWED_PLAN_NAMES.has(normalizePlanName(plan.name));
+
+const isTrialPlan = (plan) => {
+  const normalized = normalizePlanName(plan?.name);
+  return normalized === 'producttrail' || normalized === 'producttrial' || Number(plan?.price) === 0;
+};
+
+const getPlanSortOrder = (plan) => {
+  const normalized = normalizePlanName(plan.name);
+  if (normalized === '1lakhgst') return 0;
+  if (normalized === 'producttrail' || normalized === 'producttrial') return 1;
+  return 2;
+};
+
 const getPlanPresentation = (plan) => {
-  const normalized = plan.name.toLowerCase();
+  if (isTrialPlan(plan)) return PLAN_PRESENTATION.trial;
+  return { ...PLAN_PRESENTATION.annual, title: plan.name, badge: 'Annual' };
+};
 
-  if (normalized.includes('diamond')) return PLAN_PRESENTATION.diamond;
-  if (normalized.includes('gold')) return PLAN_PRESENTATION.gold;
-  if (normalized.includes('trial') || normalized.includes('free') || Number(plan.price) === 0) {
-    return PLAN_PRESENTATION.trial;
-  }
+const formatPlanPrice = (amountInPaise) =>
+  new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    maximumFractionDigits: 0,
+  }).format(Number(amountInPaise || 0) / 100);
 
-  if (Number(plan.price) === Math.max(Number(plan.price), 0) && Number(plan.price) >= 499900) {
-    return PLAN_PRESENTATION.diamond;
-  }
+const GSTIN_PATTERN = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/i;
 
-  return {
-    ...PLAN_PRESENTATION.gold,
-    title: plan.name,
-    badge: 'Plan',
-    summary: `A premium ${plan.name} plan presented with cleaner hierarchy and more balanced spacing.`,
-  };
+const getPlanAmountLabel = (plan, amountInPaise) => {
+  if (!plan) return formatPlanPrice(amountInPaise);
+  if (isTrialPlan(plan)) return formatPlanPrice(0);
+  return `${formatPlanPrice(amountInPaise)} + GST`;
 };
 
 export default function SubscribePage() {
@@ -75,16 +97,20 @@ export default function SubscribePage() {
   const [couponDetails, setCouponDetails] = useState(null);
   const [loading, setLoading] = useState(false);
   const [finalAmount, setFinalAmount] = useState(0);
+  const [gstNumber, setGstNumber] = useState('');
+  const [gstError, setGstError] = useState('');
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
   const selectedPlan = plans.find((plan) => plan.id === selectedPlanId) || plans[0] || null;
-  const selectedTheme = selectedPlan ? getPlanPresentation(selectedPlan) : PLAN_PRESENTATION.gold;
+  const selectedTheme = selectedPlan ? getPlanPresentation(selectedPlan) : PLAN_PRESENTATION.annual;
 
   useEffect(() => {
     const fetchPlans = async () => {
       try {
         const { data } = await axios.get(`${API_URL}/api/plans`);
-        const activePlans = data.filter((plan) => plan.is_active);
+        const activePlans = data
+          .filter((plan) => plan.is_active && isAllowedPlan(plan))
+          .sort((a, b) => getPlanSortOrder(a) - getPlanSortOrder(b));
         setPlans(activePlans);
         if (activePlans.length > 0) {
           setSelectedPlanId(activePlans[0].id);
@@ -137,20 +163,27 @@ export default function SubscribePage() {
       return toast.error('Plan not found');
     }
 
-    let res; // Declare res outside try-catch to access it in finally block
+    const trimmedGstNumber = gstNumber.trim().toUpperCase();
+    if (!isTrialPlan(selectedPlan) && !GSTIN_PATTERN.test(trimmedGstNumber)) {
+      setLoading(false);
+      setGstError('Enter a valid 15-character GSTIN.');
+      return toast.error('Valid GSTIN is required for the annual plan');
+    }
+
+    let res;
 
     try {
       res = await axios.post(`${API_URL}/api/subscribe/create-order`, {
         firebase_uid: currentUser.uid,
         plan: selectedPlan.name,
         coupon,
+        gst_number: isTrialPlan(selectedPlan) ? null : trimmedGstNumber,
       });
-      
-      // Check for free checkout response
+
       if (res.data.free_checkout) {
         toast.success('Subscription activated successfully!');
         router.push('/admin/dashboard');
-        return; // Stop execution to prevent Razorpay script loading
+        return;
       }
 
       const { order_id, amount, razorpay_key_id } = res.data;
@@ -184,144 +217,249 @@ export default function SubscribePage() {
               console.error(err);
             }
           },
-          prefill: {
-            email: currentUser.email,
-          },
+          prefill: { email: currentUser.email },
           theme: { color: '#000000' },
-          modal: {
-            ondismiss: () => toast.error('Payment cancelled.'),
-          },
+          modal: { ondismiss: () => toast.error('Payment cancelled.') },
         });
         rzp.open();
       };
-      
+
       script.onerror = () => {
         toast.error('Failed to load payment gateway. Please try again.');
         setLoading(false);
-      }
+      };
 
       document.body.appendChild(script);
     } catch (err) {
       console.error(err);
-      const errorMessage = err.response?.data?.error || 'Subscription failed.';
-      toast.error(errorMessage);
+      toast.error(err.response?.data?.error || 'Subscription failed.');
     } finally {
-      // Only set loading to false if it's not a free checkout redirect
-      if (!res?.data?.free_checkout) {
-        setLoading(false);
-      }
+      if (!res?.data?.free_checkout) setLoading(false);
     }
   };
 
-  if (authLoading) return <div className="text-center mt-20 text-lg font-medium">Loading...</div>;
+  if (authLoading) return (
+    <div className="flex min-h-screen items-center justify-center bg-white">
+      <div className="flex flex-col items-center gap-4">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-stone-200 border-t-stone-900" />
+        <span className="text-xs font-semibold uppercase tracking-[0.2em] text-stone-500">Loading</span>
+      </div>
+    </div>
+  );
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#f6f1e8] px-4 py-8 sm:px-6 lg:px-8">
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute left-0 top-0 h-80 w-80 rounded-full bg-amber-200/30 blur-3xl" />
-        <div className="absolute right-0 top-16 h-96 w-96 rounded-full bg-stone-400/20 blur-3xl" />
-        <div className="absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-emerald-200/20 blur-3xl" />
-      </div>
+    <>
+      <style>{`
+        .btn-gold {
+          background: linear-gradient(135deg, #fcd34d 0%, #f59e0b 100%);
+          color: #000;
+          box-shadow: 0 4px 18px rgba(245, 158, 11, 0.25);
+          transition: all 0.2s ease;
+          font-weight: 700;
+        }
+        .btn-gold:hover:not(:disabled) {
+          box-shadow: 0 8px 28px rgba(245, 158, 11, 0.35);
+          transform: translateY(-1px);
+        }
+        .btn-cyan {
+          background: linear-gradient(135deg, #67e8f9 0%, #06b6d4 100%);
+          color: #000;
+          box-shadow: 0 4px 18px rgba(6, 182, 212, 0.22);
+          transition: all 0.2s ease;
+          font-weight: 700;
+        }
+        .btn-cyan:hover:not(:disabled) {
+          box-shadow: 0 8px 28px rgba(6, 182, 212, 0.32);
+          transform: translateY(-1px);
+        }
+        .glow-gold {
+          border-color: rgba(251, 191, 36, 0.35) !important;
+          box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.25), 0 18px 48px rgba(15,23,42,0.08);
+        }
+        .glow-cyan {
+          border-color: rgba(34, 211, 238, 0.35) !important;
+          box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.25), 0 18px 48px rgba(15,23,42,0.08);
+        }
+        .hover-gold { transition: all 0.3s ease; }
+        .hover-gold:hover {
+          border-color: rgba(251, 191, 36, 0.14) !important;
+          box-shadow: 0 18px 44px rgba(15,23,42,0.08);
+          transform: translateY(-4px);
+        }
+        .hover-cyan { transition: all 0.3s ease; }
+        .hover-cyan:hover {
+          border-color: rgba(34, 211, 238, 0.14) !important;
+          box-shadow: 0 18px 44px rgba(15,23,42,0.08);
+          transform: translateY(-4px);
+        }
+        .plan-card { transition: all 0.3s ease; }
+        @keyframes orb1 {
+          0%, 100% { transform: translate(0px, 0px); }
+          40% { transform: translate(30px, -40px); }
+          70% { transform: translate(-20px, 25px); }
+        }
+        @keyframes orb2 {
+          0%, 100% { transform: translate(0px, 0px); }
+          35% { transform: translate(-35px, 25px); }
+          65% { transform: translate(20px, -30px); }
+        }
+        @keyframes orb3 {
+          0%, 100% { transform: translate(0px, 0px); }
+          30% { transform: translate(25px, 30px); }
+          60% { transform: translate(-15px, -20px); }
+        }
+        .orb-1 { animation: orb1 14s ease-in-out infinite; }
+        .orb-2 { animation: orb2 18s ease-in-out infinite 3s; }
+        .orb-3 { animation: orb3 22s ease-in-out infinite 6s; }
+        .price-bar-glow {
+          box-shadow: 0 12px 32px rgba(15,23,42,0.08);
+        }
+        .modal-shadow {
+          box-shadow: 0 30px 90px rgba(15,23,42,0.18), 0 0 0 1px rgba(15,23,42,0.06);
+        }
+      `}</style>
 
-      <div className="relative mx-auto max-w-7xl rounded-[32px] border border-white/70 bg-white/80 p-5 shadow-[0_30px_100px_rgba(15,23,42,0.12)] backdrop-blur-xl sm:p-8 lg:p-10">
-        <div className="space-y-8">
-          <div className="flex flex-col gap-6 border-b border-stone-200/80 pb-8">
-            <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-              <div className="max-w-3xl">
-              <div className="inline-flex w-fit items-center rounded-full border border-stone-300 bg-white/80 px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-stone-600 shadow-sm">
-                Premium Access Plans
-              </div>
-                <h1 className="mt-4 text-3xl font-semibold tracking-[-0.04em] text-stone-950 sm:text-4xl">
-                  Choose a plan
-                </h1>
-                <p className="mt-3 max-w-2xl text-base leading-7 text-stone-600">
-                  Select any plan from the backend list. The page is kept simple, card-based, and responsive.
-                </p>
-              </div>
-              <div className="flex items-center gap-4 rounded-[24px] border border-stone-200 bg-stone-950 px-5 py-4 text-white shadow-[0_16px_40px_rgba(15,23,42,0.14)]">
-                <div>
-                  <div className="text-xs uppercase tracking-[0.22em] text-stone-400">Selected total</div>
-                  <div className="mt-1 text-3xl font-semibold tracking-[-0.04em]">₹{(finalAmount / 100).toFixed(0)}</div>
+      <div className="relative min-h-screen overflow-hidden bg-white">
+        {/* Content */}
+        <div className="relative z-10 mx-auto max-w-5xl px-4 pb-20 pt-20 sm:px-6 lg:px-8">
+
+          {/* Header */}
+          <div className="mb-16 text-center">
+            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-stone-200 bg-stone-50 px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.28em] text-stone-500">
+              <Sparkles className="h-3 w-3 text-amber-400" />
+              Subscription Plans
+            </div>
+
+            <h1 className="text-5xl font-black tracking-[-0.04em] text-stone-950 sm:text-6xl lg:text-[5.5rem] lg:leading-[1.02]">
+              Choose your{' '}
+              <span className="text-stone-950">plan</span>
+            </h1>
+
+            <p className="mx-auto mt-5 max-w-md text-base leading-7 text-stone-600 sm:text-lg">
+              Start with a free trial or unlock the full annual platform with dedicated support.
+            </p>
+
+            {/* Price summary bar */}
+            <div className="mx-auto mt-10 inline-flex items-center gap-5 rounded-2xl border border-stone-200 bg-white px-5 py-4 price-bar-glow">
+              <div className="text-left">
+                <div className="text-[9px] font-bold uppercase tracking-[0.28em] text-stone-500">Selected total</div>
+                <div className="mt-0.5 text-2xl font-black tracking-[-0.04em] text-stone-950">
+                  {getPlanAmountLabel(selectedPlan, finalAmount)}
                 </div>
-                <button
-                  type="button"
-                  onClick={() => selectedPlan && setShowCheckoutModal(true)}
-                  disabled={!selectedPlan}
-                  className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-stone-950 transition hover:bg-stone-100 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  Continue
-                </button>
               </div>
+              <div className="h-8 w-px bg-stone-200" />
+              <button
+                onClick={() => selectedPlan && setShowCheckoutModal(true)}
+                disabled={!selectedPlan}
+                className="btn-gold flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm transition disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Continue
+                <ArrowRight className="h-4 w-4" />
+              </button>
             </div>
           </div>
 
-          <div className="rounded-[28px] border border-stone-200/80 bg-[#fbf9f5] p-4 sm:p-5">
-            <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
-          {plans.map((plan) => {
-            const isSelected = selectedPlanId === plan.id;
-            const theme = getPlanPresentation(plan);
+          {/* Plan cards */}
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+            {plans.map((plan) => {
+              const isSelected = selectedPlanId === plan.id;
+              const theme = getPlanPresentation(plan);
+              const isTrial = isTrialPlan(plan);
 
-            return (
-              <div
-                key={plan.id}
-                onClick={() => {
-                  setSelectedPlanId(plan.id);
-                  setCouponDetails(null);
-                  setCoupon('');
-                }}
-                className={`relative flex min-h-[380px] flex-col overflow-hidden rounded-[28px] border bg-white shadow-[0_8px_30px_rgba(15,23,42,0.06)] transition-all duration-300 ${
-                  isSelected
-                    ? `${theme.border} ${theme.ring} ring-2 shadow-[0_16px_44px_rgba(15,23,42,0.12)]`
-                    : 'border-stone-200/80 hover:-translate-y-1 hover:border-stone-300 hover:shadow-[0_18px_40px_rgba(15,23,42,0.10)]'
-                }`}
-              >
-                <div className={`absolute inset-x-0 top-0 h-28 bg-gradient-to-br ${theme.accent}`} />
+              return (
+                <div
+                  key={plan.id}
+                  onClick={() => {
+                    setSelectedPlanId(plan.id);
+                    setCouponDetails(null);
+                    setCoupon('');
+                    setGstError('');
+                  }}
+                  className={`plan-card relative flex cursor-pointer flex-col overflow-hidden rounded-3xl border bg-white ${
+                    isSelected ? `${theme.glowClass}` : `border-stone-200 ${theme.hoverClass}`
+                  }`}
+                  style={{ minHeight: 480 }}
+                >
+                  {/* Top gradient */}
+                  <div className={`absolute inset-x-0 top-0 h-36 bg-gradient-to-b ${theme.accent}`} />
 
-                <div className="relative flex h-full flex-col p-6">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <div className="text-xs font-semibold uppercase tracking-[0.22em] text-stone-500">
-                        {theme.badge}
-                      </div>
-                      <h3 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-stone-950">
-                        {plan.name}
-                      </h3>
+                  {/* Selected checkmark */}
+                  {isSelected && (
+                    <div className="absolute right-5 top-5 flex h-6 w-6 items-center justify-center rounded-full border border-stone-200 bg-white shadow-sm">
+                      <Check className="h-3.5 w-3.5 text-stone-950" strokeWidth={3} />
                     </div>
-                    <div className="flex h-11 w-11 items-center justify-center rounded-full border border-stone-200 bg-white/80 shadow-sm">
-                      {theme.title.toLowerCase().includes('trial') ? <ShieldCheck className="h-5 w-5 text-stone-900" /> : <Sparkles className="h-5 w-5 text-stone-900" />}
-                    </div>
-                  </div>
+                  )}
 
-                  <div className="mt-8">
-                    <div className="flex items-end gap-2">
-                      <div className={`text-4xl font-semibold tracking-[-0.05em] ${theme.priceTone}`}>
-                        ₹{(plan.price / 100).toFixed(0)}
-                      </div>
-                      <div className="pb-2 text-sm font-medium uppercase tracking-[0.18em] text-stone-400">
-                        /plan
-                      </div>
-                    </div>
-                    <p className="mt-4 min-h-[72px] text-sm leading-6 text-stone-600">
-                      {theme.summary}
-                    </p>
-                  </div>
-
-                  <div className="mt-4 space-y-3 text-sm text-stone-700">
-                    {theme.features.map((feature) => (
-                      <div key={feature} className="flex items-center gap-3">
-                        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-stone-950 text-white">
-                          <Check className="h-3.5 w-3.5" />
+                  <div className="relative flex h-full flex-col p-7">
+                    {/* Card top row */}
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <div className={`text-[9px] font-black uppercase tracking-[0.35em] ${theme.badgeColor}`}>
+                          {theme.badge}
                         </div>
-                        <span>{feature}</span>
+                        <h3 className="mt-2 text-2xl font-black tracking-[-0.03em] text-stone-950">
+                          {plan.name}
+                        </h3>
                       </div>
-                    ))}
-                  </div>
+                      <div className={`flex h-12 w-12 items-center justify-center rounded-2xl border ${theme.iconBg}`}>
+                        {isTrial
+                          ? <ShieldCheck className={`h-5 w-5 ${theme.iconColor}`} />
+                          : <Crown className={`h-5 w-5 ${theme.iconColor}`} />
+                        }
+                      </div>
+                    </div>
 
-                  <div className="mt-auto pt-8">
-                    <div className="flex items-center justify-between gap-3">
+                    {/* Price */}
+                    <div className="mt-9">
+                      <div className="flex items-end gap-2">
+                        <div className={`text-[3.25rem] font-black leading-none tracking-[-0.05em] ${theme.priceTone}`}>
+                          {formatPlanPrice(plan.price)}
+                        </div>
+                        <div className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.22em] text-stone-500">
+                          {isTrial ? '/ trial' : '+ gst / yr'}
+                        </div>
+                      </div>
+
+                      {!isTrial && (
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <div className="rounded-lg border border-stone-200 bg-stone-50 px-3 py-1.5 text-[11px] font-medium text-stone-600">
+                            GST 18% on invoice
+                          </div>
+                          <div className="rounded-lg border border-stone-200 bg-stone-50 px-3 py-1.5 text-[11px] font-medium text-stone-600">
+                            Payment link after GSTIN
+                          </div>
+                        </div>
+                      )}
+
+                      <p className="mt-5 min-h-[52px] text-sm leading-6 text-stone-600">
+                        {theme.summary}
+                      </p>
+                    </div>
+
+                    {/* Divider */}
+                    <div className="my-5 h-px w-full bg-stone-200" />
+
+                    {/* Features */}
+                    <div className="space-y-3">
+                      {theme.features.map((feature) => (
+                        <div key={feature} className="flex items-center gap-3">
+                          <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${theme.checkBg}`}>
+                            <Check className={`h-2.5 w-2.5 ${theme.checkColor}`} strokeWidth={3} />
+                          </div>
+                          <span className="text-sm text-stone-700">{feature}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Action row */}
+                    <div className="mt-auto flex items-center gap-3 pt-8">
                       <button
                         type="button"
-                        className={`flex-1 rounded-[18px] px-4 py-3 text-sm font-semibold transition ${isSelected ? theme.button : 'bg-stone-100 text-stone-900 hover:bg-stone-200'}`}
+                        className={`flex-1 rounded-2xl px-4 py-3 text-sm transition ${
+                          isSelected
+                            ? `${theme.button}`
+                            : 'bg-stone-100 text-stone-700 hover:bg-stone-200 hover:text-stone-950'
+                        }`}
                       >
                         {isSelected ? 'Selected' : `Choose ${plan.name}`}
                       </button>
@@ -332,116 +470,149 @@ export default function SubscribePage() {
                             e.stopPropagation();
                             setShowCheckoutModal(true);
                           }}
-                          className="rounded-[18px] border border-stone-200 bg-white px-4 py-3 text-sm font-semibold text-stone-900 transition hover:bg-stone-50"
+                          className="rounded-2xl border border-stone-200 bg-white px-4 py-3 text-sm font-semibold text-stone-700 transition hover:bg-stone-50 hover:text-stone-950"
                         >
-                          Pay
+                          {isTrial ? 'Activate' : 'Pay'}
                         </button>
                       )}
                     </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
+
+          {/* Trust row */}
+          <div className="mt-12 flex flex-wrap items-center justify-center gap-8 text-[11px] font-medium text-stone-500">
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="h-3.5 w-3.5" />
+              Secured by Razorpay
+            </div>
+            <div className="flex items-center gap-2">
+              <Zap className="h-3.5 w-3.5" />
+              Instant activation
+            </div>
+            <div className="flex items-center gap-2">
+              <BadgeCheck className="h-3.5 w-3.5" />
+              GST invoice provided
             </div>
           </div>
         </div>
-      </div>
 
-      {showCheckoutModal && selectedPlan && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4 py-6">
-          <div className="absolute inset-0" onClick={() => setShowCheckoutModal(false)} />
-          <div className="relative z-10 w-full max-w-md overflow-hidden rounded-[28px] border border-stone-200 bg-white shadow-[0_30px_80px_rgba(15,23,42,0.25)]">
-            <div className={`h-24 bg-gradient-to-br ${selectedTheme.accent}`} />
-            <div className="relative -mt-8 p-6">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <div className="text-xs font-semibold uppercase tracking-[0.22em] text-stone-500">Checkout</div>
-                  <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-stone-950">{selectedPlan.name}</h2>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowCheckoutModal(false)}
-                  className="rounded-full border border-stone-200 px-3 py-1 text-sm font-medium text-stone-600 transition hover:bg-stone-50"
-                >
-                  Close
-                </button>
-              </div>
+        {/* Checkout modal */}
+        {showCheckoutModal && selectedPlan && (
+          <div className="fixed inset-0 z-50 flex items-end justify-center px-4 pb-0 pt-6 sm:items-center sm:pb-6">
+            <div
+              className="absolute inset-0 bg-stone-950/30 backdrop-blur-sm"
+              onClick={() => setShowCheckoutModal(false)}
+            />
+            <div className="relative z-10 w-full max-w-md overflow-hidden rounded-3xl bg-white modal-shadow">
+              {/* Colored top line */}
+              <div className={`h-[2px] w-full bg-gradient-to-r ${selectedTheme.modalLine}`} />
 
-              <div className="mt-6 space-y-5">
-                {/* <div>
-                  <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-stone-500">
-                    Coupon code
-                  </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      placeholder="Enter code"
-                      className="w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 text-stone-950 placeholder:text-stone-400 focus:border-stone-400 focus:outline-none"
-                      value={coupon}
-                      onChange={(e) => setCoupon(e.target.value)}
-                    />
-                    <button
-                      onClick={validateCoupon}
-                      disabled={!coupon.trim()}
-                      className="rounded-2xl bg-stone-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      Apply
-                    </button>
+              <div className="p-6">
+                {/* Modal header */}
+                <div className="flex items-start justify-between">
+                  <div>
+                    <div className={`text-[9px] font-black uppercase tracking-[0.32em] ${selectedTheme.badgeColor}`}>
+                      Checkout
+                    </div>
+                    <h2 className="mt-1.5 text-2xl font-black tracking-[-0.04em] text-stone-950">
+                      {selectedPlan.name}
+                    </h2>
                   </div>
-                  {couponDetails && (
-                    <p className="mt-3 flex items-center gap-2 text-sm font-medium text-emerald-600">
-                      <BadgeCheck className="h-4 w-4" />
-                      {couponDetails.discount_type === 'percent'
-                        ? `${couponDetails.discount_value}% off applied`
-                        : `₹${couponDetails.discount_value} off applied`}
+                  <button
+                    type="button"
+                    onClick={() => setShowCheckoutModal(false)}
+                    className="flex h-8 w-8 items-center justify-center rounded-full border border-stone-200 bg-stone-50 text-stone-500 transition hover:bg-stone-100 hover:text-stone-950"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+
+                <div className="mt-6 space-y-4">
+                  {/* GSTIN input */}
+                  {!isTrialPlan(selectedPlan) && (
+                    <div>
+                      <label className="mb-2 block text-[9px] font-black uppercase tracking-[0.28em] text-stone-500">
+                        GSTIN
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="22AAAAA0000A1Z5"
+                        className={`w-full rounded-2xl border bg-white px-4 py-3 font-mono text-sm uppercase text-stone-950 placeholder:text-stone-400 focus:outline-none transition ${
+                          gstError
+                            ? 'border-red-500/40 focus:border-red-500/60'
+                            : 'border-stone-200 focus:border-stone-400'
+                        }`}
+                        value={gstNumber}
+                        maxLength={15}
+                        onChange={(e) => {
+                          setGstNumber(e.target.value.toUpperCase());
+                          setGstError('');
+                        }}
+                      />
+                      <p className={`mt-2 text-xs ${gstError ? 'text-red-600' : 'text-stone-500'}`}>
+                        {gstError || 'We validate GSTIN for invoice and payment link processing.'}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Order summary */}
+                  <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-stone-600">Plan</span>
+                      <span className="font-bold text-stone-950">{selectedPlan.name}</span>
+                    </div>
+                    {!isTrialPlan(selectedPlan) && (
+                      <div className="mt-3 flex items-center justify-between border-t border-stone-200 pt-3 text-xs">
+                        <span className="text-stone-600">GST</span>
+                        <span className="text-right text-stone-500">Added on invoice after GSTIN</span>
+                      </div>
+                    )}
+                    <div className="mt-3 flex items-center justify-between border-t border-stone-200 pt-3">
+                      <span className="text-sm text-stone-600">Total</span>
+                      <span className={`text-3xl font-black tracking-[-0.04em] ${selectedTheme.priceTone}`}>
+                        {getPlanAmountLabel(selectedPlan, finalAmount)}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* CTA button */}
+                  <button
+                    disabled={loading || plans.length === 0}
+                    onClick={handleSubscribe}
+                    className={`flex w-full items-center justify-center gap-3 rounded-2xl px-5 py-4 text-sm transition disabled:cursor-not-allowed disabled:opacity-40 ${selectedTheme.button}`}
+                  >
+                    {loading ? (
+                      <svg className="h-5 w-5 animate-spin" viewBox="0 0 24 24" fill="none">
+                        <circle className="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-80" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                    ) : (
+                      <Sparkles className="h-4 w-4" />
+                    )}
+                    {loading
+                      ? 'Processing...'
+                      : isTrialPlan(selectedPlan)
+                        ? 'Activate Trial'
+                        : 'Validate GSTIN & Continue'}
+                  </button>
+
+                  {/* Security note */}
+                  <div className="flex items-start gap-3 rounded-2xl border border-stone-200 bg-white p-3.5">
+                    <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0 text-stone-500" />
+                    <p className="text-xs leading-5 text-stone-600">
+                      <span className="font-semibold text-stone-950">Secure Razorpay checkout.</span>{' '}
+                      Trial needs no payment. Annual Pro uses invoice details first, then payment link.
                     </p>
-                  )}
-                </div> */}
-
-                <div className="rounded-[22px] border border-stone-200 bg-stone-50 p-5">
-                  <div className="flex items-center justify-between text-sm text-stone-600">
-                    <span>Selected plan</span>
-                    <span className="font-medium text-stone-950">{selectedPlan.name}</span>
                   </div>
-                  <div className="mt-4 flex items-center justify-between border-t border-stone-200 pt-4">
-                    <span className="text-sm text-stone-600">Total to pay</span>
-                    <span className="text-3xl font-semibold tracking-[-0.04em] text-stone-950">
-                      ₹{(finalAmount / 100).toFixed(0)}
-                    </span>
-                  </div>
-                </div>
-
-                <button
-                  disabled={loading || plans.length === 0}
-                  onClick={handleSubscribe}
-                  className="flex w-full items-center justify-center gap-3 rounded-[20px] bg-stone-950 px-5 py-4 text-base font-semibold text-white transition hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {loading ? (
-                    <svg className="h-5 w-5 animate-spin text-white" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                    </svg>
-                  ) : (
-                    <Sparkles className="h-5 w-5" />
-                  )}
-                  {loading ? 'Processing...' : 'Subscribe & Pay'}
-                </button>
-
-                <div className="rounded-[18px] border border-stone-200 bg-white p-4 text-sm text-stone-600">
-                  <div className="flex items-center gap-2 font-medium text-stone-950">
-                    <ShieldCheck className="h-4 w-4" />
-                    Secure Razorpay checkout
-                  </div>
-                  <p className="mt-2 leading-6">
-                    Coupon validation and payment flow are unchanged. This is only a UI cleanup.
-                  </p>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+    </>
   );
 }
